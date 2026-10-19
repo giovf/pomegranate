@@ -59,6 +59,10 @@ internal interface TransferJobDao {
     @Query("SELECT * FROM transfer_job WHERE state = 'DONE' ORDER BY completedAt")
     suspend fun getDone(): List<TransferJobEntity>
 
+    /** Cancels everything that is not proof of copy. */
+    @Query("DELETE FROM transfer_job WHERE state != 'DONE'")
+    suspend fun deleteNotDone(): Int
+
     @Query("DELETE FROM transfer_job")
     suspend fun deleteAll()
 }

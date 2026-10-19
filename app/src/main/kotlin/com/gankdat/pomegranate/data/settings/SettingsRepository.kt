@@ -31,6 +31,9 @@ public interface SettingsRepository {
     /** The user finished onboarding (destination chosen); routes straight to the library on launch. */
     public val onboardingCompleted: Flow<Boolean>
 
+    /** The user ticked "don't show again" on the fidelity notice. */
+    public val fidelityNoticeAcknowledged: Flow<Boolean>
+
     /** Epoch millis when the last device census finished, 0 if never. */
     public val lastDeviceScanTimeMillis: Flow<Long>
 
@@ -52,6 +55,8 @@ public interface SettingsRepository {
     public suspend fun setLastDeviceScanTimeMillis(timeMillis: Long)
 
     public suspend fun setOnboardingCompleted(completed: Boolean)
+
+    public suspend fun setFidelityNoticeAcknowledged(acknowledged: Boolean)
 
     public companion object {
         public const val MIN_CONCURRENCY: Int = 1

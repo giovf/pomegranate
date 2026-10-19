@@ -32,7 +32,59 @@
     <string name="section_siblings">Related files</string>
     <string name="preview_photo">Photo preview</string>
     <string name="preview_video">Video preview</string>
-    <string name="placeholder_pull">Pull: %1$s</string>
+    <string name="pull_scope_intro">Choose what to copy from Google Photos into your destination folder. Every file is verified before it counts.</string>
+    <string name="pull_scope_cloud_only">Everything that is only in Google Photos</string>
+    <string name="pull_scope_everything">Every indexed item, including ones already on this phone</string>
+    <string name="pull_scope_origin">Only %1$s</string>
+    <plurals name="pull_scope_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+    <string name="pull_size_unknown">Google does not report file sizes before download, so make sure your destination has room.</string>
+    <plurals name="pull_start">
+        <item quantity="one">Pull %1$d item</item>
+        <item quantity="other">Pull %1$d items</item>
+    </plurals>
+    <plurals name="pull_progress_items">
+        <item quantity="one">%1$d of %2$d item • %3$s</item>
+        <item quantity="other">%1$d of %2$d items • %3$s</item>
+    </plurals>
+    <string name="pull_speed">%1$s/s</string>
+    <string name="pull_speed_calculating">Measuring speed…</string>
+    <string name="pull_eta">About %1$s left</string>
+    <string name="pull_paused">Paused</string>
+    <string name="pull_pause">Pause</string>
+    <string name="pull_resume">Resume</string>
+    <string name="pull_whats_left">What\'s left</string>
+    <string name="pull_cancel_title">Stop pulling?</string>
+    <string name="pull_cancel_body">Files already verified stay where they are. Anything still in progress is removed from the queue.</string>
+    <string name="pull_cancel_confirm">Stop</string>
+    <string name="pull_cancel_keep">Keep going</string>
+    <string name="job_queued">Waiting</string>
+    <string name="job_running">Downloading • %1$s</string>
+    <string name="job_verifying">Verifying</string>
+    <string name="job_paused">Paused</string>
+    <string name="job_done">Done</string>
+    <string name="job_failed">Failed</string>
+    <plurals name="pull_done_summary">
+        <item quantity="one">%1$d item pulled • %2$s</item>
+        <item quantity="other">%1$d items pulled • %2$s</item>
+    </plurals>
+    <string name="pull_done_verified">Each file was re-read and hashed after writing.</string>
+    <plurals name="pull_failed_summary">
+        <item quantity="one">%1$d item failed</item>
+        <item quantity="other">%1$d items failed</item>
+    </plurals>
+    <plurals name="pull_failed_more">
+        <item quantity="one">…and %1$d more</item>
+        <item quantity="other">…and %1$d more</item>
+    </plurals>
+    <string name="pull_retry_failed">Retry failed</string>
+    <string name="pull_back_to_library">Back to library</string>
+    <string name="fidelity_notice_title">What you get from Google</string>
+    <string name="fidelity_notice_body">Google\'s picker hands out photos without their location data and videos as re-encoded copies, not the originals you uploaded. Every pulled file is labelled accordingly. Full-fidelity export via Google Takeout is planned for a later version.</string>
+    <string name="fidelity_notice_dont_show">Don\'t show this again</string>
+    <string name="fidelity_notice_continue">Continue</string>
     <string name="onboarding_back">Back</string>
     <string name="onboarding_next">Next</string>
     <string name="onboarding_get_started">Get started</string>

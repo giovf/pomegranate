@@ -22,6 +22,9 @@ internal interface TransferQueue {
 
     suspend fun resumeAll()
 
+    /** Drops every job that is not DONE. */
+    suspend fun cancelAll(): Int
+
     /** Re-queues every FAILED job with its attempt counter reset. */
     suspend fun retryFailed(): Int
 
@@ -70,6 +73,8 @@ internal class TransferQueueImpl(
     override suspend fun resumeAll() {
         jobs.setStateForAll(TransferState.PAUSED, TransferState.QUEUED)
     }
+
+    override suspend fun cancelAll(): Int = jobs.deleteNotDone()
 
     override suspend fun retryFailed(): Int {
         val failed = jobs.getByState(TransferState.FAILED)

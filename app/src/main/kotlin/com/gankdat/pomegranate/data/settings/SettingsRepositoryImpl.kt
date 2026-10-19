@@ -47,6 +47,8 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
 
     override val onboardingCompleted: Flow<Boolean> = select { it[ONBOARDING_COMPLETED] ?: false }
 
+    override val fidelityNoticeAcknowledged: Flow<Boolean> = select { it[FIDELITY_NOTICE_ACKNOWLEDGED] ?: false }
+
     override val lastDeviceScanTimeMillis: Flow<Long> = select { it[LAST_DEVICE_SCAN_TIME] ?: 0L }
 
     override suspend fun setDestinationRootUri(uri: String?) {
@@ -87,6 +89,10 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
         dataStore.edit { it[ONBOARDING_COMPLETED] = completed }
     }
 
+    override suspend fun setFidelityNoticeAcknowledged(acknowledged: Boolean) {
+        dataStore.edit { it[FIDELITY_NOTICE_ACKNOWLEDGED] = acknowledged }
+    }
+
     private fun <T> select(read: (Preferences) -> T): Flow<T> = dataStore.data.map(read).distinctUntilChanged()
 
     private companion object {
@@ -99,5 +105,6 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
         val PARTIAL_ACCESS_BANNER_DISMISSED = booleanPreferencesKey("partial_access_banner_dismissed")
         val LAST_DEVICE_SCAN_TIME = longPreferencesKey("last_device_scan_time_millis")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        val FIDELITY_NOTICE_ACKNOWLEDGED = booleanPreferencesKey("fidelity_notice_acknowledged")
     }
 }

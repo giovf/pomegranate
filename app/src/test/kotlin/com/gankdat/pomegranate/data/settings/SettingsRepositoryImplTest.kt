@@ -57,6 +57,13 @@ class SettingsRepositoryImplTest {
         assertFalse(settings.partialAccessBannerDismissed.first())
         assertEquals(0L, settings.lastDeviceScanTimeMillis.first())
         assertFalse(settings.onboardingCompleted.first())
+        assertFalse(settings.fidelityNoticeAcknowledged.first())
+    }
+
+    @Test
+    fun `fidelity notice acknowledgement persists`() = runBlocking {
+        settings.setFidelityNoticeAcknowledged(true)
+        assertTrue(settings.fidelityNoticeAcknowledged.first())
     }
 
     @Test

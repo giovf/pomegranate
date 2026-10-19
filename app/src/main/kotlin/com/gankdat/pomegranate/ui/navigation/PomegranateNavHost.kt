@@ -26,6 +26,8 @@ import com.gankdat.pomegranate.ui.library.ItemDetailRoute
 import com.gankdat.pomegranate.ui.library.LibraryScreen
 import com.gankdat.pomegranate.ui.onboarding.OnboardingScreen
 import com.gankdat.pomegranate.ui.permissions.MediaPermissionGate
+import com.gankdat.pomegranate.ui.pull.PullScreen
+import com.gankdat.pomegranate.data.model.PullScope
 
 /**
  * The navigation graph. Each destination currently renders a placeholder
@@ -53,6 +55,9 @@ internal fun PomegranateNavHost(
                 navController,
                 stringResource(R.string.title_library),
                 actions = {
+                    IconButton(onClick = { navController.navigateToPull(PullScope.CLOUD_ONLY) }) {
+                        Icon(painter = painterResource(R.drawable.ic_download), contentDescription = stringResource(R.string.title_pull))
+                    }
                     IconButton(onClick = navController::navigateToSettings) {
                         Icon(painter = painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.title_settings))
                     }
@@ -76,10 +81,9 @@ internal fun PomegranateNavHost(
         composable(Screen.CloudItemDetail.route, arguments = Screen.CloudItemDetail.arguments) {
             CloudItemDetailRoute(navController)
         }
-        composable(Screen.Pull.route, arguments = Screen.Pull.arguments) { entry ->
-            val scope = Screen.Pull.parseScope(entry.arguments?.getString(Screen.ARG_SCOPE))
+        composable(Screen.Pull.route, arguments = Screen.Pull.arguments) {
             PomegranateScaffold(navController, stringResource(R.string.title_pull)) { padding ->
-                Placeholder(stringResource(R.string.placeholder_pull, scope.name), padding)
+                PullScreen(onDone = { navController.popBackStack() }, modifier = Modifier.padding(padding))
             }
         }
         composable(Screen.Connection.route) {

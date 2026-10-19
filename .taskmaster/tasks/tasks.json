@@ -1328,7 +1328,7 @@
           "2",
           "10"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1336,9 +1336,10 @@
             "description": "Add the androidx.work:work-runtime-ktx dependency to the version catalog, add it to app/build.gradle.kts, and regenerate verification-metadata.xml checksums.",
             "dependencies": [],
             "details": "1. Add to gradle/libs.versions.toml [versions] section: work = \"2.10.0\" (or latest stable WorkManager version).\n2. Add to [libraries] section: androidx-work-runtime-ktx = { group = \"androidx.work\", name = \"work-runtime-ktx\", version.ref = \"work\" }.\n3. In app/build.gradle.kts, add: implementation(libs.androidx.work.runtime.ktx).\n4. Run ./gradlew --write-verification-metadata sha256 build to update gradle/verification-metadata.xml with the new artifact checksums.\n5. Verify build succeeds with ./gradlew assembleDebug and that WorkManager classes (WorkManager, CoroutineWorker, Constraints) are importable.\n6. Confirm work-runtime-ktx artifact appears in verification-metadata.xml.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run ./gradlew assembleDebug to verify dependency resolution. Verify verification-metadata.xml contains work-runtime-ktx entries. Create a simple test import of WorkManager class to confirm it resolves.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:27:44.171Z"
           },
           {
             "id": 2,
@@ -1348,9 +1349,10 @@
               1
             ],
             "details": "1. Create package com.gankdat.pomegranate.transfer.\n2. Create TransferQueue.kt class that depends on TransferJobDao (from Task 1).\n3. Implement suspend fun enqueue(cloudItemIds: List<Long>): inserts TransferJobEntity records with state=QUEUED, attempts=0, bytesWritten=0.\n4. Implement suspend fun pause(jobId: Long): updates job state from QUEUED or RUNNING to PAUSED.\n5. Implement suspend fun resume(jobId: Long): updates job state from PAUSED back to QUEUED.\n6. Implement suspend fun cancel(jobId: Long): removes the job record entirely from the database.\n7. Implement fun observeJobs(): Flow<List<TransferJob>> using TransferJobDao.observeAll() or similar Flow-returning query.\n8. Create TransferJob domain model (non-entity, for UI layer) mapping from TransferJobEntity.\n9. Handle invalid state transitions gracefully (e.g., cannot pause an already DONE job).\n10. Mark class as internal; expose via repository pattern later if needed.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: test enqueue creates QUEUED jobs; test pause transitions QUEUED->PAUSED and RUNNING->PAUSED; test resume transitions PAUSED->QUEUED; test cancel removes job; test observeJobs emits updates; test invalid transitions are handled. Use Room in-memory database.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:27:46.022Z"
           },
           {
             "id": 3,
@@ -1361,9 +1363,10 @@
               2
             ],
             "details": "1. Create TransferWorker.kt in com.gankdat.pomegranate.transfer extending CoroutineWorker.\n2. Override suspend fun doWork(): Result to process transfer jobs.\n3. Inject or retrieve concurrency setting from SettingsRepository (Task 2).\n4. Create Semaphore(concurrencyLimit) for bounded parallel downloads.\n5. Query TransferJobDao for N QUEUED jobs (N = concurrency setting).\n6. For each job, acquire semaphore permit, update state to RUNNING, then:\n   a. Call download logic (placeholder for Task 15 integration).\n   b. Update state to VERIFYING after download completes.\n   c. Verify file (placeholder for hash verification).\n   d. Update state to DONE on success or FAILED on failure.\n   e. Release semaphore permit.\n7. Use coroutineScope + launch to process jobs in parallel within concurrency limit.\n8. Return Result.success() if all jobs processed, Result.retry() if more jobs remain.\n9. Handle exceptions: catch per-job, update lastError field, determine retry vs fail.\n10. Create setProgress() calls for progress updates observable by UI.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: mock TransferJobDao and verify state transitions; test concurrency limit is respected (N jobs max concurrent); test doWork returns appropriate Result; test exception handling updates lastError. Integration test with Room in-memory DB.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:27:47.695Z"
           },
           {
             "id": 4,
@@ -1373,9 +1376,10 @@
               3
             ],
             "details": "1. In TransferWorker, after a job fails, increment attempts field in TransferJobEntity.\n2. Define MAX_ATTEMPTS = 5 constant.\n3. Categorize failures as retryable (network timeout, server 5xx) vs fatal (404, hash mismatch, storage full).\n4. For retryable failures with attempts < MAX_ATTEMPTS:\n   a. Calculate backoff delay: initialDelay * 2^(attempts-1) with jitter (e.g., 30s base, max 10 min).\n   b. Set job state to QUEUED (will be picked up by next worker run).\n   c. Store lastError with failure reason.\n5. For fatal failures OR attempts >= MAX_ATTEMPTS:\n   a. Set job state to FAILED.\n   b. Store detailed lastError including failure type.\n6. Create RetryStrategy sealed class: Retry(delayMs), Fail, with fun categorize(exception: Exception): RetryStrategy.\n7. Update TransferJobEntity to track createdAt, lastAttemptAt for retry timing.\n8. Worker should skip jobs that were retried too recently (respect backoff).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: test retry on network failure with attempts < 5; test fail on attempts >= 5; test fatal errors fail immediately; test backoff delay calculation; test retryable vs fatal categorization for various exceptions. Test lastError is recorded correctly.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:27:49.552Z"
           },
           {
             "id": 5,
@@ -1385,9 +1389,10 @@
               3
             ],
             "details": "1. Before downloading a cloud item, check CloudItemEntity.baseUrlExpiresAt against System.currentTimeMillis().\n2. Add buffer (e.g., 5 minutes) to expiry check to avoid edge cases.\n3. If expired or near-expiry:\n   a. Retrieve sessionId from CloudItemEntity.\n   b. Call Picker API listMediaItems for that session (Task 10 integration point).\n   c. Update CloudItemEntity.baseUrl and baseUrlExpiresAt with fresh values.\n   d. If session expired entirely (API returns error), mark job as FAILED with 'session_expired' error.\n4. Create UrlRefresher class/interface to abstract this logic, injectable into TransferWorker.\n5. Handle rate limiting on Picker API: if refresh fails due to rate limit, return Result.retry() from worker.\n6. Track refresh attempts to avoid infinite refresh loops.\n7. Consider batching: if multiple jobs from same session need refresh, refresh once for all.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: test expired URL triggers refresh; test near-expiry triggers refresh; test valid URL proceeds without refresh; test session-expired error handling; test batch refresh for multiple jobs. Mock Picker API responses.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:27:51.422Z"
           },
           {
             "id": 6,
@@ -1398,9 +1403,10 @@
               2
             ],
             "details": "1. Create TransferConstraints.kt in com.gankdat.pomegranate.transfer.\n2. Create fun buildConstraints(wifiOnly: Boolean, requireBatteryNotLow: Boolean): Constraints.\n3. Use Constraints.Builder() with:\n   a. setRequiredNetworkType(if (wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED)\n   b. setRequiresBatteryNotLow(requireBatteryNotLow)\n   c. setRequiresStorageNotLow(true) always - prevent writes when storage critical.\n4. Read wifiOnly from SettingsRepository (Flow) to build current constraints.\n5. Create TransferWorkManager wrapper class that manages work requests with constraints.\n6. When constraints change (user toggles setting), cancel and reschedule work with new constraints.\n7. Handle constraint satisfaction callbacks: Log when constraints met/unmet for debugging.\n8. Consider adding setRequiresCharging(false) explicitly to document intent.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: test constraint building with various settings combinations; verify NetworkType.UNMETERED vs CONNECTED based on wifiOnly flag; verify battery constraint applied. Integration test: enqueue work, verify it only runs when constraints satisfied (may require emulator manipulation).",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:27:53.163Z"
           },
           {
             "id": 7,
@@ -1411,15 +1417,16 @@
               6
             ],
             "details": "1. Create TransferScheduler.kt in com.gankdat.pomegranate.transfer.\n2. Implement fun schedulePeriodicWork(workManager: WorkManager): schedules TransferWorker every 15 minutes.\n   a. Use PeriodicWorkRequestBuilder<TransferWorker>(15, TimeUnit.MINUTES).\n   b. Apply constraints from TransferConstraints.buildConstraints().\n   c. Use unique work name: \"pomegranate_transfer_periodic\".\n   d. Use ExistingPeriodicWorkPolicy.KEEP to avoid replacing running work.\n3. Implement fun startImmediateWork(workManager: WorkManager): triggers one-shot TransferWorker.\n   a. Use OneTimeWorkRequestBuilder<TransferWorker>().\n   b. Apply same constraints.\n   c. Use ExistingWorkPolicy.APPEND_OR_REPLACE for unique name \"pomegranate_transfer_immediate\".\n4. Implement fun cancelAllWork(workManager: WorkManager): cancels all transfer work.\n5. WorkManager automatically persists work across app restarts; on app launch, query WorkManager for pending/running transfer work and update UI accordingly.\n6. Call schedulePeriodicWork from Application.onCreate() or after first job enqueued.\n7. Add fun observeWorkStatus(): Flow<WorkInfo> for UI observation.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify periodic work scheduled with correct interval; verify one-shot work uses correct policy; verify cancellation removes work. Integration tests: enqueue work, force-stop app, restart, verify work resumes; verify periodic work triggers approximately every 15 minutes.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:27:54.985Z"
           }
         ],
         "complexity": 8,
         "recommendedSubtasks": 7,
         "expansionPrompt": "Break down transfer queue into: 1) Add WorkManager dependency to libs.versions.toml, 2) Create TransferQueue class managing TransferJobEntity states, 3) Create TransferWorker extending CoroutineWorker with bounded concurrency, 4) Implement retry with exponential backoff (max 5 attempts), 5) Handle baseUrl expiry with session refresh before download, 6) Configure WorkManager constraints (network, battery), 7) Create periodic and one-shot work requests with proper policy. Test queue state transitions thoroughly.",
-        "updatedAt": "2026-10-19T16:21:56.251Z"
+        "updatedAt": "2026-10-19T16:27:54.985Z"
       },
       {
         "id": "15",
@@ -1432,7 +1439,7 @@
           "2",
           "14"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1440,9 +1447,10 @@
             "description": "Implement the core download mechanism that streams media from Google Photos Picker URLs to temporary files in app cache with progress tracking.",
             "dependencies": [],
             "details": "Create `TransferDownloader` class in `com.gankdat.pomegranate.transfer` package. Implement `downloadToTemp(baseUrl: String, mediaType: MediaType): TempDownloadResult` that: 1) Opens HttpsURLConnection to `baseUrl + \"=d\"` for photos or `baseUrl + \"=dv\"` for videos (Picker download suffixes). 2) Sets appropriate timeouts and User-Agent. 3) Creates temp file in `context.cacheDir` with unique name. 4) Streams response body to temp file using buffered streams (8KB buffer). 5) Tracks bytes downloaded and emits progress via callback or Flow. 6) Returns `TempDownloadResult(tempFile, bytesDownloaded, contentType)`. Handle connection errors, timeouts, and partial downloads. Ensure temp files are cleaned up on failure. Use `withContext(Dispatchers.IO)` for all network/file operations.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: mock HttpsURLConnection responses and verify temp file creation, byte counting accuracy, error handling for timeouts and 4xx/5xx responses. Integration tests: download small test files from a mock server, verify file integrity and cleanup on failure.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:27:58.393Z"
           },
           {
             "id": 2,
@@ -1452,9 +1460,10 @@
               1
             ],
             "details": "Create `SafFolderManager` class that manages folder creation and caching. Implement: 1) `getOrCreateDestinationFolder(rootUri: Uri, dateTaken: LocalDate, origin: String?): Uri` that creates the full path. 2) Use `DocumentsContract.createDocument(resolver, parentUri, DocumentsContract.Document.MIME_TYPE_DIR, name)` for each level. 3) Check if folder exists first using `DocumentsContract.findDocumentPath` or query children to avoid duplicates. 4) Cache folder URIs in memory using `LruCache<String, Uri>` keyed by path string (e.g., \"Pomegranate/2024/2024-03/Camera\"). 5) Handle the case where Origin is null (place directly in YYYY-MM folder). 6) Format folder names correctly: \"Pomegranate\", year as \"YYYY\", month as \"YYYY-MM\". Persist takePersistableUriPermission on root URI. All operations must handle SecurityException for permission issues.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify path generation logic for various dates and origins (null, empty, special characters). Integration tests on device: create folder hierarchy, verify structure with DocumentFile queries, verify cache prevents duplicate creation calls.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:28:00.260Z"
           },
           {
             "id": 3,
@@ -1465,9 +1474,10 @@
               2
             ],
             "details": "Add to `TransferDownloader` or create `SafFileWriter` class with `writeToDestination(tempFile: File, folderUri: Uri, filename: String, mimeType: String): Uri`. Implementation: 1) Create document using `DocumentsContract.createDocument(resolver, folderUri, mimeType, filename)`. 2) Open output stream via `contentResolver.openOutputStream(documentUri)`. 3) Open input stream from temp file. 4) Copy using buffered streams with progress tracking. 5) Flush and close streams properly in finally block. 6) Delete temp file after successful copy. 7) Return the final document URI. Handle filename conflicts by appending counter (e.g., \"IMG_001 (1).jpg\"). Verify the created document exists after write. Throw descriptive exceptions for SAF permission errors, storage full, or I/O failures. Use `use {}` blocks for auto-closing streams.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify stream copying logic with mock streams, test filename conflict resolution. Integration tests: write test files to SAF destination, verify files are readable, verify temp cleanup occurs even on partial failure.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:28:02.096Z"
           },
           {
             "id": 4,
@@ -1477,9 +1487,10 @@
               3
             ],
             "details": "Create `TransferVerifier` class in transfer package. Implement: 1) `verifySize(documentUri: Uri, expectedSize: Long): Boolean` - query document size via `DocumentsContract.getDocumentColumn` or open stream and count bytes. 2) `computeSha256(documentUri: Uri): String` - read file via ContentResolver, compute hash using `MessageDigest.getInstance(\"SHA-256\")`, return hex string. 3) `verify(documentUri: Uri, expectedSize: Long): VerificationResult` combining both checks. Store computed hash in TransferJobEntity.sha256Hash field. Only transition job state to DONE after verification passes. On verification failure: delete the corrupted file, mark job as FAILED with error details, allow retry. Use 8KB buffer for hash computation to balance memory and performance. All file reads must use `withContext(Dispatchers.IO)`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify SHA-256 computation produces correct hashes for known inputs, test size mismatch detection. Integration tests: write file with known content, verify hash matches expected, simulate corruption and verify detection.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:28:03.811Z"
           },
           {
             "id": 5,
@@ -1489,9 +1500,10 @@
               4
             ],
             "details": "Create `FidelityClassifier` in transfer package. Define `Fidelity` enum in data package: `ORIGINAL`, `GPS_STRIPPED`, `TRANSCODED`. Implement `classifyFidelity(mediaType: MediaType, sourceType: SourceType): Fidelity`. For Google Picker source: all photos get `GPS_STRIPPED` (Picker strips EXIF GPS), all videos get `TRANSCODED` (Picker transcodes all videos). Document these limitations clearly in code comments referencing Picker API docs. Store fidelity in `TransferJobEntity.fidelity` column. Future-proof: when Takeout source is added, it can return `ORIGINAL`. UI will use this to show appropriate badge/warning. Add fidelity to the verification result so it's captured at the right time. The fidelity determination happens after successful download, before marking job complete.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify correct fidelity assignment for photo vs video, verify enum serialization for Room. Test edge cases: motion photos (photo half GPS_STRIPPED, video half TRANSCODED).",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:28:05.676Z"
           },
           {
             "id": 6,
@@ -1502,9 +1514,10 @@
               4
             ],
             "details": "Create `MediaStoreRegistrar` class. Implement `registerWithMediaStore(documentUri: Uri, mimeType: String, dateTaken: Long?)`. Two approaches to try: 1) Primary: Use `MediaScannerConnection.scanFile(context, arrayOf(filePath), arrayOf(mimeType), callback)` - but need to convert SAF URI to file path which may not always be possible. 2) Fallback: Manually insert into `MediaStore.Images.Media` or `MediaStore.Video.Media` with content values (DISPLAY_NAME, MIME_TYPE, DATE_TAKEN, SIZE, RELATIVE_PATH if determinable). Handle both internal storage and SD card volumes. For SAF URIs that can't be converted to paths, attempt to use `MediaStore.Files.getContentUri` with the document ID. Log warning if registration fails but don't fail the transfer - the file is already safely written. Return registration success status for potential UI indication.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration tests on device: write file via SAF, register with MediaStore, verify file appears in MediaStore query, verify visible in gallery app. Test both internal storage and SD card destinations.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:28:07.382Z"
           },
           {
             "id": 7,
@@ -1519,15 +1532,16 @@
               6
             ],
             "details": "Extend `TransferDownloader` to handle grouped transfers. Implement: 1) `downloadSiblingGroup(mediaGroup: MediaGroupEntity): List<TransferResult>` that downloads all siblings together. 2) Place all siblings in the same destination folder. 3) For motion photos: download photo via `=d` suffix, download video via `=dv` suffix, name video as `{photoBasename}.mp4` (e.g., PXL_20240101.jpg becomes PXL_20240101.mp4). 4) Verify all siblings as a group - if one fails, mark entire group for retry. 5) Update all sibling TransferJobEntity records together atomically. 6) Handle the case where only some siblings are cloud-only (only download what's needed). Link sibling jobs via `TransferJobEntity.groupId` field. Ensure folder creation happens once for the group. Register all siblings with MediaStore. The UI should show grouped progress for sibling transfers.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify video naming convention for motion photos, test group verification logic. Integration tests: simulate multi-file groups, verify all placed in same folder, verify atomic status updates, test partial group scenarios.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:28:09.201Z"
           }
         ],
         "complexity": 7,
         "recommendedSubtasks": 7,
         "expansionPrompt": "Break down SAF file writer into: 1) Create TransferDownloader with HttpsURLConnection streaming to temp file, 2) Implement SAF folder hierarchy creation (Pomegranate/YYYY/YYYY-MM/Origin), 3) Implement file copy from temp to final SAF location, 4) Add verification (size check + SHA-256 computation), 5) Determine fidelity badge (GPS_STRIPPED/TRANSCODED) and store in job, 6) Register pulled files with MediaStore, 7) Handle sibling files and motion photo video halves. Test SAF operations thoroughly—failure modes are complex.",
-        "updatedAt": "2026-10-19T16:21:58.172Z"
+        "updatedAt": "2026-10-19T16:28:09.201Z"
       },
       {
         "id": "16",
@@ -1541,7 +1555,7 @@
           "14",
           "15"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -1631,7 +1645,8 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Break down Pull screen into: 1) Create PullViewModel calculating scope options and sizes, 2) Build PullScopeScreen with radio buttons and space check, 3) Create FidelityNoticeDialog with acknowledgment, 4) Build PullProgressScreen with progress bar/speed/ETA, 5) Implement foreground service for persistent notification, 6) Create PullCompletionScreen with summary and failure handling, 7) Handle background execution continuation. Test notification updates carefully."
+        "expansionPrompt": "Break down Pull screen into: 1) Create PullViewModel calculating scope options and sizes, 2) Build PullScopeScreen with radio buttons and space check, 3) Create FidelityNoticeDialog with acknowledgment, 4) Build PullProgressScreen with progress bar/speed/ETA, 5) Implement foreground service for persistent notification, 6) Create PullCompletionScreen with summary and failure handling, 7) Handle background execution continuation. Test notification updates carefully.",
+        "updatedAt": "2026-10-19T16:31:16.525Z"
       },
       {
         "id": "17",
@@ -2280,7 +2295,7 @@
           "9",
           "10"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2288,9 +2303,10 @@
             "description": "Create the network security configuration XML file in res/xml/ that explicitly disables cleartext traffic and configures TLS requirements for all network communications.",
             "dependencies": [],
             "details": "Create res/xml/network_security_config.xml with the following configuration:\n1. Set cleartextTrafficPermitted=\"false\" at base-config level (explicit for safety, even though it's default for minSdk 30).\n2. Configure to trust only system CAs - do NOT add custom trust anchors or certificate pins.\n3. Use <base-config> rather than domain-specific configs since all traffic goes to Google APIs.\n4. Avoid certificate pinning for Google domains as their certs rotate frequently and this would cause breakage.\n\nExample structure:\n```xml\n<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<network-security-config>\n    <base-config cleartextTrafficPermitted=\"false\">\n        <trust-anchors>\n            <certificates src=\"system\" />\n        </trust-anchors>\n    </base-config>\n</network-security-config>\n```\n\nThis ensures all network traffic uses HTTPS with system-trusted certificates only.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify XML is well-formed and validates against network security config schema. Manual verification that the file is in correct location at app/src/main/res/xml/network_security_config.xml.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:28:12.792Z"
           },
           {
             "id": 2,
@@ -2300,9 +2316,10 @@
               1
             ],
             "details": "Modify app/src/main/AndroidManifest.xml to add the networkSecurityConfig attribute to the <application> element:\n\n1. Add android:networkSecurityConfig=\"@xml/network_security_config\" to the <application> tag.\n2. Place it alongside the existing attributes (allowBackup, fullBackupContent, etc.).\n3. Verify the reference points to the correct resource location.\n\nThe updated <application> element should include:\n```xml\n<application\n    android:networkSecurityConfig=\"@xml/network_security_config\"\n    android:allowBackup=\"false\"\n    ...\n```\n\nThis ensures Android's network security framework enforces the TLS configuration for all connections made by the app.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Build the project to verify manifest is valid and the XML resource reference resolves correctly. Lint check should pass without warnings about the security config.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:28:14.573Z"
           },
           {
             "id": 3,
@@ -2313,9 +2330,10 @@
               2
             ],
             "details": "Audit current codebase and create guidelines for Tasks 9 (OAuth), 10 (Picker API), and 24 (thumbnail downloads):\n\n1. Verify no existing network code (currently only MainActivity.kt exists with no networking).\n2. Create documentation/checklist for network security requirements:\n   - No custom HostnameVerifier implementations (X509HostnameVerifier bypass patterns).\n   - No custom SSLSocketFactory that weakens security.\n   - No TrustManager implementations that accept all certificates.\n   - Always use default HttpsURLConnection behavior.\n3. Document approved patterns for:\n   - OAuth token exchange: POST to oauth2.googleapis.com with standard TLS.\n   - Picker API calls: GET/POST to photospicker.googleapis.com.\n   - Media downloads: GET from baseUrl domains (Google-controlled).\n4. Add security review checklist to ARCHITECTURE.md or create docs/SECURITY.md.\n5. Define error handling requirements:\n   - SSL handshake failures: show user-friendly error, no bypass option.\n   - Certificate errors: fail closed, never offer to proceed.\n   - Network timeouts: retry with backoff, inform user.\n6. Debug logging policy:\n   - URLs and response codes in debug builds only.\n   - NEVER log Authorization headers, tokens, or sensitive query params.\n   - Use BuildConfig.DEBUG guards for all network logging.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Code review checklist verification. Static analysis with Android Lint security checks. Document review by maintainer. Future: automated detection of insecure patterns via custom lint rules.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:28:16.313Z"
           },
           {
             "id": 4,
@@ -2327,21 +2345,23 @@
               3
             ],
             "details": "Testing and documentation for network security:\n\n1. TLS Testing Plan:\n   a. Positive test: Verify OAuth and Picker API calls succeed on production device.\n   b. MITM test: Configure Charles/mitmproxy as HTTPS proxy, verify app REJECTS connections (SSL handshake failure).\n   c. Cleartext test: If any test code attempts HTTP, verify it fails with CleartextTrafficNotPermitted exception.\n   d. Certificate test: With invalid/self-signed cert on proxy, verify connection refused.\n\n2. Test procedure for MITM verification:\n   - Install proxy CA on test device (Settings > Security > Install certificate).\n   - Configure Wi-Fi to use proxy.\n   - Launch app and attempt network operation.\n   - Verify app fails with appropriate error (NOT silent degradation).\n\n3. Documentation deliverables:\n   a. Update README.md Security section:\n      - On-device only processing, no server-side storage.\n      - HTTPS to Google APIs only (accounts.google.com, oauth2.googleapis.com, photospicker.googleapis.com).\n      - No analytics, telemetry, or third-party tracking.\n      - No cleartext HTTP permitted.\n   b. Document in ARCHITECTURE.md:\n      - Network security config location and purpose.\n      - TLS requirements for all network communications.\n      - Certificate trust model (system CAs only).\n\n4. Security verification signoff checklist in docs/SETUP-PROGRESS.md.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual testing with MITM proxy (Charles/mitmproxy) to verify TLS pinning works. Test on physical device with proxy configured. Verify SSL errors result in connection failure, not bypass. Review documentation for completeness and accuracy.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:28:17.990Z"
           }
         ],
         "complexity": 4,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down network security into: 1) Create network_security_config.xml with cleartextTrafficPermitted=false, 2) Reference config in AndroidManifest.xml, 3) Audit all HttpsURLConnection usage for security issues, 4) Test TLS enforcement and document security model. Security review is critical."
+        "expansionPrompt": "Break down network security into: 1) Create network_security_config.xml with cleartextTrafficPermitted=false, 2) Reference config in AndroidManifest.xml, 3) Audit all HttpsURLConnection usage for security issues, 4) Test TLS enforcement and document security model. Security review is critical.",
+        "updatedAt": "2026-10-19T16:28:17.990Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T16:21:58.172Z",
+      "lastModified": "2026-10-19T16:31:16.526Z",
       "taskCount": 25,
-      "completedCount": 13,
+      "completedCount": 16,
       "tags": [
         "master"
       ]
