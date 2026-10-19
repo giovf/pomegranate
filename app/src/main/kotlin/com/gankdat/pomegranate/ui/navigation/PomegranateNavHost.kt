@@ -18,6 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.ui.library.LibraryScreen
+import com.gankdat.pomegranate.ui.onboarding.OnboardingScreen
 import com.gankdat.pomegranate.ui.permissions.MediaPermissionGate
 
 /**
@@ -38,7 +39,7 @@ internal fun PomegranateNavHost(
     ) {
         composable(Screen.Onboarding.route) {
             PomegranateScaffold(navController, stringResource(R.string.title_onboarding), showTopBar = false) { padding ->
-                Placeholder(stringResource(R.string.title_onboarding), padding)
+                OnboardingScreen(onFinished = navController::navigateToLibraryAfterOnboarding, modifier = Modifier.padding(padding))
             }
         }
         composable(Screen.Library.route) {

@@ -54,6 +54,13 @@ class SettingsRepositoryImplTest {
         assertFalse(settings.hasRequestedMediaPermission.first())
         assertFalse(settings.partialAccessBannerDismissed.first())
         assertEquals(0L, settings.lastDeviceScanTimeMillis.first())
+        assertFalse(settings.onboardingCompleted.first())
+    }
+
+    @Test
+    fun `onboarding completion persists`() = runBlocking {
+        settings.setOnboardingCompleted(true)
+        assertTrue(settings.onboardingCompleted.first())
     }
 
     @Test

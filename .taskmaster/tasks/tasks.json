@@ -492,7 +492,7 @@
           "2",
           "5"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -567,7 +567,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 6,
-        "expansionPrompt": "Break down onboarding into: 1) Create OnboardingViewModel tracking completion state, 2) Build 4-page HorizontalPager with app purpose/privacy/three-state/destination content, 3) Implement SAF folder picker with ActivityResultContracts.OpenDocumentTree, 4) Add persistable URI permission handling and URI storage, 5) Implement backup folder collision warning detection, 6) Add onboarding completion persistence and MainActivity routing. Focus on SAF permission persistence edge cases."
+        "expansionPrompt": "Break down onboarding into: 1) Create OnboardingViewModel tracking completion state, 2) Build 4-page HorizontalPager with app purpose/privacy/three-state/destination content, 3) Implement SAF folder picker with ActivityResultContracts.OpenDocumentTree, 4) Add persistable URI permission handling and URI storage, 5) Implement backup folder collision warning detection, 6) Add onboarding completion persistence and MainActivity routing. Focus on SAF permission persistence edge cases.",
+        "updatedAt": "2026-10-19T15:26:10.285Z"
       },
       {
         "id": "7",
@@ -581,7 +582,7 @@
           "4",
           "5"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -589,9 +590,10 @@
             "description": "Create LibraryViewModel that observes device items from Room database and exposes grouped data via StateFlow<LibraryUiState> with Loading, Empty, and Success states.",
             "dependencies": [],
             "details": "1. Create package `com.gankdat.pomegranate.ui.library`.\n2. Define `LibraryUiState` sealed interface:\n   - `Loading` object\n   - `Empty` object (no items, show permission/guidance)\n   - `Success(groups: List<MediaGroup>, totalCount: Int, totalSize: Long, lastScanTime: Instant?)`\n3. Define `MediaGroup` data class: `name: String`, `itemCount: Int`, `totalSizeBytes: Long`, `items: List<DeviceItemEntity>`, `isExpanded: Boolean`.\n4. Create `LibraryViewModel` extending ViewModel:\n   - Inject DeviceItemDao via constructor (manual DI or saved state handle).\n   - Private `_groupingMode: MutableStateFlow<GroupingMode>` (BY_FOLDER, BY_MONTH).\n   - Public `groupingMode: StateFlow<GroupingMode>` for tab selection.\n   - Public `libraryState: StateFlow<LibraryUiState>` combining dao.getAllItems() flow with grouping logic.\n   - `fun setGroupingMode(mode: GroupingMode)` to switch tabs.\n5. Use `combine()` on dao flow and grouping mode to recompute groups reactively.\n6. Handle loading state while database is being queried (use `stateIn()` with WhileSubscribed).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify state transitions (Loading -> Success, Loading -> Empty); verify groupingMode changes trigger recomputation; mock DeviceItemDao and verify correct flow emissions; test with empty list returns Empty state.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:23:51.347Z"
           },
           {
             "id": 2,
@@ -601,9 +603,10 @@
               1
             ],
             "details": "1. Create `GroupingStrategy` sealed interface in `ui.library` package.\n2. Implement `FolderGroupingStrategy`:\n   - Group by `bucketDisplayName` field from DeviceItemEntity.\n   - Sort folders alphabetically.\n   - Handle null/empty bucket names as 'Unknown'.\n3. Implement `MonthGroupingStrategy`:\n   - Group by year-month extracted from `dateTaken` timestamp.\n   - Format as 'MMMM yyyy' (e.g., 'January 2024').\n   - Sort chronologically, most recent first.\n   - Handle null dateTaken as 'Unknown Date'.\n4. Create `GroupingEngine` object with pure functions:\n   - `fun groupByFolder(items: List<DeviceItemEntity>): List<MediaGroup>`\n   - `fun groupByMonth(items: List<DeviceItemEntity>): List<MediaGroup>`\n   - Each computes `itemCount = group.size` and `totalSizeBytes = items.sumOf { it.size }`.\n5. Ensure computations are efficient using `groupBy()` and `sumOf()`.\n6. Sort items within each group by dateTaken descending (most recent first).\n7. Integrate into LibraryViewModel's combine() flow.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: test grouping with various data sets; verify count and size calculations are accurate; test edge cases (empty list, single item, items with null bucketName or dateTaken); verify sort order within and between groups.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:23:53.149Z"
           },
           {
             "id": 3,
@@ -614,9 +617,10 @@
               2
             ],
             "details": "1. Create `LibraryScreen.kt` in `ui.library` package.\n2. Create `LibraryScreen` Composable accepting ViewModel (or state + event callbacks for preview):\n   - Collect `libraryState` and `groupingMode` from ViewModel.\n3. Implement screen scaffold:\n   - Material 3 `TopAppBar` with title 'Library'.\n   - `TabRow` below TopAppBar with two tabs: 'By Folder' and 'By Month'.\n   - `Tab` composables with icons (FolderOutlined, CalendarMonth) and text.\n4. Handle states:\n   - `Loading`: Show `CircularProgressIndicator` centered.\n   - `Empty`: Show `EmptyLibraryContent` (icon, message, guidance text about permissions).\n   - `Success`: Show `LazyColumn` with group headers.\n5. LazyColumn structure:\n   - Use `item` for summary stats (e.g., 'X items • Y GB total').\n   - Use `items(groups)` with `key = group.name` for stable recomposition.\n   - Each item renders `MediaGroupHeader` (subtask 4).\n   - Expandable content shows thumbnails (subtask 6).\n6. Add footer showing last scan time: 'Last scanned: <time>' in subtle text.\n7. Use proper padding and Material 3 spacing (16dp horizontal, 8dp vertical).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify tab switching updates content; verify Loading shows progress indicator; verify Empty shows guidance; verify LazyColumn renders correct number of groups; verify last scan time displays correctly; preview tests for each state.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:23:55.136Z"
           },
           {
             "id": 4,
@@ -624,9 +628,10 @@
             "description": "Build the MediaGroupHeader Composable that displays folder/month name, item count, total size, and expand/collapse chevron with proper Material 3 styling.",
             "dependencies": [],
             "details": "1. Create `MediaGroupHeader.kt` in `ui.library` package.\n2. Define `MediaGroupHeader` Composable:\n   - Parameters: `name: String`, `itemCount: Int`, `totalSizeBytes: Long`, `isExpanded: Boolean`, `onToggleExpand: () -> Unit`, `icon: ImageVector` (for folder vs calendar).\n3. Layout using `Surface` with `Card` styling:\n   - Row with: icon, text column (name + stats), trailing chevron.\n   - Name in `MaterialTheme.typography.titleMedium`.\n   - Stats line: 'X items • Y MB' in `MaterialTheme.typography.bodySmall`, secondary color.\n4. Implement size formatting utility:\n   - Create `formatFileSize(bytes: Long): String` extension.\n   - Handle B, KB, MB, GB with appropriate precision.\n5. Add expand/collapse chevron icon that rotates 180° when expanded.\n6. Make entire row clickable via `Modifier.clickable(onClick = onToggleExpand)`.\n7. Add content descriptions for accessibility:\n   - Full description: '<name> folder, X items, Y megabytes, tap to expand/collapse'.\n8. Minimum touch target 48dp height.\n9. Add ripple effect on click.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify formatFileSize handles edge cases (0, bytes, KB, MB, GB boundaries). UI tests: verify click toggles expansion; verify content descriptions are correct; verify styling matches Material 3; preview tests with various data.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:23:56.902Z"
           },
           {
             "id": 5,
@@ -634,9 +639,10 @@
             "description": "Create thumbnail loading infrastructure using ContentResolver.loadThumbnail with an LRU memory cache using platform APIs (LinkedHashMap with access order) for efficient bitmap caching.",
             "dependencies": [],
             "details": "1. Create `ThumbnailCache.kt` in `ui.library` or `data` package.\n2. Implement `BitmapLruCache` class:\n   - Backed by `LinkedHashMap<Long, Bitmap>(capacity, 0.75f, true)` with accessOrder=true.\n   - Maximum size based on available memory: `(Runtime.maxMemory() / 8).toInt()` bytes.\n   - Track current size by summing `bitmap.byteCount`.\n   - Override `removeEldestEntry()` to evict when size exceeds max.\n3. Create `ThumbnailLoader` class/object:\n   - `suspend fun loadThumbnail(contentResolver: ContentResolver, contentUri: Uri, size: Size): Bitmap?`\n   - Use `contentResolver.loadThumbnail(uri, size, null)` (API 29+).\n   - Cache by MediaStore `_ID` (Long) extracted from URI.\n   - Check cache first, load from ContentResolver if miss, cache result.\n4. Handle errors gracefully (return null, log warning).\n5. Create `rememberThumbnailLoader()` Composable function providing context-aware loader.\n6. Use Dispatchers.IO for ContentResolver calls.\n7. Consider weak references or SoftReference for bitmaps if memory pressure is concern.\n8. Provide `fun clearCache()` for memory trimming on low memory callbacks.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify LRU eviction logic; verify cache hit returns same bitmap; verify cache miss triggers load; test size calculation and max size limits. Integration tests: load real thumbnails and verify bitmap is returned; verify caching improves subsequent load times.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:23:58.763Z"
           },
           {
             "id": 6,
@@ -646,9 +652,10 @@
               5
             ],
             "details": "1. Create `MediaThumbnail.kt` in `ui.library` package.\n2. Define `MediaThumbnail` Composable:\n   - Parameters: `contentUri: Uri`, `isVideo: Boolean`, `durationMs: Long?`, `modifier: Modifier`.\n3. Use `LaunchedEffect(contentUri)` to load thumbnail:\n   - Call `thumbnailLoader.loadThumbnail()` from coroutine.\n   - Store result in `remember { mutableStateOf<Bitmap?>(null) }` or use `produceState`.\n4. Display states:\n   - Loading: Show placeholder (gray Surface or shimmer effect using animated brush).\n   - Loaded: Show `Image(bitmap.asImageBitmap(), ...)` with `ContentScale.Crop`.\n   - Error: Show error placeholder (broken image icon).\n5. Video duration overlay:\n   - Positioned at bottom-end corner.\n   - Semi-transparent black background (Surface with alpha).\n   - Duration text formatted as 'mm:ss' or 'h:mm:ss'.\n   - Small play icon optional.\n6. Create `formatDuration(ms: Long): String` utility.\n7. Use `Modifier.aspectRatio(1f)` for square shape.\n8. Add content description: 'Photo thumbnail' or 'Video, X minutes Y seconds'.\n9. Clip to `RoundedCornerShape(8.dp)` for consistent appearance.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify placeholder shows during load; verify video overlay displays for videos only; verify duration formatting is correct; verify aspect ratio is maintained; preview tests with various states (loading, loaded, error, video vs photo).",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:24:00.703Z"
           },
           {
             "id": 7,
@@ -658,15 +665,16 @@
               3
             ],
             "details": "1. Add pull-to-refresh to LibraryScreen:\n   - Use Material 3 `PullToRefreshBox` or `pullToRefresh` modifier with `PullToRefreshState`.\n   - Wrap LazyColumn content in pull-to-refresh container.\n2. Extend LibraryViewModel:\n   - Add `private val _isRefreshing: MutableStateFlow<Boolean>`.\n   - Add `val isRefreshing: StateFlow<Boolean>`.\n   - Add `fun refresh()` that triggers scan and manages isRefreshing state.\n3. Implement refresh logic:\n   - Set isRefreshing = true.\n   - Call DeviceScanner.scanIncremental() (from Task 4 dependency).\n   - Wait for scan completion (Flow collection or suspend).\n   - Set isRefreshing = false.\n   - Room Flow will automatically update libraryState with new data.\n4. Connect UI to ViewModel:\n   - Pass `isRefreshing` to PullToRefreshState.\n   - Call `viewModel.refresh()` in `onRefresh` callback.\n5. Show snackbar or toast on scan completion: 'Found X new items' or 'No new items'.\n6. Prevent multiple concurrent refreshes (check isRefreshing before starting).\n7. Handle errors: show error snackbar, set isRefreshing = false.\n8. Consider debouncing rapid pulls.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify pull gesture triggers refresh; verify refresh indicator shows during refresh; verify content updates after refresh completes; verify error handling shows snackbar. Unit tests: verify refresh() prevents concurrent calls; verify isRefreshing state transitions correctly.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:24:02.387Z"
           }
         ],
         "complexity": 7,
         "recommendedSubtasks": 7,
         "expansionPrompt": "Break down Library screen into: 1) Create LibraryViewModel with Room queries and grouping logic, 2) Implement bucket and month grouping with count/size calculations, 3) Build LibraryScreen with tabs for By Folder/By Month views, 4) Create MediaGroupHeader Composable with counts and sizes, 5) Implement thumbnail loading with ContentResolver.loadThumbnail and LRU memory cache, 6) Create MediaThumbnail Composable with video duration overlay, 7) Add pull-to-refresh triggering incremental scan. Consider LazyColumn performance for large lists.",
-        "updatedAt": "2026-10-19T15:21:16.631Z"
+        "updatedAt": "2026-10-19T15:24:02.387Z"
       },
       {
         "id": "8",
@@ -2277,9 +2285,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T15:21:16.632Z",
+      "lastModified": "2026-10-19T15:26:10.285Z",
       "taskCount": 25,
-      "completedCount": 5,
+      "completedCount": 6,
       "tags": [
         "master"
       ]

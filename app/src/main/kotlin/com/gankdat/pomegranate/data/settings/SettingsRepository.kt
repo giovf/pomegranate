@@ -28,6 +28,9 @@ public interface SettingsRepository {
     /** The user dismissed the partial-access banner. */
     public val partialAccessBannerDismissed: Flow<Boolean>
 
+    /** The user finished onboarding (destination chosen); routes straight to the library on launch. */
+    public val onboardingCompleted: Flow<Boolean>
+
     /** Epoch millis when the last device census finished, 0 if never. */
     public val lastDeviceScanTimeMillis: Flow<Long>
 
@@ -47,6 +50,8 @@ public interface SettingsRepository {
     public suspend fun setPartialAccessBannerDismissed(dismissed: Boolean)
 
     public suspend fun setLastDeviceScanTimeMillis(timeMillis: Long)
+
+    public suspend fun setOnboardingCompleted(completed: Boolean)
 
     public companion object {
         public const val MIN_CONCURRENCY: Int = 1
