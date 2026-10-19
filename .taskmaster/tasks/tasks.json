@@ -1136,7 +1136,7 @@
           "4",
           "11"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1144,9 +1144,10 @@
             "description": "Set up the origin package structure and create the OriginInferrer class with core pattern extraction utilities for analyzing filename patterns in device media.",
             "dependencies": [],
             "details": "1. Create package `com.gankdat.pomegranate.reconcile.origin`.\n2. Create `OriginInferrer` class with:\n   - `PatternExtractor` internal utility that identifies common prefixes (IMG-, VID-, PXL_), suffixes, and embedded identifiers (WA, TG, SC).\n   - `fun extractPrefix(filename: String): String?` - extracts leading pattern before timestamp/counter.\n   - `fun extractAppIdentifier(filename: String): String?` - finds known app codes.\n   - `fun normalizePattern(pattern: String): Regex` - converts extracted patterns to regex.\n3. Create `Origin` data class with fields: name (String), displayName (String), icon (Int? for R.drawable).\n4. Create `OriginResult` data class: origin (Origin), confidence (Float 0.0-1.0), source (OriginSource enum: LEARNED, BUILTIN, USER_OVERRIDE).\n5. Define pattern extraction constants for common timestamp formats: YYYYMMDD, YYYYMMDD_HHMMSS, epoch millis.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify prefix extraction for IMG-20231015-WA0012.jpg -> IMG-; verify app identifier extraction finds WA, TG, SC codes; verify normalizePattern creates valid regex that matches sample filenames; test edge cases like no prefix, unusual characters.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:18:49.931Z"
           },
           {
             "id": 2,
@@ -1156,9 +1157,10 @@
               1
             ],
             "details": "1. Add `suspend fun learnFromDeviceCensus()` to OriginInferrer.\n2. Query DeviceItemEntity grouped by bucketName.\n3. For each bucket with 5+ items:\n   - Extract common prefix from 90%+ of filenames.\n   - Identify app identifiers present in majority of files.\n   - Build regex pattern: `{prefix}{timestamp_pattern}{optional_counter}{extension}`.\n4. Calculate confidence: (matching files / total files in bucket).\n   - High confidence: 90%+ match.\n   - Medium confidence: 70-89% match.\n   - Low confidence: 50-69% match.\n5. Create `LearnedRule` internal class: bucketName, extractedPattern (Regex), inferredOrigin (String), confidence (Float), sampleCount (Int).\n6. Filter out buckets where pattern confidence < 50%.\n7. Map buckets to origin names: extract from bucket path (e.g., WhatsApp/Media/WhatsApp Images -> WhatsApp).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: test learning from mock DeviceItemEntity lists; verify 90%+ match yields high confidence; verify buckets with mixed patterns yield low confidence; verify origin name extraction from nested bucket paths; test empty bucket handling.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:18:51.657Z"
           },
           {
             "id": 3,
@@ -1168,9 +1170,10 @@
               1
             ],
             "details": "1. Create `BuiltinPatterns` object with immutable list of BuiltinRule entries.\n2. Define `BuiltinRule` data class: appName (String), filenamePatterns (List<Regex>), bucketPatterns (List<Regex>), priority (Int).\n3. Implement patterns:\n   - WhatsApp: `IMG-\\d{8}-WA\\d{4}`, `VID-\\d{8}-WA\\d{4}`, bucket contains \"WhatsApp\".\n   - Telegram: filename has 32+ char hash pattern `[a-f0-9]{32,}`, bucket contains \"Telegram\".\n   - Screenshots: `Screenshot_\\d{8}[-_]\\d{6}`, bucket equals \"Screenshots\".\n   - Camera (generic): `IMG_\\d{8}_\\d{6}`, bucket is \"Camera\" or matches \"DCIM/Camera\".\n   - Pixel: `PXL_\\d{8}_\\d{6}`, bucket matches \"DCIM/Camera\".\n   - Instagram: bucket contains \"Instagram\".\n   - Facebook: bucket contains \"Facebook\".\n   - Twitter/X: bucket contains \"Twitter\" or \"X\".\n   - Snapchat: bucket contains \"Snapchat\", filename often starts with `Snapchat-`.\n4. Order by specificity: filename+bucket rules before bucket-only rules.\n5. Add `fun findBuiltinMatch(filename: String, bucket: String?): OriginResult?`.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: test each pattern with real example filenames from each app; test WhatsApp: IMG-20231015-WA0012.jpg and VID-20231015-WA0003.mp4; test Telegram hash filenames; test Screenshot patterns across devices; test bucket-only matching for Instagram/Facebook.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:18:53.388Z"
           },
           {
             "id": 4,
@@ -1181,9 +1184,10 @@
               3
             ],
             "details": "1. Add `fun inferOrigin(filename: String, bucket: String?): OriginResult?` to OriginInferrer.\n2. Implement priority order:\n   a. User override (check OriginRuleEntity where source=USER_OVERRIDE and matches filename/bucket) -> return immediately with confidence 1.0.\n   b. Learned rules (check OriginRuleEntity where source=LEARNED): match filename against stored regex, return if confidence >= 0.7.\n   c. Built-in rules: call BuiltinPatterns.findBuiltinMatch(), return if match found.\n3. For multiple matches, prefer:\n   - Higher confidence score.\n   - More specific match (filename pattern > bucket-only).\n   - Learned over builtin (for equal confidence).\n4. Return null for low-confidence matches (< 0.5) - these go to month folder.\n5. Create `InferenceResult` sealed class: Matched(origin, confidence, source), Unknown.\n6. Log inference decisions for debugging (use Android Log.d with tag \"OriginInferrer\").",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify learned rules take precedence over builtin; verify user override takes precedence over all; verify confidence threshold filtering; test tie-breaking between multiple matches; verify Unknown returned for no-match cases.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:18:55.123Z"
           },
           {
             "id": 5,
@@ -1193,9 +1197,10 @@
               4
             ],
             "details": "1. Create `OriginRuleEntity` in data package:\n   - id (Long, PrimaryKey autoGenerate)\n   - source (OriginSource enum: LEARNED, BUILTIN, USER_OVERRIDE)\n   - pattern (String, the regex pattern)\n   - bucketPattern (String?, optional bucket match)\n   - originName (String, inferred origin name)\n   - confidence (Float)\n   - sampleCount (Int?, for learned rules)\n   - createdAt (Long, timestamp)\n2. Create `OriginRuleDao`:\n   - `@Query fun getBySource(source: OriginSource): List<OriginRuleEntity>`\n   - `@Insert(onConflict = REPLACE) suspend fun upsert(rule: OriginRuleEntity)`\n   - `@Query suspend fun deleteBySource(source: OriginSource)` for refreshing learned rules.\n3. Add `inferredOrigin: String?` and `inferredOriginConfidence: Float?` to CloudItemEntity.\n4. Create `OriginRepository` interface:\n   - `suspend fun learnFromDeviceCensus()`\n   - `fun inferOrigin(filename: String, bucket: String?): OriginResult?`\n   - `suspend fun setUserOverride(cloudItemId: Long, origin: String)`\n   - `suspend fun clearUserOverride(cloudItemId: Long)`\n5. Implement `OriginRepositoryImpl` using OriginInferrer and OriginRuleDao.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: test OriginRuleEntity CRUD operations via in-memory Room database; verify learned rules can be refreshed (delete + reinsert); test CloudItemEntity migration adds new columns; test OriginRepository correctly delegates to OriginInferrer and persists overrides.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:18:56.868Z"
           },
           {
             "id": 6,
@@ -1205,15 +1210,16 @@
               5
             ],
             "details": "1. Create `OriginOverrideBottomSheet` Composable in ui package:\n   - Shows current inferred origin with confidence badge (High/Medium/Low/Unknown).\n   - Displays why it was inferred (source: Learned from [bucket], Built-in rule, Unknown).\n   - Dropdown/chips for quick selection: known origins from learned + builtin rules.\n   - Text input for custom origin name.\n   - \"Reset to inferred\" button if user override exists.\n   - \"Save\" and \"Cancel\" actions.\n2. Create `OriginOverrideViewModel`:\n   - `val currentOrigin: StateFlow<OriginResult?>` from CloudItemEntity.\n   - `val availableOrigins: StateFlow<List<String>>` from OriginRepository.\n   - `fun setOverride(cloudItemId: Long, origin: String)`\n   - `fun clearOverride(cloudItemId: Long)`\n3. Add origin badge to media item cards showing inferred origin.\n4. Trigger bottom sheet from item detail screen or long-press on item card.\n5. Persist override via OriginRepository.setUserOverride().\n6. Content descriptions for accessibility: \"Origin: WhatsApp, high confidence, inferred from filename pattern\".",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify bottom sheet displays inferred origin with correct confidence badge; verify dropdown shows available origins; verify custom input accepts text; verify save persists override; verify reset removes override and shows inferred origin again; test accessibility with TalkBack.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:18:58.525Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 6,
         "expansionPrompt": "Break down origin inference into: 1) Create OriginInferrer class with pattern extraction, 2) Implement learning from device census bucket analysis, 3) Create built-in pattern table for WhatsApp/Telegram/Instagram/etc, 4) Implement inference priority (learned > builtin) with confidence scoring, 5) Store rules in OriginRuleEntity and inferred origin in CloudItemEntity, 6) Create OriginRepository and per-item override UI. Focus on regex pattern accuracy.",
-        "updatedAt": "2026-10-19T16:16:20.063Z"
+        "updatedAt": "2026-10-19T16:18:58.525Z"
       },
       {
         "id": "13",
@@ -1322,7 +1328,7 @@
           "2",
           "10"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -1412,7 +1418,8 @@
         ],
         "complexity": 8,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Break down transfer queue into: 1) Add WorkManager dependency to libs.versions.toml, 2) Create TransferQueue class managing TransferJobEntity states, 3) Create TransferWorker extending CoroutineWorker with bounded concurrency, 4) Implement retry with exponential backoff (max 5 attempts), 5) Handle baseUrl expiry with session refresh before download, 6) Configure WorkManager constraints (network, battery), 7) Create periodic and one-shot work requests with proper policy. Test queue state transitions thoroughly."
+        "expansionPrompt": "Break down transfer queue into: 1) Add WorkManager dependency to libs.versions.toml, 2) Create TransferQueue class managing TransferJobEntity states, 3) Create TransferWorker extending CoroutineWorker with bounded concurrency, 4) Implement retry with exponential backoff (max 5 attempts), 5) Handle baseUrl expiry with session refresh before download, 6) Configure WorkManager constraints (network, battery), 7) Create periodic and one-shot work requests with proper policy. Test queue state transitions thoroughly.",
+        "updatedAt": "2026-10-19T16:21:56.251Z"
       },
       {
         "id": "15",
@@ -1425,7 +1432,7 @@
           "2",
           "14"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -1519,7 +1526,8 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Break down SAF file writer into: 1) Create TransferDownloader with HttpsURLConnection streaming to temp file, 2) Implement SAF folder hierarchy creation (Pomegranate/YYYY/YYYY-MM/Origin), 3) Implement file copy from temp to final SAF location, 4) Add verification (size check + SHA-256 computation), 5) Determine fidelity badge (GPS_STRIPPED/TRANSCODED) and store in job, 6) Register pulled files with MediaStore, 7) Handle sibling files and motion photo video halves. Test SAF operations thoroughly—failure modes are complex."
+        "expansionPrompt": "Break down SAF file writer into: 1) Create TransferDownloader with HttpsURLConnection streaming to temp file, 2) Implement SAF folder hierarchy creation (Pomegranate/YYYY/YYYY-MM/Origin), 3) Implement file copy from temp to final SAF location, 4) Add verification (size check + SHA-256 computation), 5) Determine fidelity badge (GPS_STRIPPED/TRANSCODED) and store in job, 6) Register pulled files with MediaStore, 7) Handle sibling files and motion photo video halves. Test SAF operations thoroughly—failure modes are complex.",
+        "updatedAt": "2026-10-19T16:21:58.172Z"
       },
       {
         "id": "16",
@@ -2331,9 +2339,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T16:16:20.064Z",
+      "lastModified": "2026-10-19T16:21:58.172Z",
       "taskCount": 25,
-      "completedCount": 12,
+      "completedCount": 13,
       "tags": [
         "master"
       ]

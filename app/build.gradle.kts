@@ -93,6 +93,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.browser)
+    implementation(libs.androidx.work.runtime)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)

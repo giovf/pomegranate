@@ -24,6 +24,13 @@ import com.gankdat.pomegranate.reconcile.ReconciliationRepository
 import com.gankdat.pomegranate.reconcile.ReconciliationRepositoryImpl
 import com.gankdat.pomegranate.reconcile.origin.OriginRepository
 import com.gankdat.pomegranate.reconcile.origin.OriginRepositoryImpl
+import com.gankdat.pomegranate.transfer.HttpDownloader
+import com.gankdat.pomegranate.transfer.ResolverSafStorage
+import com.gankdat.pomegranate.transfer.ScannerMediaStoreRegistrar
+import com.gankdat.pomegranate.transfer.TransferEngine
+import com.gankdat.pomegranate.transfer.TransferQueue
+import com.gankdat.pomegranate.transfer.TransferQueueImpl
+import com.gankdat.pomegranate.transfer.TransferScheduler
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -70,6 +77,23 @@ internal class PomegranateApplication : Application() {
     val origins: OriginRepository by lazy {
         OriginRepositoryImpl(database.deviceItemDao(), database.cloudItemDao(), database.originRuleDao())
     }
+
+    val transferQueue: TransferQueue by lazy { TransferQueueImpl(database.transferJobDao(), database.cloudItemDao()) }
+
+    val transferEngine: TransferEngine by lazy {
+        TransferEngine(
+            jobs = database.transferJobDao(),
+            cloudItems = database.cloudItemDao(),
+            settings = settings,
+            cloudScanner = cloudScanner,
+            reconciliation = reconciliation,
+            storage = ResolverSafStorage(contentResolver),
+            downloader = HttpDownloader(),
+            registrar = ScannerMediaStoreRegistrar(this),
+        )
+    }
+
+    val transferScheduler: TransferScheduler by lazy { TransferScheduler(this) }
 
     /** Called by the redirect activity; the exchange runs here so it survives that activity finishing. */
     fun onOAuthRedirect(redirectUrl: String) {

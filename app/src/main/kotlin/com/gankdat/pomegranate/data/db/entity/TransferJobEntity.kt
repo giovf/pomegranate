@@ -28,6 +28,8 @@ internal data class TransferJobEntity(
     val state: TransferState = TransferState.QUEUED,
     /** SAF document URI of the written file; empty until the file is created. */
     val destinationUri: String = "",
+    /** Path under the destination root, e.g. `Pomegranate/2024/2024-03/Camera/IMG_1.jpg`; empty until created. */
+    val relativePath: String = "",
     val bytesExpected: Long = 0,
     val bytesWritten: Long = 0,
     /** Hex SHA-256 of the verified file; null until verification succeeds. */
@@ -36,4 +38,6 @@ internal data class TransferJobEntity(
     val attempts: Int = 0,
     /** Short, non-identifying description of the last failure. */
     val lastError: String? = null,
+    /** Epoch millis when verification passed; null until DONE. */
+    val completedAt: Long? = null,
 )

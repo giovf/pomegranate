@@ -55,6 +55,23 @@ Cloud project (Photos Picker API enabled, Android client bound to the package
 `local.properties` as described in `.env.example`; nothing of the sort is
 committed.
 
+## Security model
+
+- Everything is processed on the phone. The only hosts ever contacted are
+  Google's: `accounts.google.com` and `oauth2.googleapis.com` for sign-in,
+  `photospicker.googleapis.com` for the Picker API, and the signed media URLs
+  Google returns for the items you picked.
+- All traffic is HTTPS through the platform's `HttpsURLConnection` with the
+  system trust store only: `res/xml/network_security_config.xml` forbids
+  cleartext and user-added CAs, and there are no custom trust managers,
+  hostname verifiers or certificate pins in the code.
+- OAuth uses PKCE with a public Android client (no secret). Tokens live in one
+  file encrypted with an AES-256-GCM key held in the Android Keystore; they are
+  never logged and are wiped, key included, on Disconnect.
+- Pulled files are written through the Storage Access Framework into the
+  folder you chose, re-read and hashed (SHA-256) before they count as saved,
+  and the app never deletes anything it did not just write and fail to verify.
+
 ## Development
 
 - **Dev container**: open the folder in VS Code → "Reopen in Container". The

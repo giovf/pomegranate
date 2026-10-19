@@ -50,6 +50,15 @@ internal interface TransferJobDao {
     @Query("SELECT COUNT(*) FROM transfer_job WHERE state = :state")
     suspend fun countByState(state: TransferState): Int
 
+    @Query("SELECT cloudItemId FROM transfer_job WHERE state != 'FAILED'")
+    suspend fun getActiveOrDoneCloudItemIds(): List<Long>
+
+    @Query("UPDATE transfer_job SET state = :to WHERE state = :from")
+    suspend fun setStateForAll(from: TransferState, to: TransferState): Int
+
+    @Query("SELECT * FROM transfer_job WHERE state = 'DONE' ORDER BY completedAt")
+    suspend fun getDone(): List<TransferJobEntity>
+
     @Query("DELETE FROM transfer_job")
     suspend fun deleteAll()
 }
