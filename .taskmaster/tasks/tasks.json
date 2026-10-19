@@ -138,7 +138,7 @@
         "dependencies": [
           "1"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -146,9 +146,10 @@
             "description": "Add the androidx.datastore:datastore-preferences dependency to the version catalog with a pinned version, then add it to build.gradle.kts and regenerate verification-metadata.xml checksums.",
             "dependencies": [],
             "details": "1. Add a datastore version entry to [versions] section (e.g., datastore = \"1.1.3\" or latest stable).\n2. Add library entry in [libraries]: androidx-datastore-preferences = { group = \"androidx.datastore\", name = \"datastore-preferences\", version.ref = \"datastore\" }.\n3. Add the implementation dependency in app/build.gradle.kts: implementation(libs.androidx.datastore.preferences).\n4. Run ./gradlew --write-verification-metadata sha256 build to regenerate gradle/verification-metadata.xml with the new checksums.\n5. Verify build succeeds with ./gradlew assembleDebug.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run ./gradlew assembleDebug to confirm dependency resolution succeeds without errors. Verify verification-metadata.xml contains entries for the datastore-preferences artifact.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:23:11.945Z"
           },
           {
             "id": 2,
@@ -158,9 +159,10 @@
               1
             ],
             "details": "1. Create package com.gankdat.pomegranate.data.model.\n2. Create FolderStrategy.kt with enum class FolderStrategy { BY_ORIGIN, BY_MONTH_ONLY }.\n3. Create package com.gankdat.pomegranate.data.settings.\n4. Create SettingsRepository.kt interface with:\n   - val destinationRootUri: Flow<String?>\n   - val folderStrategy: Flow<FolderStrategy>\n   - val downloadConcurrency: Flow<Int>\n   - val wifiOnly: Flow<Boolean>\n   - val autoDisconnect: Flow<Boolean>\n   - suspend fun setDestinationRootUri(uri: String?)\n   - suspend fun setFolderStrategy(strategy: FolderStrategy)\n   - suspend fun setDownloadConcurrency(concurrency: Int)\n   - suspend fun setWifiOnly(enabled: Boolean)\n   - suspend fun setAutoDisconnect(enabled: Boolean)\n5. Use explicit visibility (public interface, internal implementations later).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Compile verification only at this stage - ensure no syntax errors and proper Kotlin conventions. Interface cannot be unit tested directly.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:23:13.797Z"
           },
           {
             "id": 3,
@@ -170,9 +172,10 @@
               2
             ],
             "details": "1. In com.gankdat.pomegranate.data.settings, create SettingsRepositoryImpl.kt.\n2. Define private companion object with preference keys:\n   - private val DESTINATION_ROOT_URI = stringPreferencesKey(\"destination_root_uri\")\n   - private val FOLDER_STRATEGY = stringPreferencesKey(\"folder_strategy\")\n   - private val DOWNLOAD_CONCURRENCY = intPreferencesKey(\"download_concurrency\")\n   - private val WIFI_ONLY = booleanPreferencesKey(\"wifi_only\")\n   - private val AUTO_DISCONNECT = booleanPreferencesKey(\"auto_disconnect\")\n3. Constructor takes DataStore<Preferences> as parameter.\n4. Implement Flow properties using dataStore.data.map { prefs -> ... } with null-safety and defaults (concurrency=3, wifiOnly=true, autoDisconnect=false).\n5. Map FolderStrategy to/from string for storage.\n6. Implement suspend setters using dataStore.edit { prefs -> prefs[KEY] = value }.\n7. Create top-level extension property for Application: val Context.settingsDataStore by preferencesDataStore(name = \"settings\").\n8. Mark class as internal; expose via factory or DI later.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test preparation - implementation tested in subtask 4. Verify code compiles and DataStore initialization doesn't crash at Application scope.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:23:15.526Z"
           },
           {
             "id": 4,
@@ -182,15 +185,16 @@
               3
             ],
             "details": "1. Create app/src/test/kotlin/com/gankdat/pomegranate/data/settings/SettingsRepositoryImplTest.kt.\n2. Use TemporaryFolder rule to create isolated DataStore files for each test.\n3. Create test DataStore using PreferenceDataStoreFactory.create with test coroutine scope.\n4. Test cases:\n   - testDefaultValues(): verify first read returns defaults (null URI, BY_ORIGIN, 3, true, false).\n   - testSetDestinationRootUri(): set URI, collect Flow, verify emitted value.\n   - testSetFolderStrategy(): cycle through enum values, verify persistence.\n   - testSetDownloadConcurrency(): set value, verify Flow emits new value.\n   - testSetWifiOnly(): toggle boolean, verify state changes.\n   - testSetAutoDisconnect(): toggle boolean, verify state changes.\n   - testPersistenceAcrossInstances(): write value, create new repository instance, verify value persists.\n5. Use kotlinx.coroutines.test: runTest, TestDispatcher for Flow collection.\n6. Add test dependency for kotlinx-coroutines-test if not present.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run ./gradlew testDebugUnitTest --tests '*SettingsRepositoryImplTest*' to execute tests. All tests must pass. Verify tests cover happy path, edge cases (empty strings, boundary values for concurrency), and persistence guarantees.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:23:17.342Z"
           }
         ],
         "complexity": 4,
         "recommendedSubtasks": 4,
         "expansionPrompt": "Break down DataStore implementation into: 1) Add datastore-preferences dependency to libs.versions.toml, 2) Create FolderStrategy enum and SettingsRepository interface, 3) Implement SettingsRepositoryImpl with preference keys and DataStore, 4) Write unit tests for persistence and default values. Consider thread-safety for Flow emissions.",
-        "updatedAt": "2026-10-19T14:21:01.484Z"
+        "updatedAt": "2026-10-19T14:23:17.342Z"
       },
       {
         "id": "3",
@@ -391,7 +395,7 @@
         "testStrategy": "Unit tests for navigation graph construction. UI tests: verify navigation between screens; verify back navigation; verify argument passing; verify deep link handling.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -454,7 +458,8 @@
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down navigation setup into: 1) Add Navigation Compose dependency to libs.versions.toml, 2) Create Screen sealed class with all destinations and routes, 3) Create PomegranateNavHost with NavController and NavGraph, 4) Build PomegranateTopBar and PomegranateScaffold components, 5) Update MainActivity to use PomegranateNavHost and implement deep link handling for OAuth redirect. Consider type-safe navigation with Kotlin Serialization."
+        "expansionPrompt": "Break down navigation setup into: 1) Add Navigation Compose dependency to libs.versions.toml, 2) Create Screen sealed class with all destinations and routes, 3) Create PomegranateNavHost with NavController and NavGraph, 4) Build PomegranateTopBar and PomegranateScaffold components, 5) Update MainActivity to use PomegranateNavHost and implement deep link handling for OAuth redirect. Consider type-safe navigation with Kotlin Serialization.",
+        "updatedAt": "2026-10-19T14:25:37.779Z"
       },
       {
         "id": "6",
@@ -2251,9 +2256,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T14:21:01.484Z",
+      "lastModified": "2026-10-19T14:25:37.779Z",
       "taskCount": 25,
-      "completedCount": 1,
+      "completedCount": 2,
       "tags": [
         "master"
       ]

@@ -4,24 +4,20 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.gankdat.pomegranate.ui.navigation.PomegranateNavHost
+import com.gankdat.pomegranate.ui.navigation.Screen
+import com.gankdat.pomegranate.ui.theme.PomegranateTheme
 
-class MainActivity : ComponentActivity() {
+internal class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
+            PomegranateTheme {
                 PomegranateApp()
             }
         }
@@ -29,26 +25,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun PomegranateApp() {
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(R.string.scaffold_greeting),
-                style = MaterialTheme.typography.titleLarge,
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun PomegranateAppPreview() {
-    MaterialTheme {
-        PomegranateApp()
-    }
+internal fun PomegranateApp() {
+    val navController = rememberNavController()
+    PomegranateNavHost(
+        navController = navController,
+        startDestination = Screen.Onboarding,
+        modifier = Modifier.fillMaxSize(),
+    )
 }
