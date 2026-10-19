@@ -2094,7 +2094,7 @@
           "16",
           "20"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2102,9 +2102,10 @@
             "description": "Perform a comprehensive accessibility audit of all Compose UI components, adding contentDescription parameters to every Image and Icon composable across all screens (Library, Item, Pull, Connection, Settings, Onboarding).",
             "dependencies": [],
             "details": "1. Audit every screen in `com.gankdat.pomegranate.ui` package for Image and Icon composables.\n2. Add meaningful contentDescription strings using stringResource() for all decorative and informative images:\n   - Three-state icons (cloud-only, device-only, both) need distinct descriptions.\n   - Fidelity badges (Original, GPS stripped, Transcoded) need descriptions.\n   - Navigation icons, action buttons, and status indicators.\n3. For purely decorative images, explicitly set contentDescription = null with a comment explaining the decorative nature.\n4. Create new string resources in res/values/strings.xml for all content descriptions.\n5. Follow pattern: `Icon(imageVector = Icons.Default.Cloud, contentDescription = stringResource(R.string.cd_cloud_only_status))`.\n6. Document each image's purpose to ensure descriptions convey meaning, not just visual appearance.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual TalkBack testing: navigate all screens with TalkBack enabled and verify every image/icon is announced with meaningful description. Automated lint check using `@Composable` content description rules. Unit tests verifying string resources exist for all content descriptions.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:58:11.639Z"
           },
           {
             "id": 2,
@@ -2114,9 +2115,10 @@
               1
             ],
             "details": "1. Add `Modifier.semantics { heading() }` to all section headers:\n   - Library screen section headers (by status, by folder, by month).\n   - Settings screen category headers.\n   - Item detail screen section labels.\n   - Pull progress sections.\n2. Use `semantics { }` blocks for complex compound components:\n   - MediaGroupCard: combine thumbnail, title, status badge as a single semantics unit.\n   - TransferJobItem: announce status, progress, file info together.\n   - MatchEvidence: describe confidence and evidence as grouped content.\n3. Apply `clearAndSetSemantics { }` for components where child semantics should be replaced with a summary.\n4. Add `Role.Button`, `Role.Switch`, `Role.Checkbox` where appropriate for interactive elements.\n5. Ensure `stateDescription` is set for stateful components (toggle states, download progress).\n6. Verify traversal order with `traversalIndex` or `isTraversalGroup` for complex layouts.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "TalkBack testing to verify heading navigation works (swipe up/down with reading controls set to headings). Verify complex components announce logical summaries. Check focus order follows visual layout top-to-bottom, left-to-right.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:58:13.446Z"
           },
           {
             "id": 3,
@@ -2124,9 +2126,10 @@
             "description": "Audit and fix all interactive UI elements to meet the minimum 48dp touch target requirement for accessibility, using Modifier.sizeIn or Modifier.defaultMinSize where necessary.",
             "dependencies": [],
             "details": "1. Audit all interactive composables across screens:\n   - Buttons (IconButton, TextButton, FilledButton).\n   - Checkboxes and Switches.\n   - List items and cards with clickable actions.\n   - Navigation items and tabs.\n   - Dropdown menus and selection controls.\n2. For IconButton and similar, verify default touch target expansion is applied (Material 3 default is 48dp).\n3. Add `Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)` for custom interactive elements.\n4. Use `Modifier.minimumInteractiveComponentSize()` for Material 3 components.\n5. For small icons with actions, wrap with Box using padding to expand hit area without visual change.\n6. Check spacing between adjacent interactive elements is sufficient to prevent mis-taps (at least 8dp gap).\n7. Ensure clickable modifiers have appropriate indication ripple effects.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Visual inspection with layout bounds enabled (Developer Options > Show layout bounds). Automated test using semantics testing to verify touch target sizes. Manual testing on device to verify all buttons are easy to tap.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:58:15.216Z"
           },
           {
             "id": 4,
@@ -2134,9 +2137,10 @@
             "description": "Implement the app's custom theme composable supporting Material 3 dynamic color (Material You) on Android 12+ with graceful fallback to a static color scheme for older devices.",
             "dependencies": [],
             "details": "1. Create `com.gankdat.pomegranate.ui.theme` package.\n2. Create `Color.kt` with static color definitions:\n   - Primary, secondary, tertiary color palettes.\n   - Custom semantic colors for three states: cloudOnlyColor, deviceOnlyColor, bothColor (used consistently everywhere).\n   - Light and dark variants for each semantic color.\n3. Create `Theme.kt` with `PomegranateTheme` composable:\n   - Check `Build.VERSION.SDK_INT >= Build.VERSION_CODES.S` for dynamic color support.\n   - Use `dynamicLightColorScheme(context)` and `dynamicDarkColorScheme(context)` for Android 12+.\n   - Define static `lightColorScheme()` and `darkColorScheme()` for fallback.\n   - Create `LocalPomegranateColors` CompositionLocal for custom semantic colors.\n4. Update `MainActivity.kt` to wrap content with `PomegranateTheme` instead of plain `MaterialTheme`.\n5. Add helper extension properties: `MaterialTheme.pomegranateColors.cloudOnly`, etc.\n6. Ensure all Material 3 components (Typography, Shapes) are properly configured.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test: verify dynamic color is used on SDK >= 31 and static scheme on SDK < 31. Screenshot tests: capture theme in both light and dark modes. Manual testing on Android 12+ device to see dynamic color applied, and on Android 11 to see fallback.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:58:16.906Z"
           },
           {
             "id": 5,
@@ -2146,9 +2150,10 @@
               4
             ],
             "details": "1. In `PomegranateTheme`, use `isSystemInDarkTheme()` to detect system preference.\n2. Define distinct light and dark variants for the three-state colors:\n   - Cloud-only: light (e.g., blue 500) / dark (e.g., blue 300).\n   - Device-only: light (e.g., green 600) / dark (e.g., green 400).\n   - Both: light (e.g., purple 500) / dark (e.g., purple 300).\n3. Create `@Composable fun statusColor(status: MediaStatus): Color` helper that returns the correct color from LocalPomegranateColors.\n4. Audit all hardcoded colors in the codebase and replace with theme references.\n5. Verify all custom surfaces (cards, dialogs, bottom sheets) use theme surface colors.\n6. Test text contrast ratios meet WCAG AA standards (4.5:1 for normal text).\n7. Ensure icons and images work in both modes (no inverted colors, proper contrast).\n8. Handle any custom drawing or Canvas operations to respect theme.\n9. Add Preview annotations with both light and dark configurations for key composables.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual testing: toggle system dark mode and verify all screens render correctly with proper contrast. Screenshot tests comparing light/dark variants. Use Android Studio Layout Inspector to verify color values. Test on AMOLED display to ensure no pure white backgrounds in dark mode.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:58:18.711Z"
           },
           {
             "id": 6,
@@ -2161,15 +2166,16 @@
               5
             ],
             "details": "1. Create reusable state composables in `ui.components`:\n   - `EmptyState(icon, title, message, action?)` composable.\n   - `ErrorState(title, message, retryAction?, settingsAction?)` composable.\n   - `LoadingState(message?)` with skeleton loaders or progress indicators.\n2. Library screen states:\n   - Empty: 'No media found' with permission check prompt and button to settings.\n   - Loading: skeleton list items while scanning MediaStore.\n   - Error: scanner failure with retry.\n3. Pull screen states:\n   - Empty: 'All items already on device' or 'Nothing selected'.\n   - Loading: progress indicator with current item.\n   - Error: network failure with retry, storage full warning with cleanup guidance.\n4. Connection screen states:\n   - Disconnected: clear prompt to connect with explanation.\n   - Loading: 'Connecting to Google...' spinner.\n   - Error: OAuth failure, token expired, with clear recovery actions.\n5. Create specific error messages for:\n   - Network errors (no connectivity, timeout).\n   - Permission denied (with settings deeplink via Intent.ACTION_APPLICATION_DETAILS_SETTINGS).\n   - Storage full (show space needed, guidance to clear).\n6. All states must have proper contentDescription for TalkBack.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify correct state is shown based on ViewModel state. Integration tests: simulate error conditions and verify UI response. Manual testing: revoke permissions, disable network, fill storage and verify appropriate states shown. TalkBack testing to verify all states are announced properly.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:58:20.442Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 6,
         "expansionPrompt": "Break down accessibility work into: 1) Audit all composables and add contentDescription to Image/Icon, 2) Add semantics blocks and heading hierarchy, 3) Ensure 48dp minimum touch targets, 4) Create PomegranateTheme with dynamic color (Material You), 5) Implement dark mode support with custom state colors, 6) Add empty/error/loading states for all screens. TalkBack testing required on device.",
-        "updatedAt": "2026-10-19T16:55:45.605Z"
+        "updatedAt": "2026-10-19T16:58:20.442Z"
       },
       {
         "id": "23",
@@ -2181,7 +2187,7 @@
         "dependencies": [
           "22"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -2240,7 +2246,8 @@
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down release prep into: 1) Review and update proguard-rules.pro for Room/WorkManager/OAuth, 2) Create signing config reading from local.properties/env, 3) Document signing and keystore creation process, 4) Create sideload installation documentation, 5) Document Google Cloud project setup for Picker API. Test release build thoroughly."
+        "expansionPrompt": "Break down release prep into: 1) Review and update proguard-rules.pro for Room/WorkManager/OAuth, 2) Create signing config reading from local.properties/env, 3) Document signing and keystore creation process, 4) Create sideload installation documentation, 5) Document Google Cloud project setup for Picker API. Test release build thoroughly.",
+        "updatedAt": "2026-10-19T16:58:31.076Z"
       },
       {
         "id": "24",
@@ -2253,7 +2260,7 @@
           "7",
           "10"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2261,9 +2268,10 @@
             "description": "Implement the in-memory LRU cache for thumbnails using LinkedHashMap with accessOrder=true and WeakReference wrappers for Bitmap values, with automatic size management based on available heap memory.",
             "dependencies": [],
             "details": "1. Create package `com.gankdat.pomegranate.ui.common`.\n2. Create `ThumbnailCache` class as a singleton (object) with:\n   - `private val maxCacheSize = (Runtime.getRuntime().maxMemory() / 8).toInt()` for 1/8 of heap.\n   - `private val cache = object : LinkedHashMap<String, WeakReference<Bitmap>>(16, 0.75f, true) { override fun removeEldestEntry(...) }` for LRU eviction.\n   - Track current cache size in bytes using `Bitmap.allocationByteCount`.\n   - `fun get(key: String): Bitmap?` that retrieves and checks if WeakReference is still valid.\n   - `fun put(key: String, bitmap: Bitmap)` that adds bitmap, updating size tracking.\n   - `fun evict(key: String)` for explicit removal.\n   - `fun clear()` for Disconnect cleanup.\n   - Synchronize access with `@Synchronized` or explicit lock for thread safety.\n3. Key format: `device:{contentUri}` for device items, `cloud:{mediaItemId}` for cloud items.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: test LRU eviction order when cache exceeds maxCacheSize; test WeakReference behavior after GC (use `System.gc()` to simulate); test get returns null for evicted/cleared entries; test put updates existing entries; test thread-safe concurrent access; verify maxCacheSize calculation is approximately 1/8 of max memory.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:58:00.854Z"
           },
           {
             "id": 2,
@@ -2273,9 +2281,10 @@
               1
             ],
             "details": "1. Create `ThumbnailLoader` class with constructor dependency on `ThumbnailCache` and `ContentResolver`.\n2. For device items:\n   - `suspend fun loadDeviceThumbnail(contentUri: Uri, size: Size): Bitmap?`\n   - Use `contentResolver.loadThumbnail(contentUri, size, null)` (API 29+).\n   - Cache result with key `device:{contentUri}`.\n3. For cloud items:\n   - `suspend fun loadCloudThumbnail(baseUrl: String, mediaItemId: String): Bitmap?`\n   - Append `=w200-h200` to baseUrl for thumbnail size.\n   - Download via HttpsURLConnection on Dispatchers.IO.\n   - Set timeouts: connect=10s, read=15s.\n   - Decode response with BitmapFactory.decodeStream, using inSampleSize for memory efficiency.\n   - Cache result with key `cloud:{mediaItemId}`.\n4. Common: check cache before loading; return cached bitmap if valid.\n5. Handle IOExceptions gracefully, return null on failure.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify cache lookup happens before network/ContentResolver call; mock HttpsURLConnection to test cloud download path; test inSampleSize calculation for various image sizes; test timeout handling. Integration tests: load real device thumbnails; verify ContentResolver.loadThumbnail returns valid bitmaps; test with various MIME types (JPEG, PNG, HEIC, video).",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:58:02.690Z"
           },
           {
             "id": 3,
@@ -2285,9 +2294,10 @@
               2
             ],
             "details": "1. Extend `ThumbnailLoader.loadCloudThumbnail` to detect 403 Forbidden responses.\n2. Create `sealed class ThumbnailLoadResult` with Success(Bitmap), NotFound, Expired, Error(Exception).\n3. When HTTP 403 is received:\n   - Return `ThumbnailLoadResult.Expired` to signal baseUrl expiry.\n4. Create `ThumbnailLoaderWithRefresh` wrapper or add refresh callback:\n   - `suspend fun loadCloudThumbnailWithRefresh(mediaItemId: String, getBaseUrl: suspend () -> String?, refreshBaseUrls: suspend () -> Unit): Bitmap?`\n   - On Expired: call `refreshBaseUrls()` (triggers Picker session re-list).\n   - Query fresh baseUrl via `getBaseUrl()`.\n   - Retry load with new baseUrl.\n   - Only retry once to avoid infinite loops.\n5. Integrate with PickerApiClient or repository that can refresh session mediaItems.\n6. Log expiry events for debugging without exposing user data.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: mock 403 response and verify refresh callback is invoked; verify retry happens with new URL; test single retry limit (no infinite loops); test when refresh also fails. Integration tests: simulate baseUrl expiry scenario end-to-end using mock responses.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:58:04.601Z"
           },
           {
             "id": 4,
@@ -2298,9 +2308,10 @@
               2
             ],
             "details": "1. Create `AsyncThumbnail` Composable in `com.gankdat.pomegranate.ui.common`:\n   ```kotlin\n   @Composable\n   fun AsyncThumbnail(\n       mediaId: String,\n       isCloud: Boolean,\n       baseUrl: String? = null,  // required for cloud items\n       contentUri: Uri? = null,  // required for device items\n       modifier: Modifier = Modifier,\n       contentDescription: String?,\n       onExpired: (() -> Unit)? = null  // callback for baseUrl refresh\n   )\n   ```\n2. Use `rememberSaveable { mutableStateOf<ThumbnailState>(Loading) }` to preserve state across recomposition.\n3. LaunchedEffect(mediaId, baseUrl) to trigger loading, cancelling on key change.\n4. Display states:\n   - Loading: placeholder Box with MaterialTheme.colorScheme.surfaceVariant background.\n   - Success: Image with loaded Bitmap, using BitmapPainter.\n   - Error: Icon (Icons.Default.BrokenImage) with contentDescription.\n5. For accessibility: provide contentDescription parameter, pass to Image.\n6. Size handling: use Modifier.size or Modifier.aspectRatio(1f) for consistent grid layout.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify placeholder shows initially; verify image displays after load; verify error icon shows on failure; verify contentDescription is accessible. Preview tests: create previews for Loading, Success, Error states. Test LaunchedEffect cancellation when mediaId changes; verify no memory leak from coroutine scope.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:58:06.401Z"
           },
           {
             "id": 5,
@@ -2311,15 +2322,16 @@
               4
             ],
             "details": "1. Update MediaItemCard or similar Composable in Library screen to use AsyncThumbnail.\n2. Pass appropriate parameters: mediaId, isCloud, baseUrl (from CloudItemEntity), contentUri (from DeviceItemEntity).\n3. Scroll cancellation:\n   - LaunchedEffect with mediaId key automatically cancels when item leaves composition.\n   - Coroutine cancellation in ThumbnailLoader respects cooperative cancellation via isActive/yield.\n4. For LazyGrid/LazyColumn:\n   - Use `key = { item.id }` in items() to ensure stable identity.\n   - Consider `contentType` for heterogeneous lists.\n5. Memory profiling:\n   - Use Android Studio Profiler to monitor heap during rapid scroll.\n   - Verify WeakReferences allow GC under memory pressure.\n   - Log cache hit/miss ratio for optimization.\n6. Add disk cache stub for future enhancement:\n   - Create `DiskThumbnailCache` interface with `get(key): File?`, `put(key, bitmap)`, `clear()`.\n   - Document: clear cloud thumbnails on Disconnect, device thumbnails when source deleted.\n7. Test on long lists (1000+ items) for performance.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Performance tests: scroll 1000+ item list rapidly, verify no OOM; measure memory usage stays within 1/8 heap limit; verify smooth scrolling (no jank). Integration tests: verify thumbnails load correctly in Library grid; verify cancelled loads don't update UI after scrolling away. Manual tests: use Android Profiler to verify memory behavior; check cache hit ratio in logs.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:58:08.201Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 5,
         "expansionPrompt": "Break down thumbnail caching into: 1) Create ThumbnailCache with LRU LinkedHashMap and weak references, 2) Create ThumbnailLoader for device (ContentResolver) and cloud (baseUrl+size params), 3) Handle baseUrl expiry with refresh and retry, 4) Create AsyncThumbnail Composable with placeholder/error states, 5) Integrate with Library screen and handle scroll cancellation. Profile memory usage.",
-        "updatedAt": "2026-10-19T16:55:43.718Z"
+        "updatedAt": "2026-10-19T16:58:08.201Z"
       },
       {
         "id": "25",
@@ -2396,9 +2408,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T16:55:45.605Z",
+      "lastModified": "2026-10-19T16:58:31.076Z",
       "taskCount": 25,
-      "completedCount": 21,
+      "completedCount": 23,
       "tags": [
         "master"
       ]

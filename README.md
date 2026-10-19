@@ -47,7 +47,8 @@ container provides both.
 
 Install on a phone with developer mode enabled: copy the APK over, or from a
 machine that can see the device run `adb install app/build/outputs/apk/debug/app-debug.apk`.
-There is no emulator in the container.
+There is no emulator in the container. Signed release builds, sideloading and
+the release checklist are in `docs/RELEASE.md`.
 
 Connecting a Google account needs an OAuth client id from your own Google
 Cloud project (Photos Picker API enabled, Android client bound to the package

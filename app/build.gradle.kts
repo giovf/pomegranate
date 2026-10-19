@@ -14,6 +14,14 @@ val localProperties = Properties().apply {
 }
 val oauthClientId: String = localProperties.getProperty("pomegranate.oauthClientId", "")
 
+// Release signing is optional: without these four properties the release
+// build stays unsigned (fine for CI and for checking that R8 works).
+val signingStoreFile: String? = localProperties.getProperty("pomegranate.signing.storeFile")
+val signingStorePassword: String? = localProperties.getProperty("pomegranate.signing.storePassword")
+val signingKeyAlias: String? = localProperties.getProperty("pomegranate.signing.keyAlias")
+val signingKeyPassword: String? = localProperties.getProperty("pomegranate.signing.keyPassword")
+val hasReleaseSigning = listOf(signingStoreFile, signingStorePassword, signingKeyAlias, signingKeyPassword).all { !it.isNullOrBlank() }
+
 android {
     namespace = "com.gankdat.pomegranate"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -30,6 +38,17 @@ android {
         buildConfigField("String", "OAUTH_CLIENT_ID", "\"$oauthClientId\"")
     }
 
+    if (hasReleaseSigning) {
+        signingConfigs {
+            create("release") {
+                storeFile = rootProject.file(checkNotNull(signingStoreFile))
+                storePassword = signingStorePassword
+                keyAlias = signingKeyAlias
+                keyPassword = signingKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -38,6 +57,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
         }
     }
 
