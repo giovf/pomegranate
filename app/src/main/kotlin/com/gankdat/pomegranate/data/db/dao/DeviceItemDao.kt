@@ -36,6 +36,9 @@ internal interface DeviceItemDao {
     @Update
     suspend fun update(item: DeviceItemEntity)
 
+    @Update
+    suspend fun updateAll(items: List<DeviceItemEntity>)
+
     @Delete
     suspend fun delete(item: DeviceItemEntity)
 
@@ -51,6 +54,13 @@ internal interface DeviceItemDao {
     @Query("SELECT * FROM device_item WHERE volume = :volume AND mediaStoreId = :mediaStoreId")
     suspend fun getByMediaStoreId(volume: String, mediaStoreId: Long): DeviceItemEntity?
 
+    /** Callers chunk [mediaStoreIds] (see [MAX_BIND_ARGS]) to stay under SQLite's bind-variable limit. */
+    @Query("SELECT * FROM device_item WHERE volume = :volume AND mediaStoreId IN (:mediaStoreIds)")
+    suspend fun getByMediaStoreIds(volume: String, mediaStoreIds: List<Long>): List<DeviceItemEntity>
+
+    @Query("SELECT mediaStoreId FROM device_item WHERE volume = :volume")
+    suspend fun getMediaStoreIdsForVolume(volume: String): List<Long>
+
     @Query("SELECT * FROM device_item WHERE fingerprint = :fingerprint")
     suspend fun getByFingerprint(fingerprint: String): List<DeviceItemEntity>
 
@@ -60,9 +70,15 @@ internal interface DeviceItemDao {
     @Query("SELECT COUNT(*) FROM device_item")
     suspend fun count(): Int
 
-    @Query("DELETE FROM device_item WHERE volume = :volume AND mediaStoreId NOT IN (:keepMediaStoreIds)")
-    suspend fun deleteMissingFromVolume(volume: String, keepMediaStoreIds: List<Long>): Int
+    /** Callers chunk [mediaStoreIds] (see [MAX_BIND_ARGS]). */
+    @Query("DELETE FROM device_item WHERE volume = :volume AND mediaStoreId IN (:mediaStoreIds)")
+    suspend fun deleteByMediaStoreIds(volume: String, mediaStoreIds: List<Long>): Int
 
     @Query("DELETE FROM device_item")
     suspend fun deleteAll()
+
+    companion object {
+        /** Safe chunk size for `IN (:list)` queries on every supported SQLite build. */
+        const val MAX_BIND_ARGS: Int = 500
+    }
 }

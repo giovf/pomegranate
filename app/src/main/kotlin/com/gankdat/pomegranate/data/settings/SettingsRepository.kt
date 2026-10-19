@@ -28,6 +28,9 @@ public interface SettingsRepository {
     /** The user dismissed the partial-access banner. */
     public val partialAccessBannerDismissed: Flow<Boolean>
 
+    /** Epoch millis when the last device census finished, 0 if never. */
+    public val lastDeviceScanTimeMillis: Flow<Long>
+
     public suspend fun setDestinationRootUri(uri: String?)
 
     public suspend fun setFolderStrategy(strategy: FolderStrategy)
@@ -42,6 +45,8 @@ public interface SettingsRepository {
     public suspend fun setHasRequestedMediaPermission(requested: Boolean)
 
     public suspend fun setPartialAccessBannerDismissed(dismissed: Boolean)
+
+    public suspend fun setLastDeviceScanTimeMillis(timeMillis: Long)
 
     public companion object {
         public const val MIN_CONCURRENCY: Int = 1

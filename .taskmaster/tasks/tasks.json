@@ -204,7 +204,7 @@
         "testStrategy": "Manual testing on Android 13, 14, and 15 devices/emulators: verify rationale screen shows before first request; verify handling of grant, deny, and permanent deny; verify partial grant flow on Android 14+; verify Settings deep link works.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -212,9 +212,10 @@
             "description": "Declare READ_MEDIA_IMAGES, READ_MEDIA_VIDEO (API 33+), and READ_MEDIA_VISUAL_USER_SELECTED (API 34+) permissions in AndroidManifest.xml with proper maxSdkVersion constraints where applicable.",
             "dependencies": [],
             "details": "Edit app/src/main/AndroidManifest.xml to add:\n1. `<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\" />` (implicitly API 33+ only)\n2. `<uses-permission android:name=\"android.permission.READ_MEDIA_VISUAL_USER_SELECTED\" />` (API 34+)\n3. `<uses-permission android:name=\"android.permission.READ_MEDIA_VIDEO\" />`\n\nDo NOT add WRITE_EXTERNAL_STORAGE or READ_EXTERNAL_STORAGE as the app uses SAF for writes. Ensure permissions are placed before the <application> tag. Add XML comments explaining API level requirements for future maintainers.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify AndroidManifest.xml passes lint checks. Build the APK and use `aapt dump permissions` to confirm declared permissions. Test install on API 33 and API 34+ devices to ensure no permission-related install failures.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:34:19.782Z"
           },
           {
             "id": 2,
@@ -224,9 +225,10 @@
               1
             ],
             "details": "Create package `com.gankdat.pomegranate.ui.permissions` with:\n\n1. `PermissionState.kt` - sealed class with:\n   - `object Granted` - full media access\n   - `data class PartiallyGranted(val selectedPhotosOnly: Boolean)` - Android 14+ visual user selected\n   - `object Denied` - user denied but can re-ask\n   - `object PermanentlyDenied` - user denied with 'Don't ask again'\n   - `object NotRequested` - initial state before any request\n\n2. `PermissionViewModel.kt` - AndroidViewModel that:\n   - Exposes `permissionState: StateFlow<PermissionState>`\n   - Has `checkCurrentPermissions(context: Context)` to query ContextCompat.checkSelfPermission\n   - Has `updatePermissionResult(permissions: Map<String, Boolean>)` to process Activity Result callback\n   - Detects partial grant by checking READ_MEDIA_VISUAL_USER_SELECTED granted while others denied\n   - Uses Build.VERSION.SDK_INT checks for API-specific logic\n\n3. Use ActivityResultContracts.RequestMultiplePermissions for the permission request.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify PermissionState transitions for all scenarios (grant all, deny all, partial grant, permanent denial). Test ViewModel correctly interprets permission results from mock contexts. Test API version branching with mocked Build.VERSION.SDK_INT values where possible.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:34:21.667Z"
           },
           {
             "id": 3,
@@ -236,9 +238,10 @@
               2
             ],
             "details": "Create `PermissionRationaleScreen.kt` in `com.gankdat.pomegranate.ui.permissions`:\n\n1. Material 3 Composable with:\n   - Icon/illustration representing photo scanning\n   - Title: \"Access Your Photos & Videos\"\n   - Body explaining: \"Pomegranate needs to scan photos and videos on this device to show you what exists locally vs only in Google Photos.\"\n   - Privacy section with bullet points:\n     • \"Your media never leaves this device\"\n     • \"No analytics or tracking\"\n     • \"No uploads to any server\"\n   - Primary button: \"Grant Access\" that triggers permission request\n   - Secondary text link: \"Learn more\" (optional, links to in-app help)\n\n2. Use `rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions())` to handle the permission request.\n\n3. Pass appropriate permissions array based on API level: `[READ_MEDIA_IMAGES, READ_MEDIA_VIDEO]` for API 33, plus `READ_MEDIA_VISUAL_USER_SELECTED` for API 34+.\n\n4. Ensure all interactive elements have contentDescription for TalkBack accessibility.\n\n5. Support both light and dark themes via MaterialTheme.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual testing: verify screen renders correctly in light/dark mode. Verify TalkBack reads all content descriptions. Verify button triggers permission dialog. UI test: verify Composable snapshot matches design across configurations.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:34:23.558Z"
           },
           {
             "id": 4,
@@ -249,9 +252,10 @@
               3
             ],
             "details": "Enhance PermissionViewModel and UI flow:\n\n1. In PermissionViewModel, add `shouldShowRationale(activity: Activity): Boolean` that checks `ActivityCompat.shouldShowRequestPermissionRationale()` for both READ_MEDIA_IMAGES and READ_MEDIA_VIDEO.\n\n2. Create decision logic in the permission flow:\n   - If permissions already granted → navigate to main screen\n   - If shouldShowRationale is true → show PermissionRationaleScreen\n   - If first time (no denial history) → can show rationale or request directly based on UX preference\n   - If shouldShowRationale is false AND previously denied → permanent denial\n\n3. Track denial history in ViewModel state to distinguish first-time denial from permanent denial (shouldShowRationale returns false in both first request and permanent denial scenarios).\n\n4. Update PermissionRationaleScreen to show slightly different messaging when it's a re-request (\"We need this permission to...\" vs \"You previously denied...\").\n\n5. Ensure the flow handles configuration changes (screen rotation) without losing state.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual testing on device: deny permission once, verify rationale screen appears on next request. Test flow after clearing app data (first-time state). Unit tests: verify ViewModel correctly interprets shouldShowRationale return values in combination with denial history.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:34:25.463Z"
           },
           {
             "id": 5,
@@ -263,9 +267,10 @@
               4
             ],
             "details": "Handle the Android 14+ visual media picker partial grant:\n\n1. In PermissionViewModel, detect partial grant state:\n   - READ_MEDIA_VISUAL_USER_SELECTED granted = true\n   - READ_MEDIA_IMAGES or READ_MEDIA_VIDEO granted = false\n   - This indicates user chose \"Select photos\" instead of \"Allow all\"\n\n2. Create `PartialAccessBanner` Composable:\n   - Shows in main UI when in PartiallyGranted state\n   - Message: \"Pomegranate can only see photos you've selected. Some device photos may be missing from the census.\"\n   - Action button: \"Select More Photos\" that re-launches permission request\n   - Dismiss option that persists choice via DataStore\n\n3. When user taps \"Select More Photos\":\n   - Re-request READ_MEDIA_IMAGES and READ_MEDIA_VIDEO\n   - System shows photo picker again, user can add more photos\n   - After selection, re-run device census for new items\n\n4. Update PermissionState.PartiallyGranted to include count of selected items if available (via MediaStore query count).\n\n5. Ensure app functions correctly in partial grant mode—device scanner should only see MediaStore items the app has access to.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual testing on Android 14+ device: grant partial access, verify banner appears, verify \"Select More\" re-launches picker, verify newly selected photos appear in census. Test that app gracefully handles partial access without crashes.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:34:27.147Z"
           },
           {
             "id": 6,
@@ -277,15 +282,16 @@
               4
             ],
             "details": "Handle permanent denial and persistence:\n\n1. Create `PermissionDeniedScreen.kt` Composable:\n   - Explains permissions were permanently denied\n   - Message: \"To scan your photos and videos, you'll need to grant access in Settings.\"\n   - Primary button: \"Open Settings\" using Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS) with app package URI\n   - Secondary button: \"Not Now\" to continue with limited functionality\n   - Include deep link to specific permission settings if available on device\n\n2. Implement Settings intent launch:\n   ```kotlin\n   Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {\n       data = Uri.fromParts(\"package\", context.packageName, null)\n   }\n   ```\n\n3. Add permission state persistence to DataStore (in SettingsRepository from Task 2 or new PermissionPreferences):\n   - `lastKnownPermissionState: Flow<String>` (serialized PermissionState)\n   - `hasRequestedPermissionsBefore: Flow<Boolean>`\n   - `partialAccessBannerDismissed: Flow<Boolean>`\n\n4. On app launch, read persisted state to:\n   - Show appropriate screen immediately (avoid flicker)\n   - Re-check actual permissions in case user changed them in Settings\n   - If state changed from PermanentlyDenied to Granted, update and proceed\n\n5. Handle Activity lifecycle: when returning from Settings, re-check permissions in onResume.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual testing: permanently deny permission (deny twice), verify denied screen appears, verify Settings button opens correct app settings page. Grant permission in Settings, return to app, verify app detects change. Test persistence: kill app after permanent denial, relaunch, verify correct screen shown immediately. Test across API 33/34/35 devices.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:34:28.848Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 6,
         "expansionPrompt": "Break down permissions flow into: 1) Add permission declarations to AndroidManifest.xml, 2) Create PermissionState sealed class and PermissionViewModel, 3) Build PermissionRationaleScreen Composable with explanations, 4) Implement shouldShowRequestPermissionRationale handling, 5) Handle Android 14+ partial grants (READ_MEDIA_VISUAL_USER_SELECTED), 6) Implement permanent denial flow with Settings deep link and persistence. Test across API 33/34/35.",
-        "updatedAt": "2026-10-19T14:32:15.783Z"
+        "updatedAt": "2026-10-19T14:34:28.848Z"
       },
       {
         "id": "4",
@@ -298,7 +304,7 @@
           "1",
           "3"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -386,7 +392,8 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Break down device scanner into: 1) Create DeviceScanner class with MediaStore queries for images and videos, 2) Implement multi-volume scanning via getExternalVolumeNames, 3) Create Fingerprint data class and hashing logic, 4) Implement DeviceScannerRepository with batch processing (500 items), 5) Add incremental scan support with lastScanTime tracking, 6) Implement EXIF fallback for dateTaken using androidx.exifinterface, 7) Create ScanResult/ScanProgress classes and unit tests. Handle cursor lifecycle properly."
+        "expansionPrompt": "Break down device scanner into: 1) Create DeviceScanner class with MediaStore queries for images and videos, 2) Implement multi-volume scanning via getExternalVolumeNames, 3) Create Fingerprint data class and hashing logic, 4) Implement DeviceScannerRepository with batch processing (500 items), 5) Add incremental scan support with lastScanTime tracking, 6) Implement EXIF fallback for dateTaken using androidx.exifinterface, 7) Create ScanResult/ScanProgress classes and unit tests. Handle cursor lifecycle properly.",
+        "updatedAt": "2026-10-19T14:37:21.839Z"
       },
       {
         "id": "5",
@@ -2262,9 +2269,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T14:32:15.784Z",
+      "lastModified": "2026-10-19T14:37:21.839Z",
       "taskCount": 25,
-      "completedCount": 3,
+      "completedCount": 4,
       "tags": [
         "master"
       ]

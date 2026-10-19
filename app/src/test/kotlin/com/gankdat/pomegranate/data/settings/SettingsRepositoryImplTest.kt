@@ -53,6 +53,13 @@ class SettingsRepositoryImplTest {
         assertFalse(settings.autoDisconnect.first())
         assertFalse(settings.hasRequestedMediaPermission.first())
         assertFalse(settings.partialAccessBannerDismissed.first())
+        assertEquals(0L, settings.lastDeviceScanTimeMillis.first())
+    }
+
+    @Test
+    fun `last device scan time persists`() = runBlocking {
+        settings.setLastDeviceScanTimeMillis(1_700_000_000_000)
+        assertEquals(1_700_000_000_000L, settings.lastDeviceScanTimeMillis.first())
     }
 
     @Test

@@ -116,7 +116,7 @@ class PomegranateDatabaseTest {
     }
 
     @Test
-    fun `rescan can drop items no longer present on a volume`() = runBlocking {
+    fun `volume-scoped id lookups and deletions do not cross volumes`() = runBlocking {
         val dao = db.deviceItemDao()
         dao.insertAll(
             listOf(
@@ -126,7 +126,10 @@ class PomegranateDatabaseTest {
             ),
         )
 
-        val removed = dao.deleteMissingFromVolume("external_primary", keepMediaStoreIds = listOf(2))
+        assertEquals(listOf(1L, 2L), dao.getMediaStoreIdsForVolume("external_primary").sorted())
+        assertEquals(listOf(2L), dao.getByMediaStoreIds("external_primary", listOf(2, 3)).map { it.mediaStoreId })
+
+        val removed = dao.deleteByMediaStoreIds("external_primary", listOf(1))
 
         assertEquals(1, removed)
         assertEquals(listOf("external_primary" to 2L, "sdcard" to 1L), dao.getAll().map { it.volume to it.mediaStoreId }.sortedBy { it.first })

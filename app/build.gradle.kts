@@ -77,6 +77,7 @@ dependencies {
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.exifinterface)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
