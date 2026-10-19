@@ -1748,7 +1748,7 @@
           "9",
           "10"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1756,9 +1756,10 @@
             "description": "Create the ConnectionViewModel in the ui.connection package that observes AuthRepository.isAuthenticated() state, loads picker round history from Room via PickerRoundDao, and calculates total items indexed across all rounds.",
             "dependencies": [],
             "details": "1. Create package `com.gankdat.pomegranate.ui.connection`.\n2. Create `ConnectionUiState` sealed interface with states: Loading, Connected(email: String?, pickerRounds: List<PickerRound>, totalItems: Int, tokenStatus: TokenStatus), NotConnected.\n3. Create `TokenStatus` enum: Valid, NeedsRefresh, Expired (for Testing mode 7-day limit).\n4. Create `ConnectionViewModel` extending AndroidViewModel:\n   - Inject AuthRepository and PickerRoundDao.\n   - Expose `uiState: StateFlow<ConnectionUiState>`.\n   - Combine AuthRepository.isAuthenticated() with PickerRoundDao.getAllPickerRounds().\n   - Map to ConnectionUiState with computed totalItems (sum of itemCount from all rounds).\n   - Check token expiry against current time for TokenStatus.\n   - Add refreshToken() function that delegates to AuthRepository.\n5. For Testing mode: detect 7-day expiry by comparing AuthRepository.getExpiresAt() with current time.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: mock AuthRepository and PickerRoundDao; verify Loading state emits first; verify Connected state contains correct email, round count, and totalItems sum; verify TokenStatus transitions correctly based on expiry time; verify NotConnected state when not authenticated. Use Turbine for Flow testing.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:46:55.067Z"
           },
           {
             "id": 2,
@@ -1768,9 +1769,10 @@
               1
             ],
             "details": "1. Create `ConnectionStatusCard.kt` in ui.connection package.\n2. Implement `ConnectionStatusCard` Composable:\n   - Material 3 Card with appropriate elevation and colors.\n   - Header: Large green checkmark icon + \"Connected to Google Photos\" when connected, or gray X icon + \"Not connected\" when disconnected.\n   - Email row: Google account email from token (if available) with person icon.\n   - Scope explanation text: \"Can view and download media you select in the picker\".\n   - Use Material 3 typography: titleLarge for status, bodyMedium for email, bodySmall for scope.\n3. Create `ConnectionStatusCard` Preview functions for both states.\n4. Add content descriptions for accessibility: \"Connected to Google Photos as user@email.com\" or \"Not connected to Google Photos\".\n5. Handle dark mode with appropriate color variations.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify correct text displays for connected/disconnected states; verify email shows when present and hides when null; verify icon changes based on state. Preview tests: screenshot comparison for both states and dark mode. TalkBack verification for accessibility content descriptions.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:46:56.892Z"
           },
           {
             "id": 3,
@@ -1781,9 +1783,10 @@
               2
             ],
             "details": "1. Create `PickerRoundsSection.kt` in ui.connection package.\n2. Create `PickerRoundItem` Composable for individual rounds:\n   - Show formatted timestamp (e.g., \"Oct 15, 2024 at 2:30 PM\") using DateTimeFormatter.\n   - Show item count with icon (e.g., \"123 items\").\n   - Use ListItem from Material 3 for consistent styling.\n3. Create `PickerRoundsSection` Composable:\n   - Section header: \"Picker History\" with history icon.\n   - LazyColumn or Column displaying all PickerRoundItem entries (use Column if expecting <20 rounds).\n   - Footer row: \"Total: X items indexed across Y rounds\".\n   - \"Index more\" filled button at bottom, onClick navigates to picker flow.\n4. Handle empty state: show \"No items indexed yet. Start by indexing your photos.\" with prominent \"Index photos\" button.\n5. Add proper content descriptions for screen readers.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify list displays correct number of rounds; verify timestamp formatting; verify item counts sum to total; verify empty state displays correctly. Test \"Index more\" button click triggers navigation callback. Preview tests with 0, 1, and multiple rounds.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:46:58.631Z"
           },
           {
             "id": 4,
@@ -1794,9 +1797,10 @@
               2
             ],
             "details": "1. Create `TokenStatusSection.kt`:\n   - Show \"Access valid\" with green indicator when token is fresh.\n   - Show \"Needs refresh\" with amber indicator when token is close to expiry.\n   - For Testing mode: show warning banner when approaching 7-day limit: \"Testing mode: Access expires in X days. Reconnect to continue.\" with amber/red based on urgency.\n   - Include \"Refresh access\" text button that calls ConnectionViewModel.refreshToken().\n2. Create `ConnectionActionsSection.kt`:\n   - \"Refresh access\" outlined button - triggers token refresh.\n   - \"Disconnect\" filled tonal button with warning color - navigates to Disconnect flow.\n   - Show loading indicator on buttons during async operations.\n3. For first-time users (NotConnected state):\n   - Replace all sections with prominent \"Connect to Google Photos\" button.\n   - Brief explanation: \"Connect to view your cloud library and download photos.\"\n   - onClick navigates to OAuth flow.\n4. Handle reconnection: if token expired, show \"Session expired. Reconnect to continue.\" with \"Reconnect\" button.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify correct status displays for Valid/NeedsRefresh/Expired states; verify Testing mode warning appears with correct days remaining; verify button clicks trigger correct ViewModel methods. Test loading states during refresh. Test first-time user connect flow.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:47:00.320Z"
           },
           {
             "id": 5,
@@ -1809,15 +1813,16 @@
               4
             ],
             "details": "1. Create `ConnectionStatusIndicator.kt` in ui.common package:\n   - Small composable: colored dot (8dp) with optional subtle animation.\n   - Green fill for connected, gray for disconnected, amber for needs-refresh.\n   - Wrap in IconButton that navigates to Connection screen on click.\n   - Add content description: \"Connection status: connected/disconnected\".\n2. Modify PomegranateTopAppBar (or create if needed):\n   - Add actions slot with ConnectionStatusIndicator.\n   - Observe auth state from shared ViewModel or pass as parameter.\n3. Create complete `ConnectionScreen.kt` Composable:\n   - Scaffold with TopAppBar showing \"Connection\" title.\n   - Vertical scroll Column containing:\n     - ConnectionStatusCard\n     - PickerRoundsSection (if connected)\n     - TokenStatusSection (if connected)\n     - ConnectionActionsSection\n   - Handle all states from ConnectionUiState.\n4. Add ConnectionScreen to navigation graph with route \"connection\".\n5. Wire up navigation: Index more → Picker flow, Disconnect → Disconnect flow, Connect → OAuth flow.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify indicator color changes based on auth state; verify tap navigates to Connection screen; verify ConnectionScreen displays all sections correctly in all states. Integration test: verify navigation to/from ConnectionScreen works. Manual test: verify indicator visible on all app screens.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:47:02.095Z"
           }
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
         "expansionPrompt": "Break down Connection screen into: 1) Create ConnectionViewModel observing auth state and picker rounds, 2) Build connection status card with account info and scope, 3) Display picker round history with timestamps and counts, 4) Add token status and refresh actions, 5) Implement connection status indicator in TopAppBar. Handle Testing mode 7-day expiry gracefully.",
-        "updatedAt": "2026-10-19T16:43:04.781Z"
+        "updatedAt": "2026-10-19T16:47:02.095Z"
       },
       {
         "id": "19",
@@ -1830,7 +1835,7 @@
           "9",
           "18"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1838,9 +1843,10 @@
             "description": "Build DisconnectViewModel that manages the multi-step disconnect flow with observable state for each step's progress, handling the sequence: pre-check → revoke → wipe secrets → wipe cloud data → clear cache → confirmation.",
             "dependencies": [],
             "details": "Create DisconnectViewModel in `com.gankdat.pomegranate.ui.connection` package. Define sealed class `DisconnectStep` with states: PreCheck, RevokingToken, WipingSecrets, WipingCloudData, ClearingCache, AwaitingConfirmation, Complete. Create StateFlow<DisconnectUiState> containing: currentStep, stepResults (Map<DisconnectStep, StepResult>), pendingTransfersCount, errorMessage. Implement suspend function `executeDisconnect()` that progresses through steps sequentially, updating state after each. Add `cancelDisconnect()` to abort mid-flow. Include `resetState()` for retry scenarios. Use SavedStateHandle to survive process death during flow. Inject repositories via constructor: TokenRepository, CloudItemDao, MatchDao, PickerRoundDao, TransferJobDao, ThumbnailCache.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify state transitions occur in correct order; test error handling at each step preserves previous step results; test cancellation mid-flow; test SavedStateHandle restoration. Use FakeTokenRepository and in-memory Room database for isolation.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:47:05.522Z"
           },
           {
             "id": 2,
@@ -1850,9 +1856,10 @@
               1
             ],
             "details": "Add `checkPendingTransfers()` function in DisconnectViewModel that queries TransferJobDao for jobs with state IN_PROGRESS or QUEUED. Create PreDisconnectChecklistScreen Composable showing: warning card if pendingCount > 0 with count and estimated completion time, 'Cancel pending transfers' button calling TransferManager.cancelAll(), 'Wait for completion' button navigating to transfer progress screen, 'Disconnect anyway' button (with confirmation dialog warning data loss). If no pending transfers, show confirmation dialog with bullet points of what will be deleted: 'OAuth token will be revoked', 'Cloud photo index will be deleted', 'Match data will be cleared', 'Cached thumbnails will be removed'. Include 'Device photos and pulled files are NOT affected' reassurance. Proceed button starts disconnect flow.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify pending transfer count query; test UI state when transfers exist vs none. UI tests: verify warning card visibility; verify button actions trigger correct ViewModel calls; verify confirmation dialog text matches expected content.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:47:07.166Z"
           },
           {
             "id": 3,
@@ -1862,9 +1869,10 @@
               1
             ],
             "details": "Create `TokenRevoker` class in `com.gankdat.pomegranate.data.auth` package. Implement `suspend fun revokeToken(token: String): RevokeResult` using HttpsURLConnection. POST to `https://oauth2.googleapis.com/revoke` with `Content-Type: application/x-www-form-urlencoded` body `token={accessToken}`. Handle responses: HTTP 200 = success, HTTP 400 with 'invalid_token' = already revoked (treat as success), other errors = RevokeResult.NetworkError or RevokeResult.ServerError. Set connection timeout 30 seconds, read timeout 30 seconds. Log errors without including token value. In DisconnectViewModel, call revoker in RevokingToken step, update state with result. If revocation fails with network error, offer retry or 'Continue anyway' (token will expire naturally). Store revocation timestamp in DataStore for audit trail.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests with MockWebServer: test successful revocation response; test already-revoked 400 response treated as success; test network timeout handling; test retry logic. Integration test: manual verification with real token (in debug builds only, with test account).",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:47:08.821Z"
           },
           {
             "id": 4,
@@ -1875,9 +1883,10 @@
               3
             ],
             "details": "Add `wipeAllSecrets()` function to TokenRepository. Implementation steps: 1) Delete access_token from EncryptedSharedPreferences, 2) Delete refresh_token from EncryptedSharedPreferences, 3) Delete code_verifier if stored, 4) Delete the Keystore alias used for encryption (KeyStore.deleteEntry()), 5) Clear any in-memory cached tokens. Create sealed class WipeResult: Success, PartialFailure(failedItems: List<String>), Error(exception: Exception). Verify deletion by attempting to read values back (should throw or return null). In DisconnectViewModel WipingSecrets step, call wipeAllSecrets() and update state. Log completion without sensitive data. Handle partial failures by retrying failed items once before proceeding.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify all storage locations cleared; test Keystore entry deletion; test EncryptedSharedPreferences values removed; test in-memory cache cleared. Integration test: write test tokens, call wipe, verify read throws/returns null; verify Keystore alias no longer exists.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:47:10.477Z"
           },
           {
             "id": 5,
@@ -1888,9 +1897,10 @@
               4
             ],
             "details": "Create `CloudDataWiper` class in `com.gankdat.pomegranate.data` package. Implement `suspend fun wipeCloudData(): WipeResult` that executes in a Room transaction: 1) DELETE FROM cloud_item (all rows), 2) DELETE FROM match (all rows), 3) DELETE FROM picker_round (all rows), 4) Update any TransferJobEntity to mark cloud_item_id as orphaned but keep record for manifest, 5) Clear any cached cloud thumbnails from disk cache directory. Do NOT delete: device_item table, transfer_job table (these are proof of completed pulls), origin_rule table. Return counts of deleted rows for logging/UI. In DisconnectViewModel WipingCloudData step, call wiper and update state with deletion counts. Add `verifyWipeComplete()` that queries each table to confirm zero cloud-related rows.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests with in-memory Room database: insert test data in all tables, call wipe, verify cloud tables empty and device tables preserved. Verify transaction rollback on partial failure. Integration test: verify disk cache directory cleared; verify deletion counts accurate.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:47:12.115Z"
           },
           {
             "id": 6,
@@ -1904,15 +1914,16 @@
               5
             ],
             "details": "Create DisconnectConfirmationScreen Composable in `com.gankdat.pomegranate.ui.connection`. Display success summary card listing completed steps with checkmarks: 'Token revoked with Google', 'Local secrets deleted', 'Cloud index cleared ({count} items)', 'Thumbnail cache cleared'. Add 'Verify in Google Account' section with explanatory text: 'For complete peace of mind, verify the app no longer has access to your Google Account'. Create OutlinedButton that launches Custom Tab to `https://myaccount.google.com/permissions`. Add screenshot/illustration showing what the permissions page looks like and where to find third-party apps. Include Checkbox with label 'I've confirmed Pomegranate is no longer listed in my Google Account permissions'. When checkbox checked, enable 'Done' button that navigates to ConnectionScreen showing 'Not connected' state. Store confirmation timestamp in DataStore. Implement auto-disconnect notification using WorkManager that shows notification before executing disconnect, with 'Cancel' action.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify all completion checkmarks display; verify deep link opens correct URL; verify checkbox enables Done button; verify navigation to disconnected state. Integration test: verify Custom Tab launches with correct URL. Manual test: verify permissions page shows expected content.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:47:13.802Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 6,
         "expansionPrompt": "Break down Disconnect flow into: 1) Create DisconnectViewModel tracking disconnect steps, 2) Show pre-disconnect checklist (pending transfers warning), 3) Implement token revocation POST to Google endpoint, 4) Wipe local secrets (Keystore-backed tokens), 5) Wipe cloud data (CloudItemEntity, MatchEntity, PickerRoundEntity), 6) Create guided confirmation with Google Account deep link. Test data wipe is complete.",
-        "updatedAt": "2026-10-19T16:43:06.550Z"
+        "updatedAt": "2026-10-19T16:47:13.802Z"
       },
       {
         "id": "20",
@@ -1926,7 +1937,7 @@
           "5",
           "6"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -1991,7 +2002,8 @@
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down Settings screen into: 1) Create SettingsViewModel observing SettingsRepository, 2) Build Settings sections (Storage, Download, Behavior, Privacy, About), 3) Implement destination folder change with SAF picker, 4) Add all preference controls (sliders, switches, radios), 5) Implement sub-screen navigation (Connection, About dialogs). Standard preference-style UI pattern."
+        "expansionPrompt": "Break down Settings screen into: 1) Create SettingsViewModel observing SettingsRepository, 2) Build Settings sections (Storage, Download, Behavior, Privacy, About), 3) Implement destination folder change with SAF picker, 4) Add all preference controls (sliders, switches, radios), 5) Implement sub-screen navigation (Connection, About dialogs). Standard preference-style UI pattern.",
+        "updatedAt": "2026-10-19T16:49:48.865Z"
       },
       {
         "id": "21",
@@ -2004,7 +2016,7 @@
           "17",
           "19"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -2057,7 +2069,8 @@
         ],
         "complexity": 4,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down cleanup guidance into: 1) Create CleanupGuidanceScreen with pre-cleanup requirements check, 2) Build step-by-step delete guide with screenshots/illustrations, 3) Build step-by-step backup disable guide, 4) Add backup-folder collision warning and completion confirmation. Content-heavy UI with minimal logic."
+        "expansionPrompt": "Break down cleanup guidance into: 1) Create CleanupGuidanceScreen with pre-cleanup requirements check, 2) Build step-by-step delete guide with screenshots/illustrations, 3) Build step-by-step backup disable guide, 4) Add backup-folder collision warning and completion confirmation. Content-heavy UI with minimal logic.",
+        "updatedAt": "2026-10-19T16:49:50.604Z"
       },
       {
         "id": "22",
@@ -2372,9 +2385,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T16:43:06.551Z",
+      "lastModified": "2026-10-19T16:49:50.604Z",
       "taskCount": 25,
-      "completedCount": 17,
+      "completedCount": 19,
       "tags": [
         "master"
       ]

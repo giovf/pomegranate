@@ -15,8 +15,8 @@ internal class TransferScheduler(context: Context) {
     private val workManager = WorkManager.getInstance(context.applicationContext)
 
     /** Starts draining now (if constraints allow) and keeps the 15-minute safety net in place. */
-    fun start(wifiOnly: Boolean) {
-        val constraints = constraints(wifiOnly)
+    fun start(wifiOnly: Boolean, pauseOnLowBattery: Boolean = true) {
+        val constraints = constraints(wifiOnly, pauseOnLowBattery)
         workManager.enqueueUniqueWork(
             IMMEDIATE_WORK,
             ExistingWorkPolicy.KEEP,
@@ -44,8 +44,9 @@ internal class TransferScheduler(context: Context) {
         const val PERIODIC_WORK: String = "pomegranate_transfer_periodic"
         const val PERIODIC_MINUTES: Long = 15
 
-        fun constraints(wifiOnly: Boolean): Constraints = Constraints.Builder()
+        fun constraints(wifiOnly: Boolean, pauseOnLowBattery: Boolean): Constraints = Constraints.Builder()
             .setRequiredNetworkType(if (wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED)
+            .setRequiresBatteryNotLow(pauseOnLowBattery)
             .setRequiresStorageNotLow(true)
             .build()
     }

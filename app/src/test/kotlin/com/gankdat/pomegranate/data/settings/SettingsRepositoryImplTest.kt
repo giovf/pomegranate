@@ -58,6 +58,16 @@ class SettingsRepositoryImplTest {
         assertEquals(0L, settings.lastDeviceScanTimeMillis.first())
         assertFalse(settings.onboardingCompleted.first())
         assertFalse(settings.fidelityNoticeAcknowledged.first())
+        assertTrue(settings.pauseOnLowBattery.first())
+        assertEquals(0L, settings.cleanupConfirmedAtMillis.first())
+    }
+
+    @Test
+    fun `battery and cleanup settings persist`() = runBlocking {
+        settings.setPauseOnLowBattery(false)
+        assertFalse(settings.pauseOnLowBattery.first())
+        settings.setCleanupConfirmedAtMillis(42)
+        assertEquals(42L, settings.cleanupConfirmedAtMillis.first())
     }
 
     @Test

@@ -173,7 +173,7 @@ internal class PullViewModel(
         }
         hasDismissedCompletion = false
         queue.enqueue(ids)
-        scheduler.start(wifiOnly = settings.wifiOnly.first())
+        scheduler.start(wifiOnly = settings.wifiOnly.first(), pauseOnLowBattery = settings.pauseOnLowBattery.first())
         _started.value = true
     }
 
@@ -187,7 +187,7 @@ internal class PullViewModel(
     fun resume() {
         viewModelScope.launch {
             queue.resumeAll()
-            scheduler.start(wifiOnly = settings.wifiOnly.first())
+            scheduler.start(wifiOnly = settings.wifiOnly.first(), pauseOnLowBattery = settings.pauseOnLowBattery.first())
         }
     }
 
@@ -203,7 +203,7 @@ internal class PullViewModel(
     fun retryFailed() {
         viewModelScope.launch {
             queue.retryFailed()
-            scheduler.start(wifiOnly = settings.wifiOnly.first())
+            scheduler.start(wifiOnly = settings.wifiOnly.first(), pauseOnLowBattery = settings.pauseOnLowBattery.first())
             _started.value = true
         }
     }

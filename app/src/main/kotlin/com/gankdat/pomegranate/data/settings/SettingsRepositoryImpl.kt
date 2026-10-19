@@ -13,6 +13,7 @@ import com.gankdat.pomegranate.data.model.FolderStrategy
 import com.gankdat.pomegranate.data.settings.SettingsRepository.Companion.DEFAULT_AUTO_DISCONNECT
 import com.gankdat.pomegranate.data.settings.SettingsRepository.Companion.DEFAULT_CONCURRENCY
 import com.gankdat.pomegranate.data.settings.SettingsRepository.Companion.DEFAULT_FOLDER_STRATEGY
+import com.gankdat.pomegranate.data.settings.SettingsRepository.Companion.DEFAULT_PAUSE_ON_LOW_BATTERY
 import com.gankdat.pomegranate.data.settings.SettingsRepository.Companion.DEFAULT_WIFI_ONLY
 import com.gankdat.pomegranate.data.settings.SettingsRepository.Companion.MAX_CONCURRENCY
 import com.gankdat.pomegranate.data.settings.SettingsRepository.Companion.MIN_CONCURRENCY
@@ -40,6 +41,10 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
     override val wifiOnly: Flow<Boolean> = select { it[WIFI_ONLY] ?: DEFAULT_WIFI_ONLY }
 
     override val autoDisconnect: Flow<Boolean> = select { it[AUTO_DISCONNECT] ?: DEFAULT_AUTO_DISCONNECT }
+
+    override val pauseOnLowBattery: Flow<Boolean> = select { it[PAUSE_ON_LOW_BATTERY] ?: DEFAULT_PAUSE_ON_LOW_BATTERY }
+
+    override val cleanupConfirmedAtMillis: Flow<Long> = select { it[CLEANUP_CONFIRMED_AT] ?: 0L }
 
     override val hasRequestedMediaPermission: Flow<Boolean> = select { it[HAS_REQUESTED_MEDIA_PERMISSION] ?: false }
 
@@ -73,6 +78,14 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
         dataStore.edit { it[AUTO_DISCONNECT] = enabled }
     }
 
+    override suspend fun setPauseOnLowBattery(enabled: Boolean) {
+        dataStore.edit { it[PAUSE_ON_LOW_BATTERY] = enabled }
+    }
+
+    override suspend fun setCleanupConfirmedAtMillis(timeMillis: Long) {
+        dataStore.edit { it[CLEANUP_CONFIRMED_AT] = timeMillis }
+    }
+
     override suspend fun setHasRequestedMediaPermission(requested: Boolean) {
         dataStore.edit { it[HAS_REQUESTED_MEDIA_PERMISSION] = requested }
     }
@@ -101,6 +114,8 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
         val DOWNLOAD_CONCURRENCY = intPreferencesKey("download_concurrency")
         val WIFI_ONLY = booleanPreferencesKey("wifi_only")
         val AUTO_DISCONNECT = booleanPreferencesKey("auto_disconnect")
+        val PAUSE_ON_LOW_BATTERY = booleanPreferencesKey("pause_on_low_battery")
+        val CLEANUP_CONFIRMED_AT = longPreferencesKey("cleanup_confirmed_at_millis")
         val HAS_REQUESTED_MEDIA_PERMISSION = booleanPreferencesKey("has_requested_media_permission")
         val PARTIAL_ACCESS_BANNER_DISMISSED = booleanPreferencesKey("partial_access_banner_dismissed")
         val LAST_DEVICE_SCAN_TIME = longPreferencesKey("last_device_scan_time_millis")

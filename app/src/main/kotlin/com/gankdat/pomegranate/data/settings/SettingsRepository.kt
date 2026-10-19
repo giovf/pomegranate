@@ -22,6 +22,12 @@ public interface SettingsRepository {
     /** Revoke and wipe automatically once every selected item is verified. */
     public val autoDisconnect: Flow<Boolean>
 
+    /** Let the system hold transfers while the battery is low. */
+    public val pauseOnLowBattery: Flow<Boolean>
+
+    /** Epoch millis when the user confirmed finishing the Google Photos clean-up, 0 if never. */
+    public val cleanupConfirmedAtMillis: Flow<Long>
+
     /** True once the media permission dialog has been shown at least once; disambiguates "never asked" from "denied for good". */
     public val hasRequestedMediaPermission: Flow<Boolean>
 
@@ -48,6 +54,10 @@ public interface SettingsRepository {
 
     public suspend fun setAutoDisconnect(enabled: Boolean)
 
+    public suspend fun setPauseOnLowBattery(enabled: Boolean)
+
+    public suspend fun setCleanupConfirmedAtMillis(timeMillis: Long)
+
     public suspend fun setHasRequestedMediaPermission(requested: Boolean)
 
     public suspend fun setPartialAccessBannerDismissed(dismissed: Boolean)
@@ -65,5 +75,6 @@ public interface SettingsRepository {
         public val DEFAULT_FOLDER_STRATEGY: FolderStrategy = FolderStrategy.BY_ORIGIN
         public const val DEFAULT_WIFI_ONLY: Boolean = true
         public const val DEFAULT_AUTO_DISCONNECT: Boolean = false
+        public const val DEFAULT_PAUSE_ON_LOW_BATTERY: Boolean = true
     }
 }
