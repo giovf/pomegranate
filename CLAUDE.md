@@ -13,7 +13,7 @@ high-signal — it's part of every prompt, so verbosity costs tokens.
 - **Native Android app**, Kotlin 2.4, Jetpack Compose + Material 3. Single
   module `:app`, package `com.gankdat.pomegranate`.
 - **Build**: Gradle 9.8 wrapper (`./gradlew`), AGP 9.4 (built-in Kotlin, new
-  DSL), JDK 17. minSdk 30, target/compileSdk 37. No Node/npm in this project;
+  DSL), JDK 17. minSdk 33, target/compileSdk 37. No Node/npm in this project;
   `node_modules/` exists only for Taskmaster tooling.
 - **Versions** live in `gradle/libs.versions.toml` only. Every artifact is
   checksum-pinned in `gradle/verification-metadata.xml`; after changing any

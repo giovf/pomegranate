@@ -36,7 +36,7 @@ and `docs/ARCHITECTURE.md`. Research on what Google's APIs do and don't allow
 ## Build and run
 
 Requirements: JDK 17, Android SDK (platform 37, build-tools 36). The dev
-container provides both.
+container provides both. The app targets Android 13 (API 33) and newer.
 
 ```bash
 ./gradlew assembleDebug          # APK → app/build/outputs/apk/debug/app-debug.apk

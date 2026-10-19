@@ -8,11 +8,9 @@ import org.junit.Test
 class MediaPermissionsTest {
     private val api33 = 33
     private val api34 = 34
-    private val api31 = 31
 
     @Test
     fun `required permissions follow the API level`() {
-        assertEquals(listOf(MediaPermissions.LEGACY_READ), MediaPermissions.required(api31))
         assertEquals(listOf(MediaPermissions.IMAGES, MediaPermissions.VIDEO), MediaPermissions.required(api33))
         assertEquals(
             listOf(MediaPermissions.IMAGES, MediaPermissions.VIDEO, MediaPermissions.VISUAL_USER_SELECTED),
@@ -109,15 +107,4 @@ class MediaPermissionsTest {
         assertFalse(state.allowsScanning)
     }
 
-    @Test
-    fun `legacy read permission governs Android 11 and 12`() {
-        assertEquals(
-            PermissionState.Granted,
-            MediaPermissions.resolve(mapOf(MediaPermissions.LEGACY_READ to true), api31, false, true),
-        )
-        assertEquals(
-            PermissionState.PermanentlyDenied,
-            MediaPermissions.resolve(mapOf(MediaPermissions.LEGACY_READ to false), api31, false, true),
-        )
-    }
 }

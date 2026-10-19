@@ -1,5 +1,11 @@
 package com.gankdat.pomegranate.ui.pull
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -71,6 +77,16 @@ internal fun PullScreen(
 
 @Composable
 private fun ScopeContent(viewModel: PullViewModel, modifier: Modifier) {
+    // The progress notification needs POST_NOTIFICATIONS; a refusal only hides it, the pull still runs.
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { viewModel.requestStart() }
+    val context = LocalContext.current
+    val startWithNotificationPermission = {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            viewModel.requestStart()
+        } else {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     val options by viewModel.scopeOptions.collectAsStateWithLifecycle()
     val selected by viewModel.selected.collectAsStateWithLifecycle()
     val selectedCount = options.firstOrNull { it.choice == selected }?.itemCount ?: 0
@@ -106,7 +122,7 @@ private fun ScopeContent(viewModel: PullViewModel, modifier: Modifier) {
         }
         Text(stringResource(R.string.pull_size_unknown), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp))
         Button(
-            onClick = viewModel::requestStart,
+            onClick = startWithNotificationPermission,
             enabled = selectedCount > 0,
             modifier = Modifier
                 .fillMaxWidth()

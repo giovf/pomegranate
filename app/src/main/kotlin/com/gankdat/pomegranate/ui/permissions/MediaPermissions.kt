@@ -1,6 +1,5 @@
 package com.gankdat.pomegranate.ui.permissions
 
-import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
@@ -10,29 +9,20 @@ import androidx.core.content.ContextCompat
 /**
  * Which runtime permissions the census needs on a given Android version, and
  * how a grant result maps to a [PermissionState]. The decision logic is pure
- * so it can be unit tested without an Activity.
+ * so it can be unit tested without an Activity. minSdk is 33, so the
+ * granular media permissions always apply.
  */
 internal object MediaPermissions {
-    // Spelled out rather than taken from android.Manifest: the constants only
-    // exist from API 33/34 and lint rejects inlining them below minSdk, but
-    // the strings themselves are what the system dialog expects on any level.
+    // Spelled out rather than taken from android.Manifest: the API 34 constant
+    // would be inlined below minSdk and lint rejects that, but the strings are
+    // exactly what the system dialog expects.
     const val IMAGES: String = "android.permission.READ_MEDIA_IMAGES"
     const val VIDEO: String = "android.permission.READ_MEDIA_VIDEO"
     const val VISUAL_USER_SELECTED: String = "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
 
-    /**
-     * Android 11 and 12 predate the granular media permissions and would need
-     * the legacy READ_EXTERNAL_STORAGE, which this app deliberately does not
-     * declare. Requesting it is harmless (it is simply reported as denied).
-     */
-    const val LEGACY_READ: String = Manifest.permission.READ_EXTERNAL_STORAGE
-
     /** Permissions to request, in the order the system dialog should present them. */
-    fun required(sdkInt: Int = Build.VERSION.SDK_INT): List<String> = when {
-        sdkInt >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> listOf(IMAGES, VIDEO, VISUAL_USER_SELECTED)
-        sdkInt >= Build.VERSION_CODES.TIRAMISU -> listOf(IMAGES, VIDEO)
-        else -> listOf(LEGACY_READ)
-    }
+    fun required(sdkInt: Int = Build.VERSION.SDK_INT): List<String> =
+        if (sdkInt >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) listOf(IMAGES, VIDEO, VISUAL_USER_SELECTED) else listOf(IMAGES, VIDEO)
 
     /**
      * Maps the current grants to a state.
@@ -47,11 +37,7 @@ internal object MediaPermissions {
         shouldShowRationale: Boolean,
         requestedBefore: Boolean,
     ): PermissionState {
-        val fullAccess = if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
-            granted[IMAGES] == true && granted[VIDEO] == true
-        } else {
-            granted[LEGACY_READ] == true
-        }
+        val fullAccess = granted[IMAGES] == true && granted[VIDEO] == true
         return when {
             fullAccess -> PermissionState.Granted
             sdkInt >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && granted[VISUAL_USER_SELECTED] == true -> PermissionState.PartiallyGranted

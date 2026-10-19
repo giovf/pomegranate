@@ -27,7 +27,7 @@ quietly revokes your autonomy. v1 is phone-only and Google-Photos-only.
 ## Stack
 Kotlin 2.4 · Jetpack Compose + Material 3 · AndroidX: Room (local DB),
 DataStore (settings), WorkManager (background transfers), Activity/Lifecycle,
-Browser (Custom Tabs) · AGP 9.4 / Gradle 9.8 / JDK 17 · minSdk 30,
+Browser (Custom Tabs) · AGP 9.4 / Gradle 9.8 / JDK 17 · minSdk 33,
 compileSdk 37. Dependency policy: platform + AndroidX only (JUnit 4 for tests).
 
 ## Backend & data

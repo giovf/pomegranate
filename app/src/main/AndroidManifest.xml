@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Only Google's APIs are ever contacted. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Read-only access to the device's photos and videos for the census.
-         READ_MEDIA_IMAGES / READ_MEDIA_VIDEO apply from Android 13 (API 33);
+    <!-- Read-only access to the device's photos and videos for the census
+         (minSdk 33, so the granular media permissions always apply).
          READ_MEDIA_VISUAL_USER_SELECTED (API 34+) lets the user share only a
          selection, which the app treats as partial access. Writes never need a
          permission: they go through the Storage Access Framework. No legacy
@@ -13,6 +14,13 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+
+    <!-- Transfer progress notification. Pulls run as a WorkManager foreground
+         job of type dataSync so the system keeps them alive and shows progress;
+         POST_NOTIFICATIONS is requested at runtime when a pull starts. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:name=".PomegranateApplication"
@@ -55,6 +63,16 @@
                     android:path="/callback" />
             </intent-filter>
         </activity>
+        <!-- WorkManager's foreground service needs the dataSync type on API 34+. -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
+
+        <!-- Pause action on the progress notification; never exported. -->
+        <receiver
+            android:name=".transfer.TransferActionReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>
