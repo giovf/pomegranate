@@ -20,6 +20,12 @@ internal sealed class Screen(val route: String) {
         fun createRoute(itemId: Long): String = "item/$itemId"
     }
 
+    data object CloudItemDetail : Screen("cloud/{$ARG_CLOUD_ITEM_ID}") {
+        val arguments = listOf(navArgument(ARG_CLOUD_ITEM_ID) { type = NavType.LongType })
+
+        fun createRoute(cloudItemId: Long): String = "cloud/$cloudItemId"
+    }
+
     data object Pull : Screen("pull/{$ARG_SCOPE}") {
         val arguments = listOf(navArgument(ARG_SCOPE) { type = NavType.StringType })
 
@@ -39,6 +45,7 @@ internal sealed class Screen(val route: String) {
 
     companion object {
         const val ARG_ITEM_ID: String = "itemId"
+        const val ARG_CLOUD_ITEM_ID: String = "cloudItemId"
         const val ARG_SCOPE: String = "scope"
 
         /**

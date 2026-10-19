@@ -40,7 +40,7 @@ import com.gankdat.pomegranate.ui.format.Formatters
 @Composable
 internal fun ConnectionScreen(
     modifier: Modifier = Modifier,
-    viewModel: ConnectionViewModel = viewModel(factory = appViewModelFactory { ConnectionViewModel(it.auth, it.cloudScanner) }),
+    viewModel: ConnectionViewModel = viewModel(factory = appViewModelFactory { ConnectionViewModel(it.auth, it.cloudScanner, it.reconciliation) }),
 ) {
     val auth by viewModel.authState.collectAsStateWithLifecycle()
     val round by viewModel.roundState.collectAsStateWithLifecycle()

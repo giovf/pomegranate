@@ -1,5 +1,6 @@
 package com.gankdat.pomegranate.ui.library
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,16 +11,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -38,30 +43,41 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gankdat.pomegranate.R
-import com.gankdat.pomegranate.census.device.contentUri
+import com.gankdat.pomegranate.data.model.MediaState
 import com.gankdat.pomegranate.ui.appViewModelFactory
+import com.gankdat.pomegranate.ui.components.ConnectionStatusBar
+import com.gankdat.pomegranate.ui.components.iconRes
+import com.gankdat.pomegranate.ui.components.labelRes
 import com.gankdat.pomegranate.ui.format.Formatters
 import com.gankdat.pomegranate.ui.permissions.PermissionState
 import com.gankdat.pomegranate.ui.permissions.openAppSettings
+import com.gankdat.pomegranate.ui.theme.MediaStateColors
 
 private const val GRID_COLUMNS = 4
 
 /**
- * The device library grouped by folder or by month. Triggers the first census
- * once media access exists; pull down to rescan.
+ * The library grouped by folder or by month, with the three-state filter.
+ * Triggers the first census once media access exists; pull down to rescan.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LibraryScreen(
     permission: PermissionState,
-    onOpenItem: (Long) -> Unit,
+    onOpenItem: (LibraryEntry) -> Unit,
+    onOpenConnection: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: LibraryViewModel = viewModel(factory = appViewModelFactory { LibraryViewModel(it.database.deviceItemDao(), it.deviceScanner) }),
+    viewModel: LibraryViewModel = viewModel(
+        factory = appViewModelFactory {
+            LibraryViewModel(it.database.deviceItemDao(), it.database.cloudItemDao(), it.deviceScanner, it.reconciliation, it.cloudScanner, it.auth)
+        },
+    ),
 ) {
     val state by viewModel.libraryState.collectAsStateWithLifecycle()
     val mode by viewModel.groupingMode.collectAsStateWithLifecycle()
     val expanded by viewModel.expandedKeys.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val isReconciling by viewModel.isReconciling.collectAsStateWithLifecycle()
+    val connection by viewModel.connection.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val resources = LocalResources.current
 
@@ -79,6 +95,7 @@ internal fun LibraryScreen(
                     if (changed == 0) noNewItems else resources.getQuantityString(R.plurals.scan_changes, changed, r.addedCount, r.updatedCount, r.removedCount)
                 }
                 LibraryMessage.ScanFailed -> scanFailed
+                is LibraryMessage.ReconcileFinished -> resources.getString(R.string.reconcile_finished, message.result.exact + message.result.likely, message.result.ambiguous)
             }
             snackbarHostState.showSnackbar(text)
         }
@@ -86,6 +103,12 @@ internal fun LibraryScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
+            ConnectionStatusBar(
+                isConnected = connection.isConnected,
+                cloudItemCount = connection.cloudItemCount,
+                roundCount = connection.roundCount,
+                onClick = onOpenConnection,
+            )
             PrimaryTabRow(selectedTabIndex = mode.ordinal) {
                 GroupingMode.entries.forEach { tab ->
                     Tab(
@@ -96,6 +119,7 @@ internal fun LibraryScreen(
                     )
                 }
             }
+            if (isReconciling) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = { if (permission.allowsScanning) viewModel.refresh() },
@@ -104,7 +128,7 @@ internal fun LibraryScreen(
                 when (val current = state) {
                     LibraryUiState.Loading -> Centered { CircularProgressIndicator() }
                     is LibraryUiState.Empty -> EmptyLibrary(permission, isRefreshing, current.hasScanned)
-                    is LibraryUiState.Success -> LibraryList(current, mode, expanded, viewModel::toggleExpanded, onOpenItem)
+                    is LibraryUiState.Success -> LibraryList(current, mode, expanded, viewModel::setFilter, viewModel::toggleExpanded, onOpenItem)
                 }
             }
         }
@@ -117,17 +141,35 @@ private fun LibraryList(
     state: LibraryUiState.Success,
     mode: GroupingMode,
     expandedKeys: Set<String>,
+    onFilter: (MediaState?) -> Unit,
     onToggle: (String) -> Unit,
-    onOpenItem: (Long) -> Unit,
+    onOpenItem: (LibraryEntry) -> Unit,
 ) {
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
+    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 8.dp)) {
+        item(key = "filters") { StateFilters(state, onFilter) }
         item(key = "summary") {
+            val filtered = state.filter?.let { state.totals[it] }
+            val text = if (filtered == null) {
+                pluralStringResource(R.plurals.library_summary, state.totalCount, state.totalCount, Formatters.fileSize(state.totalSizeBytes))
+            } else if (state.filter == MediaState.CLOUD_ONLY) {
+                pluralStringResource(R.plurals.library_summary_cloud, filtered.count, filtered.count)
+            } else {
+                pluralStringResource(R.plurals.library_summary_filtered, filtered.count, filtered.count, Formatters.fileSize(filtered.sizeBytes))
+            }
             Text(
-                text = pluralStringResource(R.plurals.library_summary, state.totalCount, state.totalCount, Formatters.fileSize(state.totalSizeBytes)),
+                text = text,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
+            if (state.filter == MediaState.DEVICE_ONLY) {
+                Text(
+                    text = stringResource(R.string.device_only_caveat),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
         }
         state.groups.forEach { group ->
             val isExpanded = group.key in expandedKeys
@@ -142,19 +184,20 @@ private fun LibraryList(
                 )
             }
             if (isExpanded) {
-                items(group.items.chunked(GRID_COLUMNS), key = { row -> "${group.key}:${row.first().id}" }) { row ->
+                items(group.items.chunked(GRID_COLUMNS), key = { row -> "${group.key}:${row.first().key}" }) { row ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 2.dp),
                     ) {
-                        row.forEach { item ->
+                        row.forEach { entry ->
                             MediaThumbnail(
-                                contentUri = item.contentUri(),
-                                isVideo = item.mime.startsWith("video/"),
-                                durationMs = item.durationMs,
-                                onClick = { onOpenItem(item.id) },
+                                source = entry.thumbnail,
+                                state = entry.state,
+                                isVideo = entry.isVideo,
+                                durationMs = entry.durationMs,
+                                onClick = { onOpenItem(entry) },
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -172,6 +215,34 @@ private fun LibraryList(
                     modifier = Modifier.padding(16.dp),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun StateFilters(state: LibraryUiState.Success, onFilter: (MediaState?) -> Unit) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        FilterChip(
+            selected = state.filter == null,
+            onClick = { onFilter(null) },
+            label = { Text(stringResource(R.string.filter_all, state.totalCount)) },
+        )
+        MediaState.entries.forEach { media ->
+            val total = state.totals[media]?.count ?: 0
+            FilterChip(
+                selected = state.filter == media,
+                onClick = { onFilter(if (state.filter == media) null else media) },
+                label = { Text("${stringResource(media.labelRes())} ($total)") },
+                leadingIcon = {
+                    Icon(painter = painterResource(media.iconRes()), contentDescription = null, tint = MediaStateColors.of(media), modifier = Modifier.size(18.dp))
+                },
+            )
         }
     }
 }

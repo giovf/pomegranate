@@ -1009,7 +1009,7 @@
           "4",
           "10"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1017,9 +1017,10 @@
             "description": "Implement the core MatchingEngine class with primary matching logic that compares cloud items to device items using filename, createTime (with 1-second tolerance), and dimensions.",
             "dependencies": [],
             "details": "Create package `com.gankdat.pomegranate.reconcile`. Implement `MatchingEngine` class with:\n1. Index device items by filename prefix (strip extension) using a HashMap for O(1) lookup.\n2. `findPrimaryMatch(cloudItem: CloudItemEntity): MatchResult?` method that:\n   - Extracts filename prefix from cloud item.\n   - Finds device candidates with matching filename prefix.\n   - Compares createTime with 1-second tolerance: `abs(cloudTime - deviceTime) <= 1000`.\n   - Compares dimensions (width x height) for exact match.\n   - Returns MatchResult with candidate DeviceItemEntity and score.\n3. Define `MatchResult` data class holding deviceItem, confidence, and evidence.\n4. Handle edge cases: null timestamps, zero dimensions, missing filenames.\n5. Make class injectable with constructor taking DAOs for device and cloud items.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: exact match (all fields match), near match (999ms timestamp diff passes, 1001ms fails), dimension mismatch detection, null timestamp handling, multiple candidates with same prefix. Test index building with 1000+ items for performance.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:54:31.160Z"
           },
           {
             "id": 2,
@@ -1029,9 +1030,10 @@
               1
             ],
             "details": "Extend MatchingEngine with secondary matching:\n1. `findSecondaryMatch(cloudItem: CloudItemEntity, excludeIds: Set<Long>): MatchResult?` method.\n2. Extract pattern components from filenames:\n   - Date patterns: IMG_YYYYMMDD, PXL_YYYYMMDD, Screenshot_YYYY-MM-DD.\n   - Sequence numbers: _001, _002 suffixes.\n   - Common prefixes: IMG_, DSC_, PXL_, MVIMG_.\n3. Score candidates by:\n   - Dimension match (required): width and height must match exactly.\n   - Date pattern match: extracted date within 1 day of createTime.\n   - Sequence number proximity if same prefix.\n4. Return best scoring candidate above threshold (e.g., score >= 0.7).\n5. Track which evidence supported the match in Evidence data class.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: IMG_20230101_123456.jpg matches renamed copy.jpg with same dimensions, date pattern extraction, sequence number matching, rejection when dimensions differ, edge cases with unusual filenames.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:54:33.093Z"
           },
           {
             "id": 3,
@@ -1039,9 +1041,10 @@
             "description": "Define the Confidence enum (EXACT, LIKELY, AMBIGUOUS) and Evidence data class that captures match details, with JSON serialization for Room storage.",
             "dependencies": [],
             "details": "Create in `com.gankdat.pomegranate.reconcile`:\n1. `enum class Confidence { EXACT, LIKELY, AMBIGUOUS }` with descriptions.\n2. `data class Evidence` containing:\n   - filenameMatched: Boolean\n   - timestampDeltaMs: Long? (null if timestamps unavailable)\n   - dimensionsMatched: Boolean\n   - hashMatched: Boolean? (null if not computed, true/false after)\n   - matchMethod: MatchMethod enum (PRIMARY, SECONDARY, HASH_CONFIRMED)\n   - additionalNotes: String? (for debugging)\n3. Create `EvidenceTypeConverter` for Room:\n   - Use kotlinx.serialization or manual JSON with JSONObject.\n   - `@TypeConverter fun fromEvidence(evidence: Evidence): String`\n   - `@TypeConverter fun toEvidence(json: String): Evidence`\n4. Register converter in AppDatabase.\n5. Add Evidence field to MatchEntity.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: serialization round-trip for all field combinations, null handling, JSON format validation, type converter integration with Room (insert and query MatchEntity with Evidence).",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:54:34.884Z"
           },
           {
             "id": 4,
@@ -1052,9 +1055,10 @@
               3
             ],
             "details": "Create `SiblingGrouper` class in reconcile package:\n1. Define RAW extensions set: setOf(\"dng\", \"arw\", \"cr2\", \"nef\", \"orf\", \"rw2\", \"raf\", \"srw\").\n2. `fun detectRawJpegPairs(items: List<MediaItem>): List<SiblingGroup>` method:\n   - Group items by base filename (without extension).\n   - For each group, check if contains exactly one RAW and one JPEG.\n   - Create MediaGroupEntity with type = RAW_JPEG_PAIR.\n3. Handle case sensitivity in extensions.\n4. Store group relationship in MediaGroupEntity:\n   - groupId: auto-generated\n   - type: GroupType.RAW_JPEG_PAIR\n   - primaryItemId: the JPEG (user-facing)\n   - siblingItemIds: list of related item IDs (the RAW)\n5. Integrate with MatchingEngine to group after matching.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: detect IMG_001.dng + IMG_001.jpg pair, ignore IMG_001.jpg alone, handle multiple RAW formats, case insensitive extension matching, three files same base name (RAW + 2 JPEGs) edge case.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:54:36.771Z"
           },
           {
             "id": 5,
@@ -1064,9 +1068,10 @@
               4
             ],
             "details": "Extend SiblingGrouper:\n1. iOS Live Photos detection:\n   - Same base name with .heic/.heif + .mov extensions.\n   - Check file sizes are reasonable (MOV typically 1-3 seconds of video).\n   - GroupType.LIVE_PHOTO.\n2. Pixel Motion Photos detection:\n   - .MP.jpg or .MP suffix pattern indicates motion photo.\n   - Or detect embedded video via file size anomaly (JPEG larger than expected for dimensions).\n   - GroupType.MOTION_PHOTO.\n3. Original+Edited detection:\n   - Patterns: name_original.ext, name-original.ext, name (1).ext.\n   - Instagram/app edits: VSCO_, Snapseed_ prefixes with matching base.\n   - GroupType.ORIGINAL_EDITED.\n4. Priority order: check RAW+JPEG first, then live/motion, then original+edited.\n5. Items can only belong to one group; first match wins.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: IMG_001.heic + IMG_001.mov live photo detection, PXL_20230101.MP.jpg motion photo detection, photo_original.jpg + photo.jpg edited pair detection, mixed scenarios, items already in RAW+JPEG group not re-grouped.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:54:38.480Z"
           },
           {
             "id": 6,
@@ -1078,9 +1083,10 @@
               3
             ],
             "details": "Create state assignment logic:\n1. `enum class MediaState { CLOUD_ONLY, DEVICE_ONLY, BOTH }`.\n2. In MatchingEngine, after all matching completes:\n   - CLOUD_ONLY: CloudItemEntity with no MatchEntity or only AMBIGUOUS unconfirmed match.\n   - DEVICE_ONLY: DeviceItemEntity with no MatchEntity pointing to it.\n   - BOTH: CloudItemEntity with EXACT or LIKELY match (or AMBIGUOUS + hash confirmed).\n3. `fun assignStates(): Map<Long, MediaState>` returns item ID to state mapping.\n4. Store state in respective entity or create unified view:\n   - Add `state: MediaState` column to CloudItemEntity and DeviceItemEntity.\n   - Or create `ReconciliationResultEntity` linking both.\n5. Handle edge case: cloud index is incomplete (from Picker limit), so DEVICE_ONLY is tentative.\n6. Emit state changes via Flow for UI updates.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: cloud item with exact match → BOTH, cloud item no match → CLOUD_ONLY, device item no match → DEVICE_ONLY, AMBIGUOUS without hash → CLOUD_ONLY, AMBIGUOUS with confirmed hash → BOTH.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:54:40.274Z"
           },
           {
             "id": 7,
@@ -1094,9 +1100,10 @@
               6
             ],
             "details": "Create `ReconciliationRepository` in reconcile package:\n1. Constructor injection: MatchingEngine, SiblingGrouper, DAOs, CoroutineDispatcher.\n2. `suspend fun reconcile(): ReconciliationResult` - full reconciliation:\n   - Clear existing matches if re-running.\n   - Run primary matching, then secondary for unmatched.\n   - Run sibling grouping.\n   - Assign three-states.\n   - Return ReconciliationResult(matched, cloudOnly, deviceOnly, groups).\n3. `suspend fun reconcileIncremental(newCloudIds: List<Long>, newDeviceIds: List<Long>)`:\n   - Only process new items.\n   - Update affected groups.\n   - Re-evaluate nearby AMBIGUOUS matches.\n4. `fun getItemsByState(state: MediaState): Flow<List<MediaItem>>` - live query.\n5. `fun getAmbiguousMatches(): Flow<List<AmbiguousMatch>>` - for hash confirmation UI.\n6. `fun getSiblingGroups(): Flow<List<MediaGroup>>` - grouped items.\n7. Track last reconciliation timestamp for incremental logic.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration tests: full reconciliation with mixed data, incremental reconciliation after adding new cloud items, Flow emissions on state changes, concurrent reconciliation handling, repository correctly delegates to engine.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:54:42.154Z"
           },
           {
             "id": 8,
@@ -1107,15 +1114,16 @@
               7
             ],
             "details": "Add hash confirmation workflow:\n1. Create `HashConfirmationService` class:\n   - `suspend fun computeDeviceFileHash(deviceItem: DeviceItemEntity): String` using SHA-256.\n   - Read file via ContentResolver using item's content URI.\n   - Stream file in chunks (8KB buffer) to MessageDigest.\n   - Return hex string of hash.\n2. `suspend fun confirmAmbiguousMatch(matchId: Long): ConfirmationResult`:\n   - Load the AMBIGUOUS MatchEntity.\n   - Compute device file hash.\n   - For cloud comparison: download cloud file (if Transfer infrastructure ready) or mark as NEEDS_CLOUD_HASH.\n   - Compare hashes; if match, upgrade confidence to EXACT, update Evidence.\n   - If no match, delete MatchEntity, item becomes CLOUD_ONLY.\n3. Batch confirmation: `suspend fun confirmAllAmbiguous(): BatchConfirmationResult`.\n4. Update Evidence.hashMatched field after confirmation.\n5. Integrate with ReconciliationRepository.getAmbiguousMatches() for UI.\n6. Handle large files: show progress, allow cancellation via coroutine.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: SHA-256 computation matches known test vectors, hash comparison logic, Evidence update after confirmation. Integration tests: hash a real file, confirm AMBIGUOUS becomes EXACT on match, AMBIGUOUS becomes CLOUD_ONLY on mismatch, cancellation mid-hash.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:54:43.820Z"
           }
         ],
         "complexity": 9,
         "recommendedSubtasks": 8,
         "expansionPrompt": "Break down matching engine into: 1) Create MatchingEngine class with primary matching (filename+timestamp+dimensions), 2) Implement secondary matching for renamed files, 3) Create Confidence enum and Evidence data class with serialization, 4) Implement sibling grouping for RAW+JPEG pairs, 5) Implement sibling grouping for live/motion photos, 6) Implement three-state assignment (CLOUD_ONLY, DEVICE_ONLY, BOTH), 7) Create ReconciliationRepository with incremental reconciliation, 8) Add hash confirmation for AMBIGUOUS matches. Extensive test cases needed.",
-        "updatedAt": "2026-10-19T15:52:07.613Z"
+        "updatedAt": "2026-10-19T15:54:43.820Z"
       },
       {
         "id": "12",
@@ -1217,7 +1225,7 @@
           "7",
           "11"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -1292,7 +1300,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 6,
-        "expansionPrompt": "Break down Library extension into: 1) Update LibraryViewModel to query with MatchEntity joins, 2) Define theme colors and icons for three states (cloud-only/device-only/both), 3) Add filter tabs with counts for each state, 4) Update MediaThumbnail with status badge overlay, 5) Update ItemDetailScreen with status badge and match evidence display, 6) Create ConnectionStatusBar showing picker round coverage. Maintain UI performance with complex queries."
+        "expansionPrompt": "Break down Library extension into: 1) Update LibraryViewModel to query with MatchEntity joins, 2) Define theme colors and icons for three states (cloud-only/device-only/both), 3) Add filter tabs with counts for each state, 4) Update MediaThumbnail with status badge overlay, 5) Update ItemDetailScreen with status badge and match evidence display, 6) Create ConnectionStatusBar showing picker round coverage. Maintain UI performance with complex queries.",
+        "updatedAt": "2026-10-19T15:57:01.493Z"
       },
       {
         "id": "14",
@@ -2315,9 +2324,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T15:52:07.613Z",
+      "lastModified": "2026-10-19T15:57:01.493Z",
       "taskCount": 25,
-      "completedCount": 10,
+      "completedCount": 11,
       "tags": [
         "master"
       ]

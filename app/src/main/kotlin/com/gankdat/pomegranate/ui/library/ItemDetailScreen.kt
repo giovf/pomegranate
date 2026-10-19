@@ -52,6 +52,7 @@ import com.gankdat.pomegranate.ui.appViewModelFactory
 import com.gankdat.pomegranate.ui.format.Formatters
 import com.gankdat.pomegranate.ui.format.MimeLabels
 import com.gankdat.pomegranate.ui.navigation.PomegranateScaffold
+import com.gankdat.pomegranate.ui.navigation.navigateToCloudItemDetail
 
 private val PREVIEW_SIZE = Size(1_600, 1_600)
 
@@ -64,6 +65,9 @@ internal fun ItemDetailRoute(
             ItemDetailViewModel(
                 savedStateHandle = createSavedStateHandle(),
                 dao = app.database.deviceItemDao(),
+                cloudDao = app.database.cloudItemDao(),
+                matchDao = app.database.matchDao(),
+                groupDao = app.database.mediaGroupDao(),
                 opener = ContentOpener { uri -> app.contentResolver.openInputStream(uri) },
             )
         },
@@ -90,7 +94,11 @@ internal fun ItemDetailRoute(
                 ItemDetailUiState.NotFound -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(stringResource(R.string.item_not_found), style = MaterialTheme.typography.bodyLarge)
                 }
-                is ItemDetailUiState.Success -> ItemDetailContent(current, onComputeHash = viewModel::computeSha256)
+                is ItemDetailUiState.Success -> ItemDetailContent(
+                    state = current,
+                    onComputeHash = viewModel::computeSha256,
+                    onOpenCloudItem = current.match?.cloudItem?.let { cloud -> { navController.navigateToCloudItemDetail(cloud.id) } },
+                )
             }
         }
     }
@@ -106,7 +114,7 @@ private fun shareIntent(item: DeviceItemEntity): Intent {
 }
 
 @Composable
-private fun ItemDetailContent(state: ItemDetailUiState.Success, onComputeHash: () -> Unit) {
+private fun ItemDetailContent(state: ItemDetailUiState.Success, onComputeHash: () -> Unit, onOpenCloudItem: (() -> Unit)?) {
     val item = state.item
     val isVideo = item.mime.startsWith("video/")
     Column(
@@ -114,8 +122,10 @@ private fun ItemDetailContent(state: ItemDetailUiState.Success, onComputeHash: (
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        FullSizePreview(item, isVideo)
+        FullSizePreview(ThumbnailSource.Local(item.volume, item.mediaStoreId), item.width, item.height, isVideo)
         Column(modifier = Modifier.padding(16.dp)) {
+            StatusSection(state.state)
+            Spacer(Modifier.height(12.dp))
             AssistChip(
                 onClick = {},
                 label = { Text(item.bucket.ifBlank { stringResource(R.string.unknown_folder) }) },
@@ -151,18 +161,21 @@ private fun ItemDetailContent(state: ItemDetailUiState.Success, onComputeHash: (
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-            PlaceholderSection(stringResource(R.string.section_status), stringResource(R.string.section_status_placeholder))
-            Spacer(Modifier.height(12.dp))
-            PlaceholderSection(stringResource(R.string.section_siblings), stringResource(R.string.section_siblings_placeholder))
+            state.match?.let { MatchSection(it, onOpenCloudItem) } ?: run {
+                Text(stringResource(R.string.section_match), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.match_none_device), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+            SiblingsSection(state.siblings)
         }
     }
 }
 
 @Composable
-private fun FullSizePreview(item: DeviceItemEntity, isVideo: Boolean) {
+internal fun FullSizePreview(source: ThumbnailSource, width: Int, height: Int, isVideo: Boolean) {
     val loader = rememberThumbnailLoader()
-    val bitmap by produceState<Bitmap?>(null, item.id) { value = loader.load(item.contentUri(), PREVIEW_SIZE) }
-    val ratio = if (item.width > 0 && item.height > 0) item.width.toFloat() / item.height else 4f / 3f
+    val bitmap by produceState<Bitmap?>(null, source) { value = loader.load(source, PREVIEW_SIZE) }
+    val ratio = if (width > 0 && height > 0) width.toFloat() / height else 4f / 3f
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -185,7 +198,7 @@ private fun FullSizePreview(item: DeviceItemEntity, isVideo: Boolean) {
 }
 
 @Composable
-private fun MetadataRow(label: String, value: String) {
+internal fun MetadataRow(label: String, value: String) {
     Column(modifier = Modifier.padding(vertical = 6.dp)) {
         Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodyMedium)
@@ -208,10 +221,4 @@ private fun ExpandableHash(label: String?, value: String) {
             fontFamily = FontFamily.Monospace,
         )
     }
-}
-
-@Composable
-private fun PlaceholderSection(title: String, body: String) {
-    Text(title, style = MaterialTheme.typography.labelLarge)
-    Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

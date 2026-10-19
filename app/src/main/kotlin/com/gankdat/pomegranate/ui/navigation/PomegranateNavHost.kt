@@ -21,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.ui.connection.ConnectionScreen
+import com.gankdat.pomegranate.ui.library.CloudItemDetailRoute
 import com.gankdat.pomegranate.ui.library.ItemDetailRoute
 import com.gankdat.pomegranate.ui.library.LibraryScreen
 import com.gankdat.pomegranate.ui.onboarding.OnboardingScreen
@@ -58,12 +59,22 @@ internal fun PomegranateNavHost(
                 },
             ) { padding ->
                 MediaPermissionGate(modifier = Modifier.padding(padding)) { permission ->
-                    LibraryScreen(permission = permission, onOpenItem = navController::navigateToItemDetail)
+                    LibraryScreen(
+                        permission = permission,
+                        onOpenItem = { entry ->
+                            entry.deviceItemId?.let(navController::navigateToItemDetail)
+                                ?: entry.cloudItemId?.let(navController::navigateToCloudItemDetail)
+                        },
+                        onOpenConnection = navController::navigateToConnection,
+                    )
                 }
             }
         }
         composable(Screen.ItemDetail.route, arguments = Screen.ItemDetail.arguments) {
             ItemDetailRoute(navController)
+        }
+        composable(Screen.CloudItemDetail.route, arguments = Screen.CloudItemDetail.arguments) {
+            CloudItemDetailRoute(navController)
         }
         composable(Screen.Pull.route, arguments = Screen.Pull.arguments) { entry ->
             val scope = Screen.Pull.parseScope(entry.arguments?.getString(Screen.ARG_SCOPE))

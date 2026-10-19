@@ -9,6 +9,7 @@ import com.gankdat.pomegranate.census.cloud.PickerApiException
 import com.gankdat.pomegranate.census.cloud.PickerAuthException
 import com.gankdat.pomegranate.census.cloud.SessionState
 import com.gankdat.pomegranate.data.db.entity.PickerRoundState
+import com.gankdat.pomegranate.reconcile.ReconciliationRepository
 import java.io.IOException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +39,7 @@ internal data class CoverageUi(val itemCount: Int = 0, val roundCount: Int = 0, 
 internal class ConnectionViewModel(
     private val auth: AuthRepository,
     private val cloud: CloudScannerRepository,
+    private val reconciliation: ReconciliationRepository,
 ) : ViewModel() {
     val authState = auth.authState
 
@@ -120,7 +122,9 @@ internal class ConnectionViewModel(
                 SessionState.Complete -> {
                     _roundState.value = RoundState.Indexing
                     try {
-                        _roundState.value = RoundState.Done(cloud.indexSession(sessionId))
+                        val count = cloud.indexSession(sessionId)
+                        reconciliation.reconcile()
+                        _roundState.value = RoundState.Done(count)
                     } catch (e: PickerApiException) {
                         _roundState.value = RoundState.Failed("Google Photos returned ${e.httpStatus} while listing your selection")
                     } catch (_: PickerAuthException) {

@@ -11,6 +11,7 @@ class ScreenTest {
         Screen.Onboarding,
         Screen.Library,
         Screen.ItemDetail,
+        Screen.CloudItemDetail,
         Screen.Pull,
         Screen.Connection,
         Screen.Settings,
@@ -27,6 +28,11 @@ class ScreenTest {
     fun `item detail route carries the item id`() {
         assertEquals("item/42", Screen.ItemDetail.createRoute(42))
         assertTrue(Screen.ItemDetail.route.contains("{${Screen.ARG_ITEM_ID}}"))
+    }
+
+    @Test
+    fun `cloud item detail route carries the id`() {
+        assertEquals("cloud/7", Screen.CloudItemDetail.createRoute(7))
     }
 
     @Test

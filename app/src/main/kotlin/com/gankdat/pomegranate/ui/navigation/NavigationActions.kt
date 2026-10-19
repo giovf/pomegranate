@@ -14,6 +14,10 @@ internal fun NavController.navigateToItemDetail(itemId: Long) {
     navigate(Screen.ItemDetail.createRoute(itemId))
 }
 
+internal fun NavController.navigateToCloudItemDetail(cloudItemId: Long) {
+    navigate(Screen.CloudItemDetail.createRoute(cloudItemId))
+}
+
 internal fun NavController.navigateToPull(scope: PullScope) {
     navigate(Screen.Pull.createRoute(scope))
 }

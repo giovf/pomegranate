@@ -1,7 +1,6 @@
 package com.gankdat.pomegranate.ui.library
 
 import android.graphics.Bitmap
-import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -30,7 +30,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.gankdat.pomegranate.R
+import com.gankdat.pomegranate.data.model.MediaState
+import com.gankdat.pomegranate.ui.components.iconRes
+import com.gankdat.pomegranate.ui.components.labelRes
 import com.gankdat.pomegranate.ui.format.Formatters
+import com.gankdat.pomegranate.ui.theme.MediaStateColors
 
 private sealed interface ThumbnailState {
     data object Loading : ThumbnailState
@@ -40,24 +44,26 @@ private sealed interface ThumbnailState {
     data object Failed : ThumbnailState
 }
 
-/** Square thumbnail with a duration badge for videos. */
+/** Square thumbnail with the media-state badge (top start) and a duration badge for videos (bottom end). */
 @Composable
 internal fun MediaThumbnail(
-    contentUri: Uri,
+    source: ThumbnailSource,
+    state: MediaState?,
     isVideo: Boolean,
     durationMs: Long?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val loader = rememberThumbnailLoader()
-    val state by produceState<ThumbnailState>(ThumbnailState.Loading, contentUri) {
-        value = loader.load(contentUri)?.let { ThumbnailState.Loaded(it) } ?: ThumbnailState.Failed
+    val thumbnail by produceState<ThumbnailState>(ThumbnailState.Loading, source) {
+        value = loader.load(source)?.let { ThumbnailState.Loaded(it) } ?: ThumbnailState.Failed
     }
-    val description = if (isVideo) {
+    val kind = if (isVideo) {
         stringResource(R.string.thumbnail_video, Formatters.duration(durationMs ?: 0))
     } else {
         stringResource(R.string.thumbnail_photo)
     }
+    val description = if (state != null) "$kind, ${stringResource(state.labelRes())}" else kind
 
     Box(
         modifier = modifier
@@ -67,7 +73,7 @@ internal fun MediaThumbnail(
             .clickable(onClick = onClick)
             .semantics { contentDescription = description },
     ) {
-        when (val current = state) {
+        when (val current = thumbnail) {
             ThumbnailState.Loading -> Unit
             is ThumbnailState.Loaded -> Image(
                 bitmap = current.bitmap.asImageBitmap(),
@@ -76,13 +82,31 @@ internal fun MediaThumbnail(
                 modifier = Modifier.fillMaxSize(),
             )
             ThumbnailState.Failed -> Icon(
-                painter = painterResource(R.drawable.ic_broken_image),
+                painter = painterResource(if (source is ThumbnailSource.Remote) R.drawable.ic_state_cloud else R.drawable.ic_broken_image),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .size(24.dp)
                     .align(Alignment.Center),
             )
+        }
+        if (state != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(4.dp)
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(state.iconRes()),
+                    contentDescription = null,
+                    tint = MediaStateColors.of(state),
+                    modifier = Modifier.size(14.dp),
+                )
+            }
         }
         if (isVideo) {
             Row(
