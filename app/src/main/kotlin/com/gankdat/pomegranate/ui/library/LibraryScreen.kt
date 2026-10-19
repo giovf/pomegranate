@@ -1,0 +1,214 @@
+package com.gankdat.pomegranate.ui.library
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gankdat.pomegranate.R
+import com.gankdat.pomegranate.census.device.contentUri
+import com.gankdat.pomegranate.ui.appViewModelFactory
+import com.gankdat.pomegranate.ui.format.Formatters
+import com.gankdat.pomegranate.ui.permissions.PermissionState
+import com.gankdat.pomegranate.ui.permissions.openAppSettings
+
+private const val GRID_COLUMNS = 4
+
+/**
+ * The device library grouped by folder or by month. Triggers the first census
+ * once media access exists; pull down to rescan.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun LibraryScreen(
+    permission: PermissionState,
+    onOpenItem: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: LibraryViewModel = viewModel(factory = appViewModelFactory { LibraryViewModel(it.database.deviceItemDao(), it.deviceScanner) }),
+) {
+    val state by viewModel.libraryState.collectAsStateWithLifecycle()
+    val mode by viewModel.groupingMode.collectAsStateWithLifecycle()
+    val expanded by viewModel.expandedKeys.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val resources = LocalResources.current
+
+    LaunchedEffect(permission.allowsScanning) {
+        if (permission.allowsScanning) viewModel.ensureScanned()
+    }
+    val scanFailed = stringResource(R.string.scan_failed)
+    val noNewItems = stringResource(R.string.scan_no_new_items)
+    LaunchedEffect(Unit) {
+        viewModel.messageFlow.collect { message ->
+            val text = when (message) {
+                is LibraryMessage.ScanFinished -> {
+                    val r = message.result
+                    val changed = r.addedCount + r.updatedCount + r.removedCount
+                    if (changed == 0) noNewItems else resources.getQuantityString(R.plurals.scan_changes, changed, r.addedCount, r.updatedCount, r.removedCount)
+                }
+                LibraryMessage.ScanFailed -> scanFailed
+            }
+            snackbarHostState.showSnackbar(text)
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            PrimaryTabRow(selectedTabIndex = mode.ordinal) {
+                GroupingMode.entries.forEach { tab ->
+                    Tab(
+                        selected = mode == tab,
+                        onClick = { viewModel.setGroupingMode(tab) },
+                        text = { Text(stringResource(tab.labelRes())) },
+                        icon = { Icon(painter = painterResource(tab.iconRes()), contentDescription = null) },
+                    )
+                }
+            }
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { if (permission.allowsScanning) viewModel.refresh() },
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                when (val current = state) {
+                    LibraryUiState.Loading -> Centered { CircularProgressIndicator() }
+                    is LibraryUiState.Empty -> EmptyLibrary(permission, isRefreshing, current.hasScanned)
+                    is LibraryUiState.Success -> LibraryList(current, mode, expanded, viewModel::toggleExpanded, onOpenItem)
+                }
+            }
+        }
+        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+    }
+}
+
+@Composable
+private fun LibraryList(
+    state: LibraryUiState.Success,
+    mode: GroupingMode,
+    expandedKeys: Set<String>,
+    onToggle: (String) -> Unit,
+    onOpenItem: (Long) -> Unit,
+) {
+    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
+        item(key = "summary") {
+            Text(
+                text = pluralStringResource(R.plurals.library_summary, state.totalCount, state.totalCount, Formatters.fileSize(state.totalSizeBytes)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+        state.groups.forEach { group ->
+            val isExpanded = group.key in expandedKeys
+            item(key = group.key) {
+                MediaGroupHeader(
+                    name = group.name,
+                    itemCount = group.itemCount,
+                    totalSizeBytes = group.totalSizeBytes,
+                    isExpanded = isExpanded,
+                    onToggleExpand = { onToggle(group.key) },
+                    iconRes = mode.iconRes(),
+                )
+            }
+            if (isExpanded) {
+                items(group.items.chunked(GRID_COLUMNS), key = { row -> "${group.key}:${row.first().id}" }) { row ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 2.dp),
+                    ) {
+                        row.forEach { item ->
+                            MediaThumbnail(
+                                contentUri = item.contentUri(),
+                                isVideo = item.mime.startsWith("video/"),
+                                durationMs = item.durationMs,
+                                onClick = { onOpenItem(item.id) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        repeat(GRID_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+            }
+        }
+        item(key = "footer") {
+            state.lastScanTime?.let {
+                Text(
+                    text = stringResource(R.string.last_scanned, Formatters.dateTime(it)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyLibrary(permission: PermissionState, isRefreshing: Boolean, hasScanned: Boolean) {
+    val context = LocalContext.current
+    Centered {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
+            when {
+                isRefreshing -> {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(16.dp))
+                    Text(stringResource(R.string.scanning), style = MaterialTheme.typography.bodyLarge)
+                }
+                !permission.allowsScanning -> {
+                    Text(stringResource(R.string.empty_no_access), style = MaterialTheme.typography.bodyLarge)
+                    TextButton(onClick = { context.openAppSettings() }) { Text(stringResource(R.string.permission_open_settings)) }
+                }
+                hasScanned -> Text(stringResource(R.string.empty_no_media), style = MaterialTheme.typography.bodyLarge)
+                else -> Text(stringResource(R.string.empty_not_scanned), style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+    }
+}
+
+@Composable
+private fun Centered(content: @Composable () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
+}
+
+private fun GroupingMode.labelRes(): Int = when (this) {
+    GroupingMode.BY_FOLDER -> R.string.tab_by_folder
+    GroupingMode.BY_MONTH -> R.string.tab_by_month
+}
+
+private fun GroupingMode.iconRes(): Int = when (this) {
+    GroupingMode.BY_FOLDER -> R.drawable.ic_folder
+    GroupingMode.BY_MONTH -> R.drawable.ic_calendar
+}

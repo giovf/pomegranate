@@ -4,16 +4,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.gankdat.pomegranate.R
+import com.gankdat.pomegranate.ui.library.LibraryScreen
 import com.gankdat.pomegranate.ui.permissions.MediaPermissionGate
 
 /**
@@ -38,9 +42,17 @@ internal fun PomegranateNavHost(
             }
         }
         composable(Screen.Library.route) {
-            PomegranateScaffold(navController, stringResource(R.string.title_library)) { padding ->
+            PomegranateScaffold(
+                navController,
+                stringResource(R.string.title_library),
+                actions = {
+                    IconButton(onClick = navController::navigateToSettings) {
+                        Icon(painter = painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.title_settings))
+                    }
+                },
+            ) { padding ->
                 MediaPermissionGate(modifier = Modifier.padding(padding)) { permission ->
-                    Placeholder(stringResource(R.string.placeholder_library, permission.toString()), PaddingValues())
+                    LibraryScreen(permission = permission, onOpenItem = navController::navigateToItemDetail)
                 }
             }
         }

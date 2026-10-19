@@ -304,7 +304,7 @@
           "1",
           "3"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -312,9 +312,10 @@
             "description": "Add the androidx.exifinterface dependency to libs.versions.toml, regenerate verification-metadata.xml, and create the com.gankdat.pomegranate.census.device package with stub files for the scanner components.",
             "dependencies": [],
             "details": "1. Add to gradle/libs.versions.toml:\n   - exifinterface version (latest stable)\n   - androidx-exifinterface library entry\n2. Add dependency to app/build.gradle.kts implementation.\n3. Run `./gradlew --write-verification-metadata sha256 build` to regenerate checksums.\n4. Create package directory: app/src/main/kotlin/com/gankdat/pomegranate/census/device/\n5. Create placeholder files: DeviceScanner.kt, DeviceScannerRepository.kt, Fingerprint.kt, ScanResult.kt, ScanProgress.kt.\n6. Verify build still compiles after dependency addition.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify build succeeds with `./gradlew assembleDebug`. Confirm ExifInterface is accessible by importing it in a test file. Check verification-metadata.xml contains the new dependency checksums.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:17:43.209Z"
           },
           {
             "id": 2,
@@ -324,9 +325,10 @@
               1
             ],
             "details": "1. Create DeviceScanner class with ContentResolver dependency.\n2. Define IMAGES_PROJECTION array with: MediaStore.Images.Media._ID, VOLUME_NAME, RELATIVE_PATH, BUCKET_DISPLAY_NAME, DISPLAY_NAME, MIME_TYPE, SIZE, DATE_TAKEN, DATE_MODIFIED, WIDTH, HEIGHT.\n3. Define VIDEOS_PROJECTION array adding: MediaStore.Video.Media.DURATION.\n4. Implement scanImages() suspend function that queries MediaStore.Images.Media.EXTERNAL_CONTENT_URI.\n5. Implement scanVideos() suspend function that queries MediaStore.Video.Media.EXTERNAL_CONTENT_URI.\n6. Create MediaItem data class to hold raw query results (before fingerprinting).\n7. Handle cursor lifecycle properly with use{} extension or try-finally.\n8. Add null safety for all projected columns (some may be null in MediaStore).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: mock ContentResolver and verify correct projection arrays and URIs are used. Test cursor parsing handles null columns gracefully. Test MediaItem data class creation from cursor row.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:17:44.907Z"
           },
           {
             "id": 3,
@@ -336,9 +338,10 @@
               2
             ],
             "details": "1. Add scanAllVolumes() function that calls MediaStore.getExternalVolumeNames(context).\n2. Include MediaStore.VOLUME_EXTERNAL_PRIMARY explicitly for the main internal storage.\n3. For each volume name, construct the appropriate content URI using MediaStore.Images/Video.Media.getContentUri(volumeName).\n4. Query each volume separately and aggregate results.\n5. Store volume name with each scanned item for later reference.\n6. Handle volumes that may become unavailable (SD card ejected) gracefully.\n7. Log volume discovery for debugging (volume count, names).\n8. Ensure VOLUME_NAME column is correctly read from cursor results.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: mock getExternalVolumeNames to return multiple volumes; verify each volume is queried. Test graceful handling when a volume query fails. Integration test on device: verify items from SD card appear in scan results.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:17:46.486Z"
           },
           {
             "id": 4,
@@ -348,9 +351,10 @@
               2
             ],
             "details": "1. Create Fingerprint data class with fields: displayName (String), size (Long), dateTaken (Long), width (Int), height (Int).\n2. Implement computeHash() function that concatenates fields in fixed order: \"$displayName|$size|$dateTaken|$width|$height\".\n3. Hash the concatenated string using SHA-256 (MessageDigest from java.security).\n4. Return the hash as a lowercase hex string.\n5. Ensure dateTaken=0 (missing) produces a distinct but consistent fingerprint.\n6. Add equals/hashCode overrides if not using data class defaults.\n7. Create Fingerprint.from(mediaItem: MediaItem) factory function.\n8. Document the fingerprint stability contract: same input always produces same hash.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify identical inputs produce identical hashes; verify different inputs produce different hashes; verify hash consistency across multiple calls; verify null/zero field handling produces consistent results.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:17:48.081Z"
           },
           {
             "id": 5,
@@ -361,9 +365,10 @@
               4
             ],
             "details": "1. Define DeviceScannerRepository interface with: suspend fun scanAll(): ScanResult, suspend fun scanIncremental(lastScanTime: Long): ScanResult, fun observeProgress(): Flow<ScanProgress>.\n2. Create DeviceScannerRepositoryImpl with dependencies on DeviceScanner, DeviceItemDao, DataStore.\n3. Implement batch processing: query MediaStore with LIMIT 500 OFFSET n pattern or use cursor windowing.\n4. For each batch: compute fingerprints, compare with existing DB records, upsert changed/new items.\n5. Track counts: addedCount (new items), updatedCount (fingerprint changed), unchangedCount.\n6. Emit ScanProgress updates via MutableStateFlow after each batch.\n7. Calculate totalEstimate by running a COUNT(*) query on MediaStore before starting.\n8. Wrap scanning in withContext(Dispatchers.IO) for proper threading.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify batch size is respected; verify upsert logic correctly identifies new vs updated items; verify progress emissions occur after each batch. Test with mock DAO: verify correct insert/update calls.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:17:49.885Z"
           },
           {
             "id": 6,
@@ -373,9 +378,10 @@
               5
             ],
             "details": "1. Add lastScanTime: Long preference to DataStore settings (default 0L).\n2. In scanIncremental(), add selection clause: \"${MediaStore.MediaColumns.DATE_MODIFIED} > ?\" with lastScanTime as selection arg.\n3. Query both images and videos with the modified filter.\n4. After successful scan completion, update lastScanTime in DataStore to System.currentTimeMillis() / 1000 (MediaStore uses seconds).\n5. In scanAll(), reset lastScanTime to 0 before starting and clear all existing DeviceItemEntity records.\n6. Handle clock skew by using a small safety margin (e.g., lastScanTime - 60 seconds).\n7. Add getLastScanTime(): Flow<Long> to repository interface.\n8. Detect deleted items: items in DB but not in current scan should be marked or removed.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify incremental scan only queries items with DATE_MODIFIED > lastScanTime; verify lastScanTime is persisted after successful scan; verify full scan resets lastScanTime. Integration test: add a file, run incremental, verify only new file is scanned.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:17:51.492Z"
           },
           {
             "id": 7,
@@ -385,15 +391,16 @@
               6
             ],
             "details": "1. Create ScanResult data class: itemCount (Int), addedCount (Int), updatedCount (Int), duration (Long millis).\n2. Create ScanProgress data class: scannedCount (Int), totalEstimate (Int).\n3. In DeviceScanner, when dateTaken == 0 or is null, attempt EXIF fallback:\n   - Open InputStream for the content URI via ContentResolver.\n   - Parse with ExifInterface(inputStream).\n   - Read EXIF_TAG_DATETIME_ORIGINAL or EXIF_TAG_DATETIME.\n   - Parse the EXIF date string (\"yyyy:MM:dd HH:mm:ss\") to epoch millis.\n4. Handle EXIF parsing failures gracefully (keep dateTaken=0).\n5. Close InputStream properly after EXIF read.\n6. Add caching or rate limiting for EXIF reads (they are slow).\n7. Write comprehensive JUnit 4 tests for: fingerprint consistency, batch processing logic, incremental scan filtering, EXIF date parsing, ScanResult/ScanProgress construction.\n8. Stub ContentObserver registration for future real-time updates (TODO comment).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: test EXIF date string parsing; test fallback when EXIF fails; test ScanResult aggregation; test ScanProgress emissions. Integration tests: scan test images with missing DATE_TAKEN metadata and verify EXIF fallback populates the field.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:17:53.089Z"
           }
         ],
         "complexity": 7,
         "recommendedSubtasks": 7,
         "expansionPrompt": "Break down device scanner into: 1) Create DeviceScanner class with MediaStore queries for images and videos, 2) Implement multi-volume scanning via getExternalVolumeNames, 3) Create Fingerprint data class and hashing logic, 4) Implement DeviceScannerRepository with batch processing (500 items), 5) Add incremental scan support with lastScanTime tracking, 6) Implement EXIF fallback for dateTaken using androidx.exifinterface, 7) Create ScanResult/ScanProgress classes and unit tests. Handle cursor lifecycle properly.",
-        "updatedAt": "2026-10-19T14:37:21.839Z"
+        "updatedAt": "2026-10-19T15:17:53.089Z"
       },
       {
         "id": "5",
@@ -574,7 +581,7 @@
           "4",
           "5"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -658,7 +665,8 @@
         ],
         "complexity": 7,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Break down Library screen into: 1) Create LibraryViewModel with Room queries and grouping logic, 2) Implement bucket and month grouping with count/size calculations, 3) Build LibraryScreen with tabs for By Folder/By Month views, 4) Create MediaGroupHeader Composable with counts and sizes, 5) Implement thumbnail loading with ContentResolver.loadThumbnail and LRU memory cache, 6) Create MediaThumbnail Composable with video duration overlay, 7) Add pull-to-refresh triggering incremental scan. Consider LazyColumn performance for large lists."
+        "expansionPrompt": "Break down Library screen into: 1) Create LibraryViewModel with Room queries and grouping logic, 2) Implement bucket and month grouping with count/size calculations, 3) Build LibraryScreen with tabs for By Folder/By Month views, 4) Create MediaGroupHeader Composable with counts and sizes, 5) Implement thumbnail loading with ContentResolver.loadThumbnail and LRU memory cache, 6) Create MediaThumbnail Composable with video duration overlay, 7) Add pull-to-refresh triggering incremental scan. Consider LazyColumn performance for large lists.",
+        "updatedAt": "2026-10-19T15:21:16.631Z"
       },
       {
         "id": "8",
@@ -2269,9 +2277,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T14:37:21.839Z",
+      "lastModified": "2026-10-19T15:21:16.632Z",
       "taskCount": 25,
-      "completedCount": 4,
+      "completedCount": 5,
       "tags": [
         "master"
       ]

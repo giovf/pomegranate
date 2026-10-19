@@ -15,7 +15,31 @@
 
     <string name="placeholder_item_detail">Item %1$d</string>
     <string name="placeholder_pull">Pull: %1$s</string>
-    <string name="placeholder_library">Library (%1$s)</string>
+    <string name="tab_by_folder">By folder</string>
+    <string name="tab_by_month">By month</string>
+    <string name="group_expand">tap to expand</string>
+    <string name="group_collapse">tap to collapse</string>
+    <plurals name="group_stats">
+        <item quantity="one">%1$d item • %2$s</item>
+        <item quantity="other">%1$d items • %2$s</item>
+    </plurals>
+    <plurals name="library_summary">
+        <item quantity="one">%1$d item on this phone • %2$s</item>
+        <item quantity="other">%1$d items on this phone • %2$s</item>
+    </plurals>
+    <plurals name="scan_changes">
+        <item quantity="one">Scan finished: %1$d added, %2$d updated, %3$d removed</item>
+        <item quantity="other">Scan finished: %1$d added, %2$d updated, %3$d removed</item>
+    </plurals>
+    <string name="scan_no_new_items">No changes since the last scan</string>
+    <string name="scan_failed">The scan could not complete. Pull down to try again.</string>
+    <string name="scanning">Scanning this phone…</string>
+    <string name="last_scanned">Last scanned %1$s</string>
+    <string name="thumbnail_photo">Photo</string>
+    <string name="thumbnail_video">Video, %1$s</string>
+    <string name="empty_no_access">Pomegranate cannot see any photos or videos without media access.</string>
+    <string name="empty_no_media">No photos or videos were found on this phone.</string>
+    <string name="empty_not_scanned">Pull down to scan this phone.</string>
 
     <string name="permission_title">Access your photos and videos</string>
     <string name="permission_body">Pomegranate reads the photos and videos on this phone so it can show you which ones also exist in Google Photos, and which exist only there.</string>
