@@ -2187,7 +2187,7 @@
         "dependencies": [
           "22"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2195,9 +2195,10 @@
             "description": "Add R8/ProGuard keep rules for Room entities and DAOs, WorkManager workers, and the OAuth redirect Activity to prevent obfuscation or removal during release builds.",
             "dependencies": [],
             "details": "Update app/proguard-rules.pro with keep rules:\n1. Room: @Entity and @Dao annotated classes, TypeConverters, generated _Impl classes.\n2. WorkManager: ListenableWorker subclasses and their constructors.\n3. OAuth redirect Activity: keep the redirect Activity class and any intent filter handlers.\n4. Keep Kotlin metadata for reflection-based components.\n5. Add comments explaining why each rule is needed.\n6. Test by building release APK and verifying all features work (database operations, background transfers, OAuth login).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Build release APK with R8 enabled. Install on device and verify: Room database CRUD operations work, WorkManager jobs execute correctly, OAuth flow completes successfully. Use mapping.txt to verify critical classes are preserved.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T17:06:42.029Z"
           },
           {
             "id": 2,
@@ -2207,9 +2208,10 @@
               1
             ],
             "details": "1. Add signingConfigs block to build.gradle.kts reading:\n   - storeFile from POMEGRANATE_KEYSTORE_FILE or local.properties pomegranate.keystore.file\n   - storePassword from POMEGRANATE_KEYSTORE_PASSWORD or local.properties pomegranate.keystore.password\n   - keyAlias from POMEGRANATE_KEY_ALIAS or local.properties pomegranate.key.alias\n   - keyPassword from POMEGRANATE_KEY_PASSWORD or local.properties pomegranate.key.password\n2. Make release buildType use the signing config only if credentials are present.\n3. Add defensive fallback: if signing config is incomplete, release build produces unsigned APK with a warning.\n4. Update .gitignore to include *.keystore, *.jks patterns (likely already there).\n5. Never log or expose the credentials in build output.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify build succeeds without signing config (produces unsigned APK). Create test keystore in local.properties, verify signed APK is produced. Verify environment variables override local.properties when both are set.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T17:06:47.480Z"
           },
           {
             "id": 3,
@@ -2219,9 +2221,10 @@
               2
             ],
             "details": "Create docs/SIGNING.md with:\n1. Keystore creation using keytool command with recommended parameters (RSA 2048+ or EC, 25+ year validity).\n2. Where to store the keystore (outside repo, backed up securely, NEVER committed).\n3. How to configure local.properties with the four credential properties.\n4. How to configure environment variables for CI/automation scenarios.\n5. Building signed release APK: ./gradlew assembleRelease.\n6. Extracting SHA-1 fingerprint for Google Cloud Console OAuth client registration.\n7. Backup and recovery procedures for the keystore (lose it = can't update the app).\n8. Security best practices (don't share passwords, use separate debug keystore).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Follow the documented steps on a fresh environment to create a keystore and build a signed release APK. Verify all commands work as documented.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T17:06:52.268Z"
           },
           {
             "id": 4,
@@ -2229,9 +2232,10 @@
             "description": "Write end-user documentation explaining how to install the APK on an Android device via sideloading, including enabling unknown sources and verifying the APK signature.",
             "dependencies": [],
             "details": "Create docs/SIDELOAD.md with:\n1. Prerequisites: Android 10+ device, file transfer method.\n2. Transferring APK: USB cable, cloud storage download, or ADB.\n3. Enabling 'Install unknown apps' permission for the file manager or browser used.\n4. Installing: locate APK, tap, confirm.\n5. Post-install: verify app appears in launcher, grant requested permissions.\n6. Troubleshooting: 'App not installed' errors (version conflicts, signature mismatch, storage space).\n7. For advanced users: verifying APK signature using apksigner or keytool, checking package name matches expectations.\n8. Security notes: only install APKs from trusted sources, verify signature matches expected developer certificate.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Have someone unfamiliar with sideloading follow the documentation to install a test APK. Verify all steps are clear and complete.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T17:06:58.167Z"
           },
           {
             "id": 5,
@@ -2239,15 +2243,16 @@
             "description": "Create documentation for setting up a Google Cloud project with the Photos Picker API enabled and configuring an Android OAuth client for the app.",
             "dependencies": [],
             "details": "Create docs/GOOGLE-CLOUD-SETUP.md with:\n1. Create Google Cloud project at console.cloud.google.com.\n2. Enable Photos Picker API in APIs & Services.\n3. Configure OAuth consent screen: app name, user support email, scopes (photospicker.mediaitems.readonly), testing mode.\n4. Create Android OAuth client: package name (com.gankdat.pomegranate), SHA-1 signing certificate fingerprint.\n5. Copy client ID (no secret for Android public clients).\n6. Configure client ID in local.properties as google.photos.client.id (gitignored).\n7. Testing mode limitations: 100 users, 7-day token expiry, must add test users.\n8. Production verification process overview (when/if needed for wider distribution).\n9. Link to Google's official documentation for reference.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Follow the documented steps to create a test Google Cloud project and OAuth client. Verify the client ID works with the app's OAuth flow.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T17:07:03.225Z"
           }
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
         "expansionPrompt": "Break down release prep into: 1) Review and update proguard-rules.pro for Room/WorkManager/OAuth, 2) Create signing config reading from local.properties/env, 3) Document signing and keystore creation process, 4) Create sideload installation documentation, 5) Document Google Cloud project setup for Picker API. Test release build thoroughly.",
-        "updatedAt": "2026-10-19T16:58:31.076Z"
+        "updatedAt": "2026-10-19T17:07:03.225Z"
       },
       {
         "id": "24",
@@ -2408,9 +2413,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T16:58:31.076Z",
+      "lastModified": "2026-10-19T17:07:03.225Z",
       "taskCount": 25,
-      "completedCount": 23,
+      "completedCount": 24,
       "tags": [
         "master"
       ]
