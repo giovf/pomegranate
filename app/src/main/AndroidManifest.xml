@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Only Google's APIs are ever contacted. Media and storage permissions
-         are requested at runtime, per feature, and added here as those
-         features land. -->
+    <!-- Only Google's APIs are ever contacted. -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Read-only access to the device's photos and videos for the census.
+         READ_MEDIA_IMAGES / READ_MEDIA_VIDEO apply from Android 13 (API 33);
+         READ_MEDIA_VISUAL_USER_SELECTED (API 34+) lets the user share only a
+         selection, which the app treats as partial access. Writes never need a
+         permission: they go through the Storage Access Framework. No legacy
+         READ/WRITE_EXTERNAL_STORAGE and no MANAGE_EXTERNAL_STORAGE. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
 
     <application
         android:name=".PomegranateApplication"

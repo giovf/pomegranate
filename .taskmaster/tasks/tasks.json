@@ -204,7 +204,7 @@
         "testStrategy": "Manual testing on Android 13, 14, and 15 devices/emulators: verify rationale screen shows before first request; verify handling of grant, deny, and permanent deny; verify partial grant flow on Android 14+; verify Settings deep link works.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -284,7 +284,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 6,
-        "expansionPrompt": "Break down permissions flow into: 1) Add permission declarations to AndroidManifest.xml, 2) Create PermissionState sealed class and PermissionViewModel, 3) Build PermissionRationaleScreen Composable with explanations, 4) Implement shouldShowRequestPermissionRationale handling, 5) Handle Android 14+ partial grants (READ_MEDIA_VISUAL_USER_SELECTED), 6) Implement permanent denial flow with Settings deep link and persistence. Test across API 33/34/35."
+        "expansionPrompt": "Break down permissions flow into: 1) Add permission declarations to AndroidManifest.xml, 2) Create PermissionState sealed class and PermissionViewModel, 3) Build PermissionRationaleScreen Composable with explanations, 4) Implement shouldShowRequestPermissionRationale handling, 5) Handle Android 14+ partial grants (READ_MEDIA_VISUAL_USER_SELECTED), 6) Implement permanent denial flow with Settings deep link and persistence. Test across API 33/34/35.",
+        "updatedAt": "2026-10-19T14:32:15.783Z"
       },
       {
         "id": "4",
@@ -395,7 +396,7 @@
         "testStrategy": "Unit tests for navigation graph construction. UI tests: verify navigation between screens; verify back navigation; verify argument passing; verify deep link handling.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -403,9 +404,10 @@
             "description": "Add the Jetpack Navigation Compose library dependency to the version catalog and update verification metadata for checksum pinning.",
             "dependencies": [],
             "details": "1. Add navigation version to [versions] section in gradle/libs.versions.toml (use compatible version with Compose BOM 2026.09.00, likely navigation = '2.9.x').\n2. Add library entry: androidx-navigation-compose = { group = 'androidx.navigation', name = 'navigation-compose', version.ref = 'navigation' }.\n3. Add to app/build.gradle.kts dependencies: implementation(libs.androidx.navigation.compose).\n4. Run './gradlew --write-verification-metadata sha256 build' to update gradle/verification-metadata.xml with the new artifact checksums.\n5. Verify build succeeds with 'assembleDebug'.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run './gradlew assembleDebug' to verify the dependency resolves and compiles successfully. Check that verification-metadata.xml contains entries for navigation-compose artifacts.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:29:16.497Z"
           },
           {
             "id": 2,
@@ -415,9 +417,10 @@
               1
             ],
             "details": "1. Create package com.gankdat.pomegranate.ui.navigation.\n2. Create Screen.kt with sealed class (or sealed interface for Navigation 2.8+ type-safe approach).\n3. Define destinations:\n   - Onboarding (start destination for new users)\n   - Library (main screen after setup)\n   - ItemDetail(itemId: Long) - requires argument\n   - Pull(scope: PullScope) - requires enum argument for all/cloud-only/selected\n   - Connection (Google account connection screen)\n   - Settings\n   - Disconnect (confirmation and cleanup screen)\n   - CleanupGuidance (post-disconnect guidance)\n4. Define route constants or use Kotlin Serialization @Serializable annotations for type-safe navigation (Navigation 2.8+).\n5. Include helper functions for building routes with arguments.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests verifying route string generation for each destination including argument encoding. Test that ItemDetail and Pull routes properly encode and decode their arguments.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:29:18.453Z"
           },
           {
             "id": 3,
@@ -427,9 +430,10 @@
               2
             ],
             "details": "1. Create PomegranateNavHost.kt in ui.navigation package.\n2. Create @Composable fun PomegranateNavHost(navController: NavHostController, startDestination: Screen, modifier: Modifier).\n3. Use NavHost with the navController and convert start destination to route.\n4. Define composable() entries for each Screen:\n   - Onboarding with navigation to Library or Connection\n   - Library with navigation to ItemDetail, Pull, Settings\n   - ItemDetail with itemId argument from backStackEntry\n   - Pull with scope argument\n   - Connection, Settings, Disconnect, CleanupGuidance\n5. For now, use placeholder composables (Text with screen name) that will be replaced by actual screens later.\n6. Create NavController extension functions: navigateToItemDetail(id), navigateToPull(scope), navigateToSettings(), etc.\n7. Handle popBackStack and popUpTo patterns for flows like Disconnect -> CleanupGuidance that shouldn't allow back.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for NavController extension functions. UI tests verifying navigation between placeholder screens works correctly, arguments are passed, and back navigation behaves as expected.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:29:20.126Z"
           },
           {
             "id": 4,
@@ -439,9 +443,10 @@
               3
             ],
             "details": "1. Create PomegranateTopBar.kt in ui.navigation package.\n2. Create @Composable fun PomegranateTopBar(title: String, canNavigateBack: Boolean, onNavigateBack: () -> Unit, actions: @Composable RowScope.() -> Unit = {}).\n3. Use Material 3 TopAppBar or CenterAlignedTopAppBar.\n4. Include dynamic navigation icon (back arrow when canNavigateBack, nothing or menu for root screens).\n5. Add contentDescription for accessibility on navigation icon.\n6. Create PomegranateScaffold.kt.\n7. Create @Composable fun PomegranateScaffold(navController: NavHostController, title: String, showTopBar: Boolean = true, content: @Composable (PaddingValues) -> Unit).\n8. Scaffold wraps content with PomegranateTopBar, observes navController.previousBackStackEntry to determine canNavigateBack.\n9. Handle edge-to-edge properly with innerPadding.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests verifying top bar displays correct title, back button appears only when there's a back stack entry, navigation icon is clickable and triggers onNavigateBack, and scaffold provides correct padding to content.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:29:21.974Z"
           },
           {
             "id": 5,
@@ -451,15 +456,16 @@
               4
             ],
             "details": "1. Update MainActivity.kt to create rememberNavController().\n2. Replace PomegranateApp() content with PomegranateNavHost(navController, startDestination = Screen.Onboarding).\n3. Configure deep link handling for OAuth redirect:\n   - Add intent-filter in AndroidManifest.xml for OAuth callback scheme (custom scheme like pomegranate://oauth/callback or verified https link).\n   - Parse intent data in onCreate/onNewIntent for OAuth redirect.\n   - Navigate to Connection screen with OAuth result when deep link received.\n4. Use navDeepLink in NavHost for declarative deep link handling if using standard URI patterns.\n5. Handle handleDeepLink for OAuth redirect that passes authorization code.\n6. Ensure singleTop launchMode or FLAG_ACTIVITY_SINGLE_TOP handling for OAuth redirect intent.\n7. Consider adding NavigationSuiteScaffold or adaptive navigation for future tablet support.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify app launches to Onboarding, verify navigation works end-to-end. Integration test: simulate OAuth deep link intent and verify navigation to Connection screen with correct extras. Test onNewIntent handling when activity already exists.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T14:29:24.023Z"
           }
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
         "expansionPrompt": "Break down navigation setup into: 1) Add Navigation Compose dependency to libs.versions.toml, 2) Create Screen sealed class with all destinations and routes, 3) Create PomegranateNavHost with NavController and NavGraph, 4) Build PomegranateTopBar and PomegranateScaffold components, 5) Update MainActivity to use PomegranateNavHost and implement deep link handling for OAuth redirect. Consider type-safe navigation with Kotlin Serialization.",
-        "updatedAt": "2026-10-19T14:25:37.779Z"
+        "updatedAt": "2026-10-19T14:29:24.023Z"
       },
       {
         "id": "6",
@@ -2256,9 +2262,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T14:25:37.779Z",
+      "lastModified": "2026-10-19T14:32:15.784Z",
       "taskCount": 25,
-      "completedCount": 2,
+      "completedCount": 3,
       "tags": [
         "master"
       ]

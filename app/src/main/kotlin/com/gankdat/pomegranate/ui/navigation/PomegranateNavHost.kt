@@ -14,6 +14,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.gankdat.pomegranate.R
+import com.gankdat.pomegranate.ui.permissions.MediaPermissionGate
 
 /**
  * The navigation graph. Each destination currently renders a placeholder
@@ -38,7 +39,9 @@ internal fun PomegranateNavHost(
         }
         composable(Screen.Library.route) {
             PomegranateScaffold(navController, stringResource(R.string.title_library)) { padding ->
-                Placeholder(stringResource(R.string.title_library), padding)
+                MediaPermissionGate(modifier = Modifier.padding(padding)) { permission ->
+                    Placeholder(stringResource(R.string.placeholder_library, permission.toString()), PaddingValues())
+                }
             }
         }
         composable(Screen.ItemDetail.route, arguments = Screen.ItemDetail.arguments) { entry ->

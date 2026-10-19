@@ -40,6 +40,10 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
 
     override val autoDisconnect: Flow<Boolean> = select { it[AUTO_DISCONNECT] ?: DEFAULT_AUTO_DISCONNECT }
 
+    override val hasRequestedMediaPermission: Flow<Boolean> = select { it[HAS_REQUESTED_MEDIA_PERMISSION] ?: false }
+
+    override val partialAccessBannerDismissed: Flow<Boolean> = select { it[PARTIAL_ACCESS_BANNER_DISMISSED] ?: false }
+
     override suspend fun setDestinationRootUri(uri: String?) {
         dataStore.edit { prefs ->
             if (uri == null) prefs.remove(DESTINATION_ROOT_URI) else prefs[DESTINATION_ROOT_URI] = uri
@@ -62,6 +66,14 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
         dataStore.edit { it[AUTO_DISCONNECT] = enabled }
     }
 
+    override suspend fun setHasRequestedMediaPermission(requested: Boolean) {
+        dataStore.edit { it[HAS_REQUESTED_MEDIA_PERMISSION] = requested }
+    }
+
+    override suspend fun setPartialAccessBannerDismissed(dismissed: Boolean) {
+        dataStore.edit { it[PARTIAL_ACCESS_BANNER_DISMISSED] = dismissed }
+    }
+
     private fun <T> select(read: (Preferences) -> T): Flow<T> = dataStore.data.map(read).distinctUntilChanged()
 
     private companion object {
@@ -70,5 +82,7 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
         val DOWNLOAD_CONCURRENCY = intPreferencesKey("download_concurrency")
         val WIFI_ONLY = booleanPreferencesKey("wifi_only")
         val AUTO_DISCONNECT = booleanPreferencesKey("auto_disconnect")
+        val HAS_REQUESTED_MEDIA_PERMISSION = booleanPreferencesKey("has_requested_media_permission")
+        val PARTIAL_ACCESS_BANNER_DISMISSED = booleanPreferencesKey("partial_access_banner_dismissed")
     }
 }

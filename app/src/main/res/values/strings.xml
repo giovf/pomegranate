@@ -15,6 +15,22 @@
 
     <string name="placeholder_item_detail">Item %1$d</string>
     <string name="placeholder_pull">Pull: %1$s</string>
+    <string name="placeholder_library">Library (%1$s)</string>
+
+    <string name="permission_title">Access your photos and videos</string>
+    <string name="permission_body">Pomegranate reads the photos and videos on this phone so it can show you which ones also exist in Google Photos, and which exist only there.</string>
+    <string name="permission_body_retry">Without access to your photos and videos, Pomegranate cannot tell what is already on this phone. Please allow access to continue.</string>
+    <string name="permission_grant">Allow access</string>
+    <string name="privacy_promise_on_device">• Your media never leaves this phone</string>
+    <string name="privacy_promise_no_analytics">• No analytics, no tracking</string>
+    <string name="privacy_promise_no_uploads">• Nothing is uploaded anywhere</string>
+    <string name="permission_denied_title">Access is turned off</string>
+    <string name="permission_denied_body">To scan the photos and videos on this phone, allow Photos and videos access for Pomegranate in Settings.</string>
+    <string name="permission_open_settings">Open Settings</string>
+    <string name="permission_not_now">Not now</string>
+    <string name="partial_access_body">Pomegranate can only see the photos you selected. Anything else on this phone will look like it is missing.</string>
+    <string name="partial_access_select_more">Select more</string>
+    <string name="partial_access_dismiss">Dismiss</string>
 
     <string name="media_state_device_only">On this phone only</string>
     <string name="media_state_cloud_only">In Google Photos only</string>

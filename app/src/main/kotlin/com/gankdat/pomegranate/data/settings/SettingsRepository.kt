@@ -22,6 +22,12 @@ public interface SettingsRepository {
     /** Revoke and wipe automatically once every selected item is verified. */
     public val autoDisconnect: Flow<Boolean>
 
+    /** True once the media permission dialog has been shown at least once; disambiguates "never asked" from "denied for good". */
+    public val hasRequestedMediaPermission: Flow<Boolean>
+
+    /** The user dismissed the partial-access banner. */
+    public val partialAccessBannerDismissed: Flow<Boolean>
+
     public suspend fun setDestinationRootUri(uri: String?)
 
     public suspend fun setFolderStrategy(strategy: FolderStrategy)
@@ -32,6 +38,10 @@ public interface SettingsRepository {
     public suspend fun setWifiOnly(enabled: Boolean)
 
     public suspend fun setAutoDisconnect(enabled: Boolean)
+
+    public suspend fun setHasRequestedMediaPermission(requested: Boolean)
+
+    public suspend fun setPartialAccessBannerDismissed(dismissed: Boolean)
 
     public companion object {
         public const val MIN_CONCURRENCY: Int = 1

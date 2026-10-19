@@ -51,6 +51,19 @@ class SettingsRepositoryImplTest {
         assertEquals(3, settings.downloadConcurrency.first())
         assertTrue(settings.wifiOnly.first())
         assertFalse(settings.autoDisconnect.first())
+        assertFalse(settings.hasRequestedMediaPermission.first())
+        assertFalse(settings.partialAccessBannerDismissed.first())
+    }
+
+    @Test
+    fun `permission bookkeeping flags persist`() = runBlocking {
+        settings.setHasRequestedMediaPermission(true)
+        assertTrue(settings.hasRequestedMediaPermission.first())
+
+        settings.setPartialAccessBannerDismissed(true)
+        assertTrue(settings.partialAccessBannerDismissed.first())
+        settings.setPartialAccessBannerDismissed(false)
+        assertFalse(settings.partialAccessBannerDismissed.first())
     }
 
     @Test
