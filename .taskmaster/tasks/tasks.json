@@ -693,7 +693,7 @@
           "5",
           "7"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -701,9 +701,10 @@
             "description": "Implement the ViewModel that loads a DeviceItemEntity by ID from Room and exposes it as a StateFlow for the UI to observe.",
             "dependencies": [],
             "details": "Create `ItemDetailViewModel` in `com.gankdat.pomegranate.ui.library` package. Accept `SavedStateHandle` in constructor to retrieve the `itemId` argument passed via navigation. Define `ItemDetailUiState` sealed interface with Loading, Success(item: DeviceItemEntity), and Error(message: String) states. Inject the DeviceItemDao (or a repository) via constructor. In init block, use `savedStateHandle.get<Long>(\"itemId\")` to get the item ID, then launch a coroutine to query Room and emit results to a private `MutableStateFlow<ItemDetailUiState>`. Expose as public `itemState: StateFlow<ItemDetailUiState>`. Handle null/not-found cases by emitting Error state. Use `viewModelScope` for coroutine scope.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test the ViewModel using a fake DAO: verify Loading emits first, then Success with correct item data; verify Error state when item not found; verify SavedStateHandle argument extraction works correctly.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:32:07.219Z"
           },
           {
             "id": 2,
@@ -713,9 +714,10 @@
               1
             ],
             "details": "Create composable functions for metadata display in `ItemDetailScreen.kt`. Implement `formatFileSize(bytes: Long): String` utility returning human-readable format (bytes/KB/MB/GB with 1-2 decimal places). Implement `formatDuration(ms: Long): String` for video duration as mm:ss or hh:mm:ss. Implement `formatDateTime(epochMs: Long): String` using `DateTimeFormatter` with locale-aware formatting. Display path as \"volume/relativePath/displayName\". Create `FolderChip` composable using Material 3 `AssistChip` that shows bucket name and accepts onClick for navigation. Display MIME type with human-readable label (e.g., \"JPEG Image\" for image/jpeg). Show dimensions as \"width × height\" for images. Show duration for videos only. Use `LazyColumn` or `Column` with `verticalScroll` for scrollable content below the preview.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test formatting functions: verify formatFileSize handles bytes, KB, MB, GB correctly; verify formatDuration handles seconds, minutes, hours; verify formatDateTime produces expected locale format. UI test: verify all metadata fields render for image and video items.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:32:09.053Z"
           },
           {
             "id": 3,
@@ -725,9 +727,10 @@
               1
             ],
             "details": "In `ItemDetailScreen`, create a `FullSizePreview` composable that takes a content URI string. Convert the stored URI to `android.net.Uri` using `Uri.parse()`. For images, use `rememberAsyncImagePainter` pattern or load via `ContentResolver.openInputStream()` and decode with `BitmapFactory`. For videos, load thumbnail using `ContentResolver.loadThumbnail()` with SIZE_ORIGINAL or large size. Handle loading state with a placeholder/shimmer. Handle errors gracefully with an error placeholder. Use `Modifier.fillMaxWidth()` with aspect ratio based on item dimensions. Implement proper system bar handling for full-bleed display using `WindowInsets` and `Modifier.statusBarsPadding()` on content below. Consider memory management for large images using `BitmapFactory.Options.inSampleSize` if needed.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual testing: verify images load at full resolution; verify video thumbnails display; verify loading placeholder shows during load; verify error state displays for missing/inaccessible files. UI test with mock ContentResolver.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:32:10.805Z"
           },
           {
             "id": 4,
@@ -738,9 +741,10 @@
               2
             ],
             "details": "Add `computeSha256(itemId: Long)` function to `ItemDetailViewModel`. When called, set a computing state (add `isComputingHash: Boolean` to UI state). Launch in `viewModelScope` with `Dispatchers.IO`. Open file via `ContentResolver.openInputStream(uri)`. Use `MessageDigest.getInstance(\"SHA-256\")` and read file in chunks (8KB buffer) calling `digest.update()`. Convert final `digest.digest()` bytes to hex string. Update `DeviceItemEntity.sha256` in Room via DAO update. Refresh UI state after update. Display fingerprint (truncated to ~12 chars with \"...\" and full value in expandable/dialog) and SHA-256 similarly. Show \"Compute hash\" button only when `sha256` is null. Show progress indicator while computing. Handle errors (file not accessible, etc.) with snackbar/toast.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test SHA-256 computation against known test vectors. Unit test ViewModel: verify computing state transitions; verify database update called with correct hash. Integration test: compute hash on real file and verify consistency across runs.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:32:12.496Z"
           },
           {
             "id": 5,
@@ -752,15 +756,16 @@
               3
             ],
             "details": "Create `ItemDetailScreen` scaffold with Material 3 `TopAppBar`. Add share action button (share icon) that creates an `Intent.ACTION_SEND` with the item's content URI and MIME type. Use `Intent.createChooser()` for system share sheet. Grant URI read permission via `Intent.FLAG_GRANT_READ_URI_PERMISSION`. Add navigation back button in TopAppBar. Create `StatusPlaceholder` composable section with header \"Status\" and text \"Available after cloud connection\" styled as disabled/placeholder. Create `SiblingsPlaceholder` composable section with header \"Related files\" and text \"Available after media analysis\". Use consistent Material 3 styling with `Card` or `Surface` for sections. Add content descriptions for accessibility on all interactive elements. Ensure TopAppBar handles insets correctly for edge-to-edge display.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI test: verify share intent is created with correct URI and MIME type; verify back navigation works; verify placeholder sections render with expected text. Manual test: verify share sheet opens and item can be shared to other apps.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:32:14.143Z"
           }
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
         "expansionPrompt": "Break down Item detail into: 1) Create ItemDetailViewModel with saved state handle for itemId, 2) Build metadata display UI (path, folder, MIME, size, dates, dimensions), 3) Implement full-size preview loading via ContentResolver, 4) Add on-demand SHA-256 hash computation with database update, 5) Implement share action and placeholder sections for status/siblings. Focus on proper formatting of file metadata.",
-        "updatedAt": "2026-10-19T15:30:28.696Z"
+        "updatedAt": "2026-10-19T15:32:14.143Z"
       },
       {
         "id": "9",
@@ -772,7 +777,7 @@
         "dependencies": [
           "5"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -874,7 +879,8 @@
         ],
         "complexity": 8,
         "recommendedSubtasks": 8,
-        "expansionPrompt": "Break down OAuth implementation into: 1) Add browser dependency for Custom Tabs to libs.versions.toml, 2) Create OAuthConfig object with endpoints and client config, 3) Implement PKCE code_verifier and code_challenge generation, 4) Create AuthRepository interface and implement Custom Tab launch, 5) Add OAuthRedirectActivity and intent-filter to AndroidManifest, 6) Implement token exchange via HttpsURLConnection POST, 7) Implement Keystore-backed encryption for token storage, 8) Add token refresh logic and revocation handling. Critical security code—follow platform APIs exactly."
+        "expansionPrompt": "Break down OAuth implementation into: 1) Add browser dependency for Custom Tabs to libs.versions.toml, 2) Create OAuthConfig object with endpoints and client config, 3) Implement PKCE code_verifier and code_challenge generation, 4) Create AuthRepository interface and implement Custom Tab launch, 5) Add OAuthRedirectActivity and intent-filter to AndroidManifest, 6) Implement token exchange via HttpsURLConnection POST, 7) Implement Keystore-backed encryption for token storage, 8) Add token refresh logic and revocation handling. Critical security code—follow platform APIs exactly.",
+        "updatedAt": "2026-10-19T15:36:14.806Z"
       },
       {
         "id": "10",
@@ -2292,9 +2298,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T15:30:28.696Z",
+      "lastModified": "2026-10-19T15:36:14.806Z",
       "taskCount": 25,
-      "completedCount": 7,
+      "completedCount": 8,
       "tags": [
         "master"
       ]

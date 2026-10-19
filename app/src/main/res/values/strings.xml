@@ -63,6 +63,16 @@
     <string name="destination_error_title">Folder not usable</string>
     <string name="destination_error_not_persistable">Pomegranate could not keep access to that folder. Please pick a folder on this phone or its SD card.</string>
     <string name="destination_error_revoked">Access to the previously chosen folder was lost. Please choose it again.</string>
+    <string name="connection_title">Google Photos</string>
+    <string name="connection_body">Pomegranate asks Google only for permission to show you photos you pick in Google\'s own picker. It cannot see anything you do not select, and it never changes or deletes anything in Google Photos.</string>
+    <string name="connection_not_configured">This build has no Google OAuth client id. Add pomegranate.oauthClientId to local.properties and rebuild.</string>
+    <string name="connection_sign_in">Connect Google Photos</string>
+    <string name="connection_signing_in">Finishing sign-in…</string>
+    <string name="connection_signed_in">Connected</string>
+    <string name="connection_sign_out">Disconnect and forget sign-in</string>
+    <string name="connection_needs_reauth">Google needs you to sign in again. This happens every 7 days while the app is in testing mode.</string>
+    <string name="connection_sign_in_again">Sign in again</string>
+    <string name="connection_try_again">Try again</string>
     <string name="tab_by_folder">By folder</string>
     <string name="tab_by_month">By month</string>
     <string name="group_expand">tap to expand</string>

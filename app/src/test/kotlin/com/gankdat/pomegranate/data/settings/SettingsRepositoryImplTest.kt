@@ -10,6 +10,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -140,7 +142,8 @@ class SettingsRepositoryImplTest {
     fun `values survive a new repository on the same file`() = runBlocking {
         settings.setFolderStrategy(FolderStrategy.BY_MONTH_ONLY)
         settings.setWifiOnly(false)
-        scope.cancel()
+        // DataStore releases the file only once the owning scope has fully completed.
+        scope.coroutineContext.job.cancelAndJoin()
 
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val reopened = SettingsRepositoryImpl(newDataStore())

@@ -1,9 +1,18 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
 }
+
+// Per-developer build configuration (gitignored). See .env.example for the keys.
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use(::load)
+}
+val oauthClientId: String = localProperties.getProperty("pomegranate.oauthClientId", "")
 
 android {
     namespace = "com.gankdat.pomegranate"
@@ -15,6 +24,10 @@ android {
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
+
+        // Public OAuth client id (no secret exists for Android clients); empty
+        // until the developer adds pomegranate.oauthClientId to local.properties.
+        buildConfigField("String", "OAUTH_CLIENT_ID", "\"$oauthClientId\"")
     }
 
     buildTypes {
@@ -35,6 +48,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     lint {
@@ -78,6 +92,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.exifinterface)
+    implementation(libs.androidx.browser)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)

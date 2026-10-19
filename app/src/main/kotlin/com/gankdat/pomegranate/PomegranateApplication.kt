@@ -2,6 +2,13 @@ package com.gankdat.pomegranate
 
 import android.app.Application
 import android.content.Context
+import com.gankdat.pomegranate.auth.AuthRepository
+import com.gankdat.pomegranate.auth.AuthRepositoryImpl
+import com.gankdat.pomegranate.auth.CustomTabLauncher
+import com.gankdat.pomegranate.auth.FileTokenStore
+import com.gankdat.pomegranate.auth.HttpTokenEndpoint
+import com.gankdat.pomegranate.auth.KeystoreTokenCipher
+import com.gankdat.pomegranate.auth.OAuthConfig
 import com.gankdat.pomegranate.census.device.DeviceScanner
 import com.gankdat.pomegranate.census.device.DeviceScannerRepository
 import com.gankdat.pomegranate.census.device.DeviceScannerRepositoryImpl
@@ -9,6 +16,11 @@ import com.gankdat.pomegranate.data.db.PomegranateDatabase
 import com.gankdat.pomegranate.data.settings.SettingsRepository
 import com.gankdat.pomegranate.data.settings.SettingsRepositoryImpl
 import com.gankdat.pomegranate.data.settings.settingsDataStore
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Process-wide object graph. Deliberately a plain service locator: the app is
@@ -16,12 +28,31 @@ import com.gankdat.pomegranate.data.settings.settingsDataStore
  * framework under the platform + AndroidX dependency policy.
  */
 internal class PomegranateApplication : Application() {
+    /** Work that must outlive any single screen, such as finishing a token exchange. */
+    val appScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     val database: PomegranateDatabase by lazy { PomegranateDatabase.getInstance(this) }
 
     val settings: SettingsRepository by lazy { SettingsRepositoryImpl(settingsDataStore) }
 
     val deviceScanner: DeviceScannerRepository by lazy {
         DeviceScannerRepositoryImpl(DeviceScanner(this), database.deviceItemDao(), settings)
+    }
+
+    val auth: AuthRepository by lazy {
+        val config = OAuthConfig()
+        AuthRepositoryImpl(
+            config = config,
+            store = FileTokenStore(File(filesDir, "auth/tokens.bin"), KeystoreTokenCipher()),
+            endpoint = HttpTokenEndpoint(config),
+            scope = appScope,
+            browser = CustomTabLauncher::open,
+        )
+    }
+
+    /** Called by the redirect activity; the exchange runs here so it survives that activity finishing. */
+    fun onOAuthRedirect(redirectUrl: String) {
+        appScope.launch { auth.handleRedirect(redirectUrl) }
     }
 
     companion object {

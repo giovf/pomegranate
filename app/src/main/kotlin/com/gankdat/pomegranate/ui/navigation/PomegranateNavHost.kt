@@ -1,6 +1,7 @@
 package com.gankdat.pomegranate.ui.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -8,15 +9,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.gankdat.pomegranate.R
+import com.gankdat.pomegranate.ui.connection.ConnectionScreen
 import com.gankdat.pomegranate.ui.library.ItemDetailRoute
 import com.gankdat.pomegranate.ui.library.LibraryScreen
 import com.gankdat.pomegranate.ui.onboarding.OnboardingScreen
@@ -69,12 +73,19 @@ internal fun PomegranateNavHost(
         }
         composable(Screen.Connection.route) {
             PomegranateScaffold(navController, stringResource(R.string.title_connection)) { padding ->
-                Placeholder(stringResource(R.string.title_connection), padding)
+                ConnectionScreen(modifier = Modifier.padding(padding))
             }
         }
         composable(Screen.Settings.route) {
             PomegranateScaffold(navController, stringResource(R.string.title_settings)) { padding ->
-                Placeholder(stringResource(R.string.title_settings), padding)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(16.dp),
+                ) {
+                    TextButton(onClick = navController::navigateToConnection) { Text(stringResource(R.string.title_connection)) }
+                }
             }
         }
         composable(Screen.Disconnect.route) {
