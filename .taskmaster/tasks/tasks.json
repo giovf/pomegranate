@@ -1555,7 +1555,7 @@
           "14",
           "15"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1616,9 +1616,10 @@
               4
             ],
             "details": "Create `TransferForegroundService.kt` in `com.gankdat.pomegranate.transfer` package. Implement Service extending LifecycleService with: (1) Create NotificationChannel in onCreate: id='transfer_progress', name='Transfer Progress', importance=IMPORTANCE_LOW (no sound). (2) Start as foreground service with startForeground() and notification ID. (3) Build notification using NotificationCompat.Builder: small icon (R.drawable.ic_download), title='Pulling media', content='X of Y items', setProgress(totalItems, completedItems, false), setCategory(CATEGORY_PROGRESS), setOngoing(true). (4) Add 'Pause' action with PendingIntent broadcasting to receiver that calls TransferQueue.pauseAll(). Toggle to 'Resume' action when paused. (5) Observe TransferQueue progress via injected repository, update notification on each change using NotificationManager.notify(). (6) When transfer completes or is cancelled, call stopForeground(STOP_FOREGROUND_REMOVE). (7) Add service declaration in AndroidManifest.xml with android:foregroundServiceType='dataSync'. (8) Start service from PullProgressScreen when pull begins, stop when complete. (9) Handle service binding for ViewModel communication if needed, or use shared repository.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration tests: start service, verify notification appears with correct channel; verify progress updates reflect in notification; verify Pause action works; verify notification removed on completion. Test service survives activity destruction.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T17:22:50.913Z"
           },
           {
             "id": 6,
@@ -1643,15 +1644,16 @@
               6
             ],
             "details": "Implement background execution handling: (1) In TransferForegroundService, ensure WorkManager jobs continue independently of service lifecycle by not cancelling work on service destroy. (2) Add WorkManager query in PullViewModel to recover in-progress transfers on cold start: check for any RUNNING TransferJobEntity and resume observation. (3) Create `TransferRecoveryHandler` that checks for orphaned transfers on app launch and shows appropriate UI (resume PullProgressScreen if transfer active). (4) Handle notification tap: PendingIntent with TaskStackBuilder to open PullProgressScreen with FLAG_ACTIVITY_SINGLE_TOP. (5) In PullProgressScreen, handle onResume by re-querying current progress state from TransferQueue. (6) Persist transfer session ID in DataStore to correlate which jobs belong to current pull. (7) Handle partial completion: if app killed mid-transfer, on restart detect partially completed batch and offer 'Resume' or 'Start Fresh'. (8) Add BroadcastReceiver for network connectivity changes to pause/resume based on wifiOnly setting. (9) Test with 'Don't keep activities' developer option enabled.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual testing: start large transfer, background app, verify notification continues updating; kill app process, relaunch, verify transfer state recovered. Test with 'Don't keep activities' enabled. Verify notification tap returns to correct screen. Test network disconnection handling.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T17:22:52.849Z"
           }
         ],
         "complexity": 7,
         "recommendedSubtasks": 7,
         "expansionPrompt": "Break down Pull screen into: 1) Create PullViewModel calculating scope options and sizes, 2) Build PullScopeScreen with radio buttons and space check, 3) Create FidelityNoticeDialog with acknowledgment, 4) Build PullProgressScreen with progress bar/speed/ETA, 5) Implement foreground service for persistent notification, 6) Create PullCompletionScreen with summary and failure handling, 7) Handle background execution continuation. Test notification updates carefully.",
-        "updatedAt": "2026-10-19T16:35:00.338Z"
+        "updatedAt": "2026-10-19T17:22:52.849Z"
       },
       {
         "id": "17",
@@ -2413,9 +2415,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T17:07:03.225Z",
+      "lastModified": "2026-10-19T17:22:52.849Z",
       "taskCount": 25,
-      "completedCount": 24,
+      "completedCount": 25,
       "tags": [
         "master"
       ]
