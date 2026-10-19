@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose draws all chrome (Material 3 TopAppBar), so the window must not
+         add its own action bar or title. Day/night follows the system. -->
+    <style name="Theme.Pomegranate" parent="android:Theme.DeviceDefault.DayNight">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>
