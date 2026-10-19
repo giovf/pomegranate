@@ -18,6 +18,14 @@ coreKtx = "1.19.1"
 activityCompose = "1.13.0"
 lifecycle = "2.11.0"
 composeBom = "2026.09.00"
+# Room (androidx.room) persists the local index. Its annotation processor runs
+# through KSP (com.google.devtools.ksp): a Google-maintained, build-time-only
+# plugin that never ships in the APK. Approved via the Task 1 backlog entry.
+room = "2.8.5"
+ksp = "2.3.12"
+# Bundled SQLite driver for the host JVM (test-only): lets Room DAO tests run
+# under ./gradlew testDebugUnitTest without an emulator or Robolectric.
+sqlite = "2.7.1"
 # JUnit 4 is the one approved third-party dependency (owner approval
 # 2026-10-20): test-only, never packaged in the APK.
 junit = "4.13.2"
@@ -33,8 +41,14 @@ androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+# Test-only: host-JVM SQLite driver so Room tests run under ./gradlew testDebugUnitTest.
+androidx-sqlite-bundled-jvm = { group = "androidx.sqlite", name = "sqlite-bundled-jvm", version.ref = "sqlite" }
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+androidx-room = { id = "androidx.room", version.ref = "room" }

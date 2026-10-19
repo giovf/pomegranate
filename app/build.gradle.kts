@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.androidx.room)
 }
 
 android {
@@ -39,6 +41,18 @@ android {
         warningsAsErrors = true
         abortOnError = true
     }
+
+    testOptions {
+        // Room's Android builder only needs a Context for low-RAM detection;
+        // stubbed android.jar calls returning defaults let DAO tests run on
+        // the host JVM against the bundled SQLite driver (no Robolectric).
+        unitTests.isReturnDefaultValues = true
+    }
+}
+
+room {
+    // Exported schemas are committed so future migrations can be validated.
+    schemaDirectory("$projectDir/schemas")
 }
 
 kotlin {
@@ -60,5 +74,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.sqlite.bundled.jvm)
 }
