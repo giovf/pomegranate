@@ -1,6 +1,5 @@
 {
-  // Renamed by Claude during /setup to match the project.
-  "name": "New Project (Claude Code + Taskmaster)",
+  "name": "Pomegranate (Android / Kotlin)",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."
@@ -26,8 +25,8 @@
     "source=${localWorkspaceFolderBasename}-shell-history,target=/commandhistory,type=volume"
   ],
 
-  // No ports forwarded by default — Claude adds the stack's ports during
-  // /setup (e.g. 3000 for Next.js; 8081/19000-19006 for Expo).
+  // Native Android app: no dev server, nothing to forward. Testing happens on
+  // a physical phone (sideloaded debug APK, or adb over Wi-Fi from the host).
   "forwardPorts": [],
 
   // Runs once after the container is first created (and after every rebuild).
@@ -35,20 +34,21 @@
 
   "customizations": {
     "vscode": {
-      // Base set — stack-specific extensions are added during /setup.
       "extensions": [
         "anthropic.claude-code",
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
         "editorconfig.editorconfig",
         "eamodio.gitlens",
         "github.vscode-pull-request-github",
-        "ms-azuretools.vscode-docker"
+        "ms-azuretools.vscode-docker",
+        // Android / Kotlin
+        "mathiasfrohlich.Kotlin",
+        "vscjava.vscode-gradle",
+        "redhat.vscode-xml"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh",
         "editor.formatOnSave": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
+        "files.exclude": { "**/.gradle": true, "**/build": true }
       }
     }
   }
