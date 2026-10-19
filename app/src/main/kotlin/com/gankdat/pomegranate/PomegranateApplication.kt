@@ -20,6 +20,7 @@ import com.gankdat.pomegranate.data.db.PomegranateDatabase
 import com.gankdat.pomegranate.data.settings.SettingsRepository
 import com.gankdat.pomegranate.data.settings.SettingsRepositoryImpl
 import com.gankdat.pomegranate.data.settings.settingsDataStore
+import com.gankdat.pomegranate.data.wipe.CloudDataWiper
 import com.gankdat.pomegranate.reconcile.ReconciliationRepository
 import com.gankdat.pomegranate.reconcile.ReconciliationRepositoryImpl
 import com.gankdat.pomegranate.reconcile.origin.OriginRepository
@@ -96,6 +97,10 @@ internal class PomegranateApplication : Application() {
     }
 
     val transferScheduler: TransferScheduler by lazy { TransferScheduler(this) }
+
+    val cloudDataWiper: CloudDataWiper by lazy {
+        CloudDataWiper(database.cloudItemDao(), database.matchDao(), database.pickerRoundDao(), database.transferJobDao())
+    }
 
     val manifest: ManifestRepository by lazy {
         ManifestRepositoryImpl(database.transferJobDao(), settings, ResolverSafStorage(contentResolver), appVersion = BuildConfig.VERSION_NAME)

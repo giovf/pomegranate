@@ -6,6 +6,8 @@ internal data class StoredTokens(
     val refreshToken: String?,
     /** Epoch millis after which [accessToken] is treated as expired (includes a safety buffer). */
     val expiresAtMillis: Long,
+    /** Epoch millis of the consent that produced the refresh token; drives the Testing-mode expiry hint. */
+    val signedInAtMillis: Long = 0,
 ) {
     fun isExpired(nowMillis: Long): Boolean = nowMillis >= expiresAtMillis
 }
@@ -37,6 +39,13 @@ internal sealed interface AuthResult {
 }
 
 /** What the connection screen shows. */
+/** What the connection screen shows about the stored tokens. */
+internal data class TokenStatus(
+    val accessValidUntilMillis: Long,
+    val signedInAtMillis: Long,
+    val hasRefreshToken: Boolean,
+)
+
 internal sealed interface AuthState {
     /** No client id in the build; connecting is impossible. */
     data object NotConfigured : AuthState

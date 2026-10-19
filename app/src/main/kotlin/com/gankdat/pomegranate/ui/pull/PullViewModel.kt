@@ -108,6 +108,9 @@ internal class PullViewModel(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), PullProgress())
 
+    /** Mirrors the setting so the completion screen can start its countdown. */
+    val autoDisconnect: StateFlow<Boolean> = settings.autoDisconnect.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), false)
+
     private val _started = MutableStateFlow(false)
     val phase: StateFlow<PullPhase> = combine(progress, _started) { p, started ->
         when {

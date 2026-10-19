@@ -57,6 +57,10 @@ internal class AuthRepositoryImpl(
 
     override val isAuthenticated: Flow<Boolean> = store.observe().map { it.tokens != null }.distinctUntilChanged()
 
+    override val tokenStatus: Flow<TokenStatus?> = store.observe().map { record ->
+        record.tokens?.let { TokenStatus(it.expiresAtMillis, it.signedInAtMillis, it.refreshToken != null) }
+    }.distinctUntilChanged()
+
     private val launchScope = scope
 
     override fun launchSignIn(activity: Activity) {
@@ -106,7 +110,8 @@ internal class AuthRepositoryImpl(
         phase.value = Phase.Exchanging
         return try {
             val response = endpoint.exchangeCode(code, pending.codeVerifier)
-            store.update { it.copy(tokens = response.toStored(clock()), pending = null) }
+            val now = clock()
+            store.update { it.copy(tokens = response.toStored(now).copy(signedInAtMillis = now), pending = null) }
             phase.value = Phase.Idle
             AuthResult.Success
         } catch (e: TokenEndpointException) {
@@ -124,7 +129,7 @@ internal class AuthRepositoryImpl(
         try {
             val response = endpoint.refresh(refreshToken)
             store.update { record ->
-                record.copy(tokens = response.toStored(clock()).copy(refreshToken = response.refreshToken ?: refreshToken))
+                record.copy(tokens = response.toStored(clock()).copy(refreshToken = response.refreshToken ?: refreshToken, signedInAtMillis = tokens.signedInAtMillis))
             }
             phase.value = Phase.Idle
             AuthResult.Success

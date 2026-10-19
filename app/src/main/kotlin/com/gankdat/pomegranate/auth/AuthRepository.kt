@@ -9,6 +9,9 @@ internal interface AuthRepository {
 
     val isAuthenticated: Flow<Boolean>
 
+    /** Null when signed out. */
+    val tokenStatus: Flow<TokenStatus?>
+
     /** Opens Google's consent screen in a Custom Tab. */
     fun launchSignIn(activity: Activity)
 

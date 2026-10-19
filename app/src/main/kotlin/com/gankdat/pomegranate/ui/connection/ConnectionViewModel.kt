@@ -4,6 +4,8 @@ import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gankdat.pomegranate.auth.AuthRepository
+import com.gankdat.pomegranate.auth.TokenStatus
+import com.gankdat.pomegranate.data.db.entity.PickerRoundEntity
 import com.gankdat.pomegranate.census.cloud.CloudScannerRepository
 import com.gankdat.pomegranate.census.cloud.PickerApiException
 import com.gankdat.pomegranate.census.cloud.PickerAuthException
@@ -45,6 +47,25 @@ internal class ConnectionViewModel(
 ) : ViewModel() {
     val authState = auth.authState
 
+    val tokenStatus: StateFlow<TokenStatus?> = auth.tokenStatus.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val rounds: StateFlow<List<PickerRoundEntity>> = cloud.pickerRounds().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _refreshing = MutableStateFlow(false)
+    val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
+
+    fun refreshAccess() {
+        if (_refreshing.value) return
+        _refreshing.value = true
+        viewModelScope.launch {
+            try {
+                auth.refreshToken()
+            } finally {
+                _refreshing.value = false
+            }
+        }
+    }
+
     private val _roundState = MutableStateFlow<RoundState>(RoundState.Idle)
     val roundState: StateFlow<RoundState> = _roundState.asStateFlow()
     private var pollJob: Job? = null
@@ -59,7 +80,8 @@ internal class ConnectionViewModel(
 
     fun signIn(activity: Activity) = auth.launchSignIn(activity)
 
-    fun signOut() {
+    /** Cancels an open round only; the full revoke-and-wipe lives in the Disconnect flow. */
+    fun abandonSignIn() {
         cancelRound()
         viewModelScope.launch { auth.revokeAndClear() }
     }

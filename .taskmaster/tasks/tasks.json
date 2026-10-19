@@ -1663,7 +1663,7 @@
         "dependencies": [
           "15"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1671,9 +1671,10 @@
             "description": "Create the trust package with ManifestRecord data class containing all required fields (sourceId, originalFilename, destinationPath, sizeBytes, sha256Hash, fidelity, pulledAt, verified) and ManifestGenerator class that queries TransferJobEntity records with state=DONE from Room database.",
             "dependencies": [],
             "details": "1. Create package `com.gankdat.pomegranate.trust`.\n2. Create `ManifestRecord` data class with fields:\n   - sourceId: String (Picker mediaItem ID)\n   - originalFilename: String\n   - destinationPath: String (relative to root)\n   - sizeBytes: Long\n   - sha256Hash: String\n   - fidelity: Fidelity enum (ORIGINAL, GPS_STRIPPED, TRANSCODED)\n   - pulledAt: Instant (ISO timestamp)\n   - verified: Boolean (always true for DONE jobs)\n3. Create `ManifestGenerator` class:\n   - Inject TransferJobDao\n   - `suspend fun generateManifestRecords(): List<ManifestRecord>` - query TransferJobEntity where state = DONE, map to ManifestRecord\n   - Handle null/missing fields gracefully with sensible defaults\n4. Use @JvmInline value classes for type safety on IDs if beneficial.\n5. Ensure fidelity enum reuses existing Fidelity enum from transfer package.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify ManifestGenerator correctly queries DONE jobs only; test mapping from TransferJobEntity to ManifestRecord preserves all fields; test handling of edge cases (empty results, null fields). Use Room in-memory database with test TransferJobEntity fixtures.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:40:45.979Z"
           },
           {
             "id": 2,
@@ -1683,9 +1684,10 @@
               1
             ],
             "details": "1. Create `CsvExporter` object/class in trust package:\n   - `suspend fun exportToCsv(records: List<ManifestRecord>, outputStream: OutputStream)`\n   - Header row: source_id,original_filename,destination_path,size_bytes,sha256_hash,fidelity,pulled_at,verified\n   - Properly escape fields containing commas, quotes, or newlines per RFC 4180\n   - Use BufferedWriter with UTF-8 encoding\n2. Generate filename: `manifest-YYYY-MM-DD.csv` using current date\n3. Write to `<root>/Pomegranate/` folder via SAF DocumentFile/ContentResolver\n4. Reuse existing SAF folder creation logic from Task 15 if available\n5. Handle large datasets by streaming records rather than building full string in memory\n6. Return Uri of created file for user feedback.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify CSV header format; test escaping of special characters (commas, quotes, newlines in filenames); verify ISO 8601 timestamp formatting; test empty list produces header-only file. Integration tests: write to mock OutputStream and verify valid CSV parseable by standard library.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:40:47.825Z"
           },
           {
             "id": 3,
@@ -1695,9 +1697,10 @@
               1
             ],
             "details": "1. Create `JsonExporter` object/class in trust package:\n   - `suspend fun exportToJson(records: List<ManifestRecord>, outputStream: OutputStream)`\n2. Define JSON structure with Kotlinx.serialization (or manual JsonWriter if no new dependency):\n   - metadata object: { appVersion, exportedAt (ISO), totalCount, totalSizeBytes }\n   - records array: array of ManifestRecord objects\n3. Since project has no serialization library, use android.util.JsonWriter:\n   - Stream records to avoid memory issues with large datasets\n   - Properly format fidelity enum as string\n   - Format pulledAt as ISO 8601 string\n4. Generate filename: `manifest-YYYY-MM-DD.json` using current date\n5. Write to `<root>/Pomegranate/` via SAF\n6. Get app version from BuildConfig.VERSION_NAME\n7. Return Uri of created file.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify JSON structure matches specification; test metadata calculations (totalCount, totalSizeBytes); verify ISO 8601 timestamp format; test empty records produces valid JSON with zero counts. Integration tests: parse output with JSONObject/JSONArray to verify validity.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:40:49.588Z"
           },
           {
             "id": 4,
@@ -1709,9 +1712,10 @@
               3
             ],
             "details": "1. Create `ManifestRepository` interface and `ManifestRepositoryImpl` class:\n   - `suspend fun exportCsv(destinationUri: Uri): Result<Uri>` - generate records, write CSV, return file Uri or error\n   - `suspend fun exportJson(destinationUri: Uri): Result<Uri>` - generate records, write JSON, return file Uri or error\n   - `fun getManifestSummary(): Flow<ManifestSummary>` - observe TransferJobDao for count/size of DONE jobs\n2. Create `ManifestSummary` data class:\n   - verifiedCount: Int\n   - totalSizeBytes: Long\n   - lastPulledAt: Instant?\n3. Inject ManifestGenerator, CsvExporter, JsonExporter, TransferJobDao, ContentResolver\n4. Handle file creation errors gracefully (insufficient space, permission issues)\n5. Emit updated ManifestSummary whenever DONE jobs change using Room's Flow queries\n6. Consider adding file naming collision handling (append -1, -2 if file exists).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify exportCsv and exportJson call correct components; test error handling returns Result.failure with meaningful message; verify getManifestSummary emits updates when DONE jobs change. Integration tests with in-memory Room and mock ContentResolver.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:40:51.337Z"
           },
           {
             "id": 5,
@@ -1721,15 +1725,16 @@
               4
             ],
             "details": "1. Create `ProofOfCopyScreen` Composable in ui package:\n   - Collect ManifestSummary from ManifestRepository\n   - Display 'Safe to clean up' section with checkmark icon\n   - Show 'Total items with verified copies: X'\n   - Show 'Total size: Y GB' (format bytes appropriately)\n   - Warning card: 'This does not include items you haven\\'t indexed or pulled yet'\n   - Material 3 FilledTonalButton: 'Export CSV' - triggers SAF file picker, then exportCsv\n   - Material 3 FilledTonalButton: 'Export JSON' - triggers SAF file picker, then exportJson\n   - OutlinedButton: 'View manifest in app' - navigate to viewer\n2. Create `ManifestViewerScreen` Composable:\n   - SearchBar at top with query state\n   - LazyColumn of ManifestRecord items\n   - Each item shows: filename, checkmark icon, destination path, size, fidelity badge\n   - Filter list by search query (filename, path)\n   - Handle empty state with placeholder message\n3. Create `ProofOfCopyViewModel` with StateFlow<UiState> managing loading, error, and success states\n4. Use contentDescription on all icons for accessibility\n5. Add proper loading indicators during export operations.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify summary displays correct counts from ViewModel; test export buttons trigger SAF picker; verify manifest viewer filters correctly on search; test empty state displays. Manual testing: TalkBack navigation, verify all elements have content descriptions. Screenshot tests for light/dark mode.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:40:53.132Z"
           }
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
         "expansionPrompt": "Break down manifest export into: 1) Create ManifestGenerator querying DONE TransferJobEntities, 2) Define manifest record structure with all required fields, 3) Implement CSV export to SAF destination, 4) Implement JSON export with metadata, 5) Create ProofOfCopyScreen and in-app manifest viewer. Standard file I/O with structured data formatting.",
-        "updatedAt": "2026-10-19T16:37:34.624Z"
+        "updatedAt": "2026-10-19T16:40:53.132Z"
       },
       {
         "id": "18",
@@ -1743,7 +1748,7 @@
           "9",
           "10"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -1811,7 +1816,8 @@
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down Connection screen into: 1) Create ConnectionViewModel observing auth state and picker rounds, 2) Build connection status card with account info and scope, 3) Display picker round history with timestamps and counts, 4) Add token status and refresh actions, 5) Implement connection status indicator in TopAppBar. Handle Testing mode 7-day expiry gracefully."
+        "expansionPrompt": "Break down Connection screen into: 1) Create ConnectionViewModel observing auth state and picker rounds, 2) Build connection status card with account info and scope, 3) Display picker round history with timestamps and counts, 4) Add token status and refresh actions, 5) Implement connection status indicator in TopAppBar. Handle Testing mode 7-day expiry gracefully.",
+        "updatedAt": "2026-10-19T16:43:04.781Z"
       },
       {
         "id": "19",
@@ -1824,7 +1830,7 @@
           "9",
           "18"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -1905,7 +1911,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 6,
-        "expansionPrompt": "Break down Disconnect flow into: 1) Create DisconnectViewModel tracking disconnect steps, 2) Show pre-disconnect checklist (pending transfers warning), 3) Implement token revocation POST to Google endpoint, 4) Wipe local secrets (Keystore-backed tokens), 5) Wipe cloud data (CloudItemEntity, MatchEntity, PickerRoundEntity), 6) Create guided confirmation with Google Account deep link. Test data wipe is complete."
+        "expansionPrompt": "Break down Disconnect flow into: 1) Create DisconnectViewModel tracking disconnect steps, 2) Show pre-disconnect checklist (pending transfers warning), 3) Implement token revocation POST to Google endpoint, 4) Wipe local secrets (Keystore-backed tokens), 5) Wipe cloud data (CloudItemEntity, MatchEntity, PickerRoundEntity), 6) Create guided confirmation with Google Account deep link. Test data wipe is complete.",
+        "updatedAt": "2026-10-19T16:43:06.550Z"
       },
       {
         "id": "20",
@@ -2365,9 +2372,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T16:37:34.624Z",
+      "lastModified": "2026-10-19T16:43:06.551Z",
       "taskCount": 25,
-      "completedCount": 16,
+      "completedCount": 17,
       "tags": [
         "master"
       ]

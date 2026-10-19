@@ -73,6 +73,11 @@ internal class ThumbnailLoader(private val resolver: ContentResolver) {
         @Volatile
         private var shared: ThumbnailLoader? = null
 
+        /** Drops every cached bitmap, including cloud thumbnails, on Disconnect. */
+        fun clearShared() {
+            shared?.clear()
+        }
+
         /** One cache per process; the resolver is application-scoped. */
         fun shared(resolver: ContentResolver): ThumbnailLoader =
             shared ?: synchronized(this) { shared ?: ThumbnailLoader(resolver).also { shared = it } }

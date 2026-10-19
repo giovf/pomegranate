@@ -33,18 +33,25 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.auth.AuthState
 import com.gankdat.pomegranate.auth.CustomTabLauncher
+import com.gankdat.pomegranate.auth.TokenStatus
+import com.gankdat.pomegranate.data.db.entity.PickerRoundEntity
+import com.gankdat.pomegranate.data.db.entity.PickerRoundState
 import com.gankdat.pomegranate.ui.appViewModelFactory
 import com.gankdat.pomegranate.ui.format.Formatters
 
 /** Google account connection status, sign-in/out, and Picker rounds. */
 @Composable
 internal fun ConnectionScreen(
+    onDisconnect: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ConnectionViewModel = viewModel(factory = appViewModelFactory { ConnectionViewModel(it.auth, it.cloudScanner, it.reconciliation, it.origins) }),
 ) {
     val auth by viewModel.authState.collectAsStateWithLifecycle()
     val round by viewModel.roundState.collectAsStateWithLifecycle()
     val coverage by viewModel.coverage.collectAsStateWithLifecycle()
+    val tokenStatus by viewModel.tokenStatus.collectAsStateWithLifecycle()
+    val rounds by viewModel.rounds.collectAsStateWithLifecycle()
+    val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
 
     // Returning from the Picker tab: resume polling the open round, if any.
@@ -61,17 +68,22 @@ internal fun ConnectionScreen(
         Spacer(Modifier.height(12.dp))
         Text(stringResource(R.string.connection_body), style = MaterialTheme.typography.bodyLarge)
         Spacer(Modifier.height(24.dp))
-        AuthSection(auth, viewModel, activity)
+        AuthSection(auth, viewModel, activity, onDisconnect)
 
         if (auth == AuthState.SignedIn) {
+            tokenStatus?.let { TokenStatusSection(it, refreshing, viewModel::refreshAccess) }
             HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
             PickerSection(round, coverage, viewModel, activity)
+            if (rounds.isNotEmpty()) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+                RoundsHistory(rounds)
+            }
         }
     }
 }
 
 @Composable
-private fun AuthSection(auth: AuthState, viewModel: ConnectionViewModel, activity: Activity?) {
+private fun AuthSection(auth: AuthState, viewModel: ConnectionViewModel, activity: Activity?, onDisconnect: () -> Unit) {
     when (auth) {
         AuthState.NotConfigured -> Text(stringResource(R.string.connection_not_configured), color = MaterialTheme.colorScheme.error)
         AuthState.SignedOut -> Button(onClick = { activity?.let(viewModel::signIn) }, modifier = Modifier.fillMaxWidth()) {
@@ -81,12 +93,13 @@ private fun AuthSection(auth: AuthState, viewModel: ConnectionViewModel, activit
             CircularProgressIndicator()
             Spacer(Modifier.height(12.dp))
             Text(stringResource(R.string.connection_signing_in))
-            TextButton(onClick = viewModel::signOut) { Text(stringResource(android.R.string.cancel)) }
+            TextButton(onClick = viewModel::abandonSignIn) { Text(stringResource(android.R.string.cancel)) }
         }
         AuthState.SignedIn -> {
             Text(stringResource(R.string.connection_signed_in), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.connection_scope), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(16.dp))
-            OutlinedButton(onClick = viewModel::signOut, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = onDisconnect, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.connection_sign_out))
             }
         }
@@ -104,6 +117,52 @@ private fun AuthSection(auth: AuthState, viewModel: ConnectionViewModel, activit
                 Text(stringResource(R.string.connection_try_again))
             }
             TextButton(onClick = viewModel::dismissError) { Text(stringResource(android.R.string.cancel)) }
+        }
+    }
+}
+
+@Composable
+private fun TokenStatusSection(status: TokenStatus, refreshing: Boolean, onRefresh: () -> Unit) {
+    val now = System.currentTimeMillis()
+    val daysSinceSignIn = if (status.signedInAtMillis > 0) ((now - status.signedInAtMillis) / 86_400_000L).toInt() else null
+    Spacer(Modifier.height(16.dp))
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                if (status.accessValidUntilMillis > now) stringResource(R.string.token_valid_until, Formatters.dateTime(status.accessValidUntilMillis)) else stringResource(R.string.token_needs_refresh),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            if (daysSinceSignIn != null) {
+                Text(
+                    pluralStringResource(R.plurals.token_signed_in_days, daysSinceSignIn, daysSinceSignIn),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (daysSinceSignIn >= TESTING_MODE_WARN_DAYS) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(stringResource(R.string.token_testing_mode_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            TextButton(onClick = onRefresh, enabled = !refreshing) { Text(stringResource(R.string.token_refresh)) }
+        }
+    }
+}
+
+private const val TESTING_MODE_WARN_DAYS = 6
+
+@Composable
+private fun RoundsHistory(rounds: List<PickerRoundEntity>) {
+    Text(stringResource(R.string.rounds_title), style = MaterialTheme.typography.titleMedium)
+    Spacer(Modifier.height(8.dp))
+    rounds.forEach { round ->
+        Column(modifier = Modifier.padding(vertical = 6.dp)) {
+            Text(Formatters.dateTime(round.createdAt), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                when (round.state) {
+                    PickerRoundState.INDEXED -> pluralStringResource(R.plurals.round_indexed, round.itemCount, round.itemCount)
+                    PickerRoundState.ACTIVE -> stringResource(R.string.round_active)
+                    PickerRoundState.EXPIRED -> stringResource(R.string.round_expired)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

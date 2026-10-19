@@ -20,7 +20,7 @@ internal data class AuthRecord(
 internal object TokenCodec {
     fun encode(record: AuthRecord): ByteArray {
         val tokens = record.tokens?.let {
-            jsonOf("accessToken" to it.accessToken, "refreshToken" to it.refreshToken, "expiresAtMillis" to it.expiresAtMillis)
+            jsonOf("accessToken" to it.accessToken, "refreshToken" to it.refreshToken, "expiresAtMillis" to it.expiresAtMillis, "signedInAtMillis" to it.signedInAtMillis)
         }
         val pending = record.pending?.let { jsonOf("codeVerifier" to it.codeVerifier, "state" to it.state) }
         return "{\"tokens\":${tokens ?: "null"},\"pending\":${pending ?: "null"}}".toByteArray(Charsets.UTF_8)
@@ -35,6 +35,7 @@ internal object TokenCodec {
                     accessToken = it.requireString("accessToken"),
                     refreshToken = it.string("refreshToken"),
                     expiresAtMillis = it.long("expiresAtMillis") ?: 0L,
+                    signedInAtMillis = it.long("signedInAtMillis") ?: 0L,
                 )
             },
             pending = root.obj("pending")?.let { PendingAuthorization(it.requireString("codeVerifier"), it.requireString("state")) },

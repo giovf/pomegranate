@@ -21,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.ui.connection.ConnectionScreen
+import com.gankdat.pomegranate.ui.connection.DisconnectScreen
 import com.gankdat.pomegranate.ui.library.CloudItemDetailRoute
 import com.gankdat.pomegranate.ui.library.ItemDetailRoute
 import com.gankdat.pomegranate.ui.library.LibraryScreen
@@ -85,12 +86,17 @@ internal fun PomegranateNavHost(
         }
         composable(Screen.Pull.route, arguments = Screen.Pull.arguments) {
             PomegranateScaffold(navController, stringResource(R.string.title_pull)) { padding ->
-                PullScreen(onDone = { navController.popBackStack() }, onViewProof = navController::navigateToProofOfCopy, modifier = Modifier.padding(padding))
+                PullScreen(
+                    onDone = { navController.popBackStack() },
+                    onViewProof = navController::navigateToProofOfCopy,
+                    onAutoDisconnect = navController::navigateToDisconnect,
+                    modifier = Modifier.padding(padding),
+                )
             }
         }
         composable(Screen.Connection.route) {
             PomegranateScaffold(navController, stringResource(R.string.title_connection)) { padding ->
-                ConnectionScreen(modifier = Modifier.padding(padding))
+                ConnectionScreen(onDisconnect = navController::navigateToDisconnect, modifier = Modifier.padding(padding))
             }
         }
         composable(Screen.Settings.route) {
@@ -108,7 +114,11 @@ internal fun PomegranateNavHost(
         }
         composable(Screen.Disconnect.route) {
             PomegranateScaffold(navController, stringResource(R.string.title_disconnect)) { padding ->
-                Placeholder(stringResource(R.string.title_disconnect), padding)
+                DisconnectScreen(
+                    onFinished = navController::navigateToCleanupGuidanceAfterDisconnect,
+                    onCancel = { navController.popBackStack() },
+                    modifier = Modifier.padding(padding),
+                )
             }
         }
         composable(Screen.ProofOfCopy.route) {

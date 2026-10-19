@@ -24,6 +24,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,12 +41,14 @@ import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.data.db.entity.TransferState
 import com.gankdat.pomegranate.ui.appViewModelFactory
 import com.gankdat.pomegranate.ui.format.Formatters
+import kotlinx.coroutines.delay
 
 /** Scope choice, live progress and completion summary for a pull, in one route. */
 @Composable
 internal fun PullScreen(
     onDone: () -> Unit,
     onViewProof: () -> Unit,
+    onAutoDisconnect: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PullViewModel = viewModel(
         factory = appViewModelFactory {
@@ -59,7 +62,7 @@ internal fun PullScreen(
     when (phase) {
         PullPhase.ChooseScope -> ScopeContent(viewModel, modifier)
         PullPhase.InProgress -> ProgressContent(viewModel, modifier)
-        PullPhase.Completed -> CompletionContent(viewModel, onDone, onViewProof, modifier)
+        PullPhase.Completed -> CompletionContent(viewModel, onDone, onViewProof, onAutoDisconnect, modifier)
     }
     if (showNotice) {
         FidelityNoticeDialog(onContinue = viewModel::acknowledgeFidelityNotice, onDismiss = viewModel::dismissFidelityNotice)
@@ -180,9 +183,26 @@ private fun jobStateLabel(state: TransferState, liveBytes: Long): String = when 
 }
 
 @Composable
-private fun CompletionContent(viewModel: PullViewModel, onDone: () -> Unit, onViewProof: () -> Unit, modifier: Modifier) {
+private fun CompletionContent(viewModel: PullViewModel, onDone: () -> Unit, onViewProof: () -> Unit, onAutoDisconnect: () -> Unit, modifier: Modifier) {
     val progress by viewModel.progress.collectAsStateWithLifecycle()
+    val autoDisconnect by viewModel.autoDisconnect.collectAsStateWithLifecycle()
     val summary = progress.summary
+    var countdown by rememberSaveable { mutableStateOf(if (autoDisconnect) AUTO_DISCONNECT_SECONDS else -1) }
+    LaunchedEffect(autoDisconnect, progress.failed.isEmpty()) {
+        if (!autoDisconnect || progress.failed.isNotEmpty()) {
+            countdown = -1
+            return@LaunchedEffect
+        }
+        countdown = AUTO_DISCONNECT_SECONDS
+        while (countdown > 0) {
+            delay(1_000)
+            if (countdown > 0) countdown--
+        }
+        if (countdown == 0) {
+            viewModel.dismissCompletion()
+            onAutoDisconnect()
+        }
+    }
     Column(modifier = modifier.fillMaxSize()) {
         Card(modifier = Modifier
             .fillMaxWidth()
@@ -206,6 +226,19 @@ private fun CompletionContent(viewModel: PullViewModel, onDone: () -> Unit, onVi
                     }
                     if (progress.failed.size > MAX_FAILURES_SHOWN) Text(pluralStringResource(R.plurals.pull_failed_more, progress.failed.size - MAX_FAILURES_SHOWN, progress.failed.size - MAX_FAILURES_SHOWN), style = MaterialTheme.typography.bodySmall)
                     OutlinedButton(onClick = viewModel::retryFailed, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(R.string.pull_retry_failed)) }
+                }
+            }
+        }
+        if (countdown >= 0) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(pluralStringResource(R.plurals.auto_disconnect_countdown, countdown, countdown), style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = { countdown = -1 }) { Text(stringResource(R.string.auto_disconnect_cancel)) }
                 }
             }
         }
@@ -251,3 +284,4 @@ private fun FidelityNoticeDialog(onContinue: (dontShowAgain: Boolean) -> Unit, o
 }
 
 private const val MAX_FAILURES_SHOWN = 20
+private const val AUTO_DISCONNECT_SECONDS = 15

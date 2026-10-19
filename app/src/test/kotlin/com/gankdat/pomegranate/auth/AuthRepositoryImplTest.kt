@@ -96,6 +96,8 @@ class AuthRepositoryImplTest {
         assertEquals("access-1", tokens.accessToken)
         assertEquals("refresh-1", tokens.refreshToken)
         assertEquals(now + 3_600_000 - 60_000, tokens.expiresAtMillis)
+        assertEquals(now, tokens.signedInAtMillis)
+        assertEquals(TokenStatus(now + 3_600_000 - 60_000, now, hasRefreshToken = true), repo.tokenStatus.first())
         assertNull(store.read().pending)
         assertEquals(AuthState.SignedIn, repo.authState.first())
         assertTrue(repo.isAuthenticated.first())
@@ -144,6 +146,7 @@ class AuthRepositoryImplTest {
         assertEquals(listOf("refresh-1"), endpoint.refreshed)
         assertEquals("refresh-1", store.read().tokens?.refreshToken)
         assertEquals(now + 3_600_000 - 60_000, store.read().tokens?.expiresAtMillis)
+        assertEquals(now - 3_600_000, store.read().tokens?.signedInAtMillis) // sign-in time survives refresh
     }
 
     @Test

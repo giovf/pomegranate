@@ -7,7 +7,7 @@ class TokenCodecTest {
     @Test
     fun `round-trips a full record`() {
         val record = AuthRecord(
-            tokens = StoredTokens(accessToken = "ya29.a\"b", refreshToken = "1//r", expiresAtMillis = 1_700_000_000_000),
+            tokens = StoredTokens(accessToken = "ya29.a\"b", refreshToken = "1//r", expiresAtMillis = 1_700_000_000_000, signedInAtMillis = 1_699_000_000_000),
             pending = PendingAuthorization(codeVerifier = "v", state = "s"),
         )
         assertEquals(record, TokenCodec.decode(TokenCodec.encode(record)))

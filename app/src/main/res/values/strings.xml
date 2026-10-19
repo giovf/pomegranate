@@ -140,7 +140,56 @@
     <string name="connection_sign_in">Connect Google Photos</string>
     <string name="connection_signing_in">Finishing sign-in…</string>
     <string name="connection_signed_in">Connected</string>
-    <string name="connection_sign_out">Disconnect and forget sign-in</string>
+    <string name="connection_sign_out">Disconnect from Google…</string>
+    <string name="connection_scope">Permission granted: view and download only the items you pick in Google\'s picker.</string>
+    <string name="token_valid_until">Access valid until %1$s</string>
+    <string name="token_needs_refresh">Access expired; it refreshes automatically on next use.</string>
+    <plurals name="token_signed_in_days">
+        <item quantity="one">Signed in %1$d day ago</item>
+        <item quantity="other">Signed in %1$d days ago</item>
+    </plurals>
+    <string name="token_testing_mode_note">While your Google Cloud project is in testing mode, sign-ins expire after 7 days and you will be asked to sign in again.</string>
+    <string name="token_refresh">Refresh access</string>
+    <string name="rounds_title">Picker rounds</string>
+    <plurals name="round_indexed">
+        <item quantity="one">%1$d item indexed</item>
+        <item quantity="other">%1$d items indexed</item>
+    </plurals>
+    <string name="round_active">In progress</string>
+    <string name="round_expired">Expired</string>
+    <string name="status_dot_connected">Connected to Google Photos</string>
+    <string name="status_dot_disconnected">Not connected to Google Photos</string>
+    <string name="disconnect_title">Leave Google Photos</string>
+    <string name="disconnect_body">Pomegranate will cut its own access and forget everything it learned from Google. Your pulled files and their proof of copy stay.</string>
+    <string name="disconnect_step_revoke">Revoke the app\'s access at Google</string>
+    <string name="disconnect_step_secrets">Delete the sign-in secrets and their encryption key</string>
+    <string name="disconnect_step_cloud">Delete the cloud index, matches and picker rounds</string>
+    <string name="disconnect_step_cache">Clear cached thumbnails</string>
+    <string name="disconnect_keeps">Keeps: your device census, pulled files and the manifest</string>
+    <plurals name="disconnect_pending">
+        <item quantity="one">%1$d transfer is still pending. It will be dropped.</item>
+        <item quantity="other">%1$d transfers are still pending. They will be dropped.</item>
+    </plurals>
+    <string name="disconnect_cancel_transfers">Cancel pending transfers now</string>
+    <string name="disconnect_now">Disconnect</string>
+    <string name="disconnect_not_now">Not now</string>
+    <string name="disconnect_confirm_title">Disconnect from Google?</string>
+    <string name="disconnect_confirm_body">You can connect again later, but the cloud index will have to be rebuilt round by round.</string>
+    <string name="disconnect_confirm_body_pending">Pending transfers will be dropped. You can connect again later, but the cloud index will have to be rebuilt round by round.</string>
+    <string name="disconnect_running">Disconnecting…</string>
+    <string name="step_done">Done</string>
+    <string name="disconnect_done_title">Disconnected</string>
+    <string name="disconnect_done_body">Access revoked and secrets wiped. Indexed items forgotten: %1$d. Picker rounds forgotten: %2$d.</string>
+    <string name="disconnect_verify_body">For complete peace of mind, check your Google Account: Pomegranate should no longer be listed under third-party apps.</string>
+    <string name="disconnect_verify_button">Open Google Account permissions</string>
+    <string name="disconnect_verify_hint">Look under "Third-party apps &amp; services". If Pomegranate is still listed, remove it there.</string>
+    <string name="disconnect_confirm_checkbox">I checked and Pomegranate is no longer listed</string>
+    <string name="disconnect_continue">Continue to clean-up guide</string>
+    <plurals name="auto_disconnect_countdown">
+        <item quantity="one">Everything is verified. Disconnecting from Google in %1$d second.</item>
+        <item quantity="other">Everything is verified. Disconnecting from Google in %1$d seconds.</item>
+    </plurals>
+    <string name="auto_disconnect_cancel">Stay connected</string>
     <string name="connection_needs_reauth">Google needs you to sign in again. This happens every 7 days while the app is in testing mode.</string>
     <string name="connection_sign_in_again">Sign in again</string>
     <string name="connection_try_again">Try again</string>
