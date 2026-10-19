@@ -72,29 +72,10 @@ if [ -f package.json ]; then
   npm install
 fi
 
-# ----------------------------------------------------------------------
-# First-run banner. Once /setup has scaffolded the project this banner is
-# mostly redundant — Claude may trim it during setup.
-# ----------------------------------------------------------------------
 cat <<'EOF'
 
-✓ Container ready.
-
-═══════════════════════════════════════════════════════════════════
-NEXT STEPS
-═══════════════════════════════════════════════════════════════════
-
-  1. Start Claude Code and sign in (auth persists in this project's
-     volume afterwards — you only do this once per project):
-       claude
-     Then run /login if prompted.
-
-  2. If this project hasn't been set up yet, type:
-       /setup
-     Claude will read docs/SETUP.md, ask you for the project scope,
-     and build out the project from there. If setup was interrupted
-     (e.g. by a container rebuild), /setup resumes where it left off.
-
-═══════════════════════════════════════════════════════════════════
+✓ Pomegranate container ready.
+  Build:  ./gradlew assembleDebug      Tests: ./gradlew testDebugUnitTest
+  Claude: claude  (then `task-master next` for the current task)
 
 EOF

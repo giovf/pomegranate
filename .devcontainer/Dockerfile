@@ -123,8 +123,9 @@ USER vscode
 RUN yes | sdkmanager --licenses > /dev/null \
  && sdkmanager --install \
       "platform-tools" \
-      "platforms;android-35" \
-      "build-tools;35.0.0" \
+      "platforms;android-37.0" \
+      "platforms;android-36" \
+      "build-tools;36.0.0" \
  && for rc in /home/vscode/.zshrc /home/vscode/.bashrc; do \
       echo "export ANDROID_HOME=${ANDROID_HOME}" >> $rc; \
       echo "export ANDROID_SDK_ROOT=${ANDROID_HOME}" >> $rc; \

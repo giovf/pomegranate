@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder launcher icon: a pomegranate silhouette. Replace with a
+     proper adaptive icon before any store release. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#F4E9E1"
+        android:pathData="M0,0h108v108H0z" />
+    <path
+        android:fillColor="#B3213A"
+        android:pathData="M54,30c-14,0 -24,10 -24,24s10,26 24,26s24,-12 24,-26S68,30 54,30z" />
+    <path
+        android:fillColor="#7A1326"
+        android:pathData="M46,22l4,10h8l4,-10l-4,2l-4,-4l-4,4z" />
+    <path
+        android:fillColor="#F4E9E1"
+        android:pathData="M54,46m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0M44,56m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0M64,56m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0M54,66m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0" />
+</vector>

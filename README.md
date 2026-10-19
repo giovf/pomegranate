@@ -1,79 +1,71 @@
-# Claude Project Template
+# Pomegranate
 
-A dev-container starter for new projects, built around **Claude Code +
-Taskmaster**. The container ships only the global toolchain (Node 22, git,
-GitHub CLI, Claude Code, Taskmaster, TypeScript); everything project-specific
-is added by Claude during a guided `/setup` conversation based on the project
-scope you give it.
+An Android app for leaving Google Photos on your own terms.
 
-> This README is for the **human**. The machine-facing setup guide Claude
-> follows is `docs/SETUP.md`. At the end of setup, Claude replaces this README
-> with a real project README.
+Pomegranate shows you exactly where every photo and video lives (**on this
+phone, in Google Photos, or both**), pulls everything that is cloud-only into
+storage you choose (internal, SD card, USB), proves each copy with a verified
+manifest, and then disconnects from Google leaving no trace.
 
-## Getting started
+It is named after the pomegranate seeds Hades gives Persephone: hospitality
+that is generous on the way in and quietly revokes your autonomy, which you
+only discover in the effort it takes to leave. Consumer cloud storage works the
+same way.
 
-1. **Copy the template into a new folder** (note the `/.` — it copies dotfiles
-   too):
+## Status
 
-   ```bash
-   cp -a claude-project-template/. /path/to/my-new-project/
-   ```
+Early development. v1 scope, phasing and architecture: `.taskmaster/docs/prd.md`
+and `docs/ARCHITECTURE.md`. Research on what Google's APIs do and don't allow
+(and why the app is designed the way it is): `.taskmaster/docs/research-google-photos-export.md`.
 
-2. **Make it a git repo** (you own git setup by design):
+## Principles
 
-   ```bash
-   cd /path/to/my-new-project
-   git init
-   git add -A && git commit -m "chore: bootstrap from claude-project-template"
-   ```
+- **Never compromise user data.** Runs entirely on the device. No servers, no
+  analytics, no crash reporting. The only network traffic is to Google's own
+  OAuth and Photos Picker endpoints.
+- **Connect only while needed.** One tap revokes the Google token, wipes every
+  local trace, and walks you through confirming it in your Google Account.
+- **Never destructive.** The app never deletes device files and cannot delete
+  from Google Photos (no API exists); it guides the manual clean-up only after
+  copies are verified.
+- **Honest about fidelity.** Google's Picker strips GPS from photos and
+  transcodes video; every pulled file carries a badge saying what you got.
+- **Minimal dependencies.** Android platform, Kotlin and AndroidX only; JUnit
+  for tests. Every artifact is pinned and checksum-verified.
 
-3. **Open the folder in VS Code** → when prompted, **"Reopen in Container"**
-   (Command Palette → *Dev Containers: Reopen in Container*). The first build
-   takes a few minutes.
+## Build and run
 
-4. **Start Claude and sign in** (once per project — auth persists in a
-   per-project Docker volume across rebuilds):
+Requirements: JDK 17, Android SDK (platform 37, build-tools 36). The dev
+container provides both.
 
-   ```bash
-   claude
-   ```
+```bash
+./gradlew assembleDebug          # APK → app/build/outputs/apk/debug/app-debug.apk
+./gradlew testDebugUnitTest      # unit tests
+./gradlew lintDebug              # lint (warnings are errors)
+./gradlew assembleRelease        # minified release build (unsigned)
+```
 
-   Run `/login` if prompted.
+Install on a phone with developer mode enabled: copy the APK over, or from a
+machine that can see the device run `adb install app/build/outputs/apk/debug/app-debug.apk`.
+There is no emulator in the container.
 
-5. **Type `/setup`.** Claude reads `docs/SETUP.md` and takes it from there:
-   it asks for your project scope (a file or a description), interviews you on
-   the gaps, picks/confirms the stack, extends the dev container, scaffolds
-   the project, drafts a PRD with you, and initialises the Taskmaster backlog.
+Connecting a Google account needs an OAuth client id from your own Google
+Cloud project (Photos Picker API enabled, Android client bound to the package
+`com.gankdat.pomegranate` and your signing certificate). Put it in
+`local.properties` as described in `.env.example`; nothing of the sort is
+committed.
 
-   Setup usually includes **one container rebuild** (to bake in stack-specific
-   dependencies). Claude will tell you exactly when and how; afterwards, start
-   `claude` again and type `/setup` — it resumes from
-   `docs/SETUP-PROGRESS.md` automatically.
+## Development
 
-## What's in the box
+- **Dev container**: open the folder in VS Code → "Reopen in Container". The
+  image is arm64 (Apple Silicon) with Google's x86_64 SDK tools running under
+  Docker Desktop's Rosetta emulation; see `.devcontainer/Dockerfile`.
+- **Claude Code + Taskmaster**: work is broken down in `.taskmaster/tasks/`;
+  `task-master next` shows the next task, `task-master set-status --id <id> --status done`
+  closes it. Conventions for contributors (human or AI) are in `CLAUDE.md`.
+- **Dependencies**: change versions only in `gradle/libs.versions.toml`, then
+  regenerate checksums with `./gradlew --write-verification-metadata sha256 build`.
 
-| Path | What it is |
-| --- | --- |
-| `.devcontainer/` | Ubuntu 24.04 + Node 22 image, global CLIs, per-project volumes for Claude auth / `node_modules` / shell history. Project deps get added between the `<<PROJECT-DEPS-*>>` markers in the Dockerfile. |
-| `CLAUDE.md` | Always-loaded project instructions (conventions, workflow). Contains `SETUP:` markers Claude fills in during setup. |
-| `docs/SETUP.md` | The guided-setup playbook Claude follows after `/setup`. |
-| `docs/ARCHITECTURE.md` | Architecture summary skeleton, imported into every Claude session via `CLAUDE.md`. |
-| `.claude/commands/setup.md` | The `/setup` slash command. |
-| `.claude/commands/tm/` | Slash commands for common Taskmaster operations (`/tm/next-task`, `/tm/parse-prd`, …). |
-| `.mcp.json` | Registers the `task-master-ai` MCP server (approve it once when Claude Code asks). |
-| `.taskmaster/` | Taskmaster config (uses the `claude-code` provider — **no API keys needed**), PRD template, docs folder. |
-| `.env.example` | Baseline env file; extended with project variables during setup. |
+## Licence
 
-## Notes
-
-- **Volumes are per-project** (named after the folder), so multiple projects
-  created from this template never share `node_modules`, Claude auth, or
-  shell history. Rebuilding the container keeps all three.
-- **Rebuilds**: any time `.devcontainer/Dockerfile` changes, run Command
-  Palette → *Dev Containers: Rebuild Container*. Claude cannot do this from
-  inside the container — it will ask you.
-- **Taskmaster API keys** are only needed if you want non-Claude models or
-  `--research` mode; add them to `.env` / `.mcp.json` (see `.env.example`).
-- To test on a physical phone from inside a container (mobile projects), use
-  tunnel mode (e.g. `npx expo start --tunnel`) — LAN forwarding through Docker
-  often doesn't reach the device.
+Not yet decided.

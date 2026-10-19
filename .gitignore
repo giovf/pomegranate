@@ -1,11 +1,26 @@
 # ── Dependencies
 node_modules/
 
-# ── Build output (extend per stack during /setup)
+# ── Build output
 dist/
 build/
 out/
 *.tsbuildinfo
+
+# ── Android / Gradle
+.gradle/
+.kotlin/
+local.properties
+captures/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+# Android Studio
+*.iml
+.navigation/
+.externalNativeBuild/
 
 # ── Environment variables (never commit real secrets)
 .env
