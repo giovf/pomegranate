@@ -11,12 +11,14 @@ import com.gankdat.pomegranate.data.db.entity.CloudItemEntity
 import com.gankdat.pomegranate.data.model.MediaState
 import com.gankdat.pomegranate.reconcile.Evidence
 import com.gankdat.pomegranate.reconcile.ReconciliationRepository
+import com.gankdat.pomegranate.reconcile.origin.OriginRepository
 import com.gankdat.pomegranate.ui.navigation.Screen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 internal sealed interface CloudItemDetailUiState {
@@ -38,10 +40,13 @@ internal class CloudItemDetailViewModel(
     private val deviceDao: DeviceItemDao,
     private val matchDao: MatchDao,
     private val groupDao: MediaGroupDao,
+    private val origins: OriginRepository,
 ) : ViewModel() {
     private val itemId: Long = checkNotNull(savedStateHandle[Screen.ARG_CLOUD_ITEM_ID]) { "cloudItemId argument missing" }
     private val _state = MutableStateFlow<CloudItemDetailUiState>(CloudItemDetailUiState.Loading)
     val state: StateFlow<CloudItemDetailUiState> = _state.asStateFlow()
+
+    val knownOrigins: StateFlow<List<String>> = origins.knownOrigins().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
         viewModelScope.launch {
@@ -63,10 +68,8 @@ internal class CloudItemDetailViewModel(
         return CloudItemDetailUiState.Success(item, state, match, siblings)
     }
 
+    /** The observed cloud row re-emits after the write, so the state refreshes itself. */
     fun setOriginOverride(origin: String?) {
-        viewModelScope.launch {
-            cloudDao.setUserOverrideOrigin(itemId, origin?.trim()?.takeIf { it.isNotEmpty() })
-            _state.value.let { if (it is CloudItemDetailUiState.Success) _state.value = load(cloudDao.observeAll().first().first { c -> c.id == itemId }) }
-        }
+        viewModelScope.launch { origins.setUserOverride(itemId, origin) }
     }
 }

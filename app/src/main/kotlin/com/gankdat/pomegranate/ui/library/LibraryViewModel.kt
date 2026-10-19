@@ -14,6 +14,7 @@ import com.gankdat.pomegranate.data.model.MediaState
 import com.gankdat.pomegranate.reconcile.ReconciliationRepository
 import com.gankdat.pomegranate.reconcile.ReconciliationResult
 import com.gankdat.pomegranate.reconcile.StateIndex
+import com.gankdat.pomegranate.reconcile.origin.OriginRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +44,7 @@ internal class LibraryViewModel(
     private val reconciliation: ReconciliationRepository,
     cloudScanner: CloudScannerRepository,
     auth: AuthRepository,
+    private val origins: OriginRepository,
 ) : ViewModel() {
     private val _groupingMode = MutableStateFlow(GroupingMode.BY_FOLDER)
     val groupingMode: StateFlow<GroupingMode> = _groupingMode.asStateFlow()
@@ -131,6 +133,7 @@ internal class LibraryViewModel(
         if (!_isReconciling.compareAndSet(expect = false, update = true)) return
         try {
             val result = reconciliation.reconcile()
+            origins.refresh()
             if (announce) messages.send(LibraryMessage.ReconcileFinished(result))
         } finally {
             _isReconciling.value = false

@@ -1,5 +1,7 @@
 package com.gankdat.pomegranate.ui.library
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -45,11 +48,12 @@ internal fun CloudItemDetailRoute(
     navController: NavHostController,
     viewModel: CloudItemDetailViewModel = viewModel(
         factory = appViewModelFactory { app ->
-            CloudItemDetailViewModel(createSavedStateHandle(), app.database.cloudItemDao(), app.database.deviceItemDao(), app.database.matchDao(), app.database.mediaGroupDao())
+            CloudItemDetailViewModel(createSavedStateHandle(), app.database.cloudItemDao(), app.database.deviceItemDao(), app.database.matchDao(), app.database.mediaGroupDao(), app.origins)
         },
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val knownOrigins by viewModel.knownOrigins.collectAsStateWithLifecycle()
     val item = (state as? CloudItemDetailUiState.Success)?.item
 
     PomegranateScaffold(navController = navController, title = item?.filename ?: stringResource(R.string.title_item_detail)) { padding ->
@@ -63,6 +67,7 @@ internal fun CloudItemDetailRoute(
                     state = current,
                     onOpenDeviceItem = current.match?.deviceItem?.let { device -> { navController.navigateToItemDetail(device.id) } },
                     onSetOrigin = viewModel::setOriginOverride,
+                    knownOrigins = knownOrigins,
                 )
             }
         }
@@ -70,7 +75,12 @@ internal fun CloudItemDetailRoute(
 }
 
 @Composable
-private fun CloudItemDetailContent(state: CloudItemDetailUiState.Success, onOpenDeviceItem: (() -> Unit)?, onSetOrigin: (String?) -> Unit) {
+private fun CloudItemDetailContent(
+    state: CloudItemDetailUiState.Success,
+    onOpenDeviceItem: (() -> Unit)?,
+    onSetOrigin: (String?) -> Unit,
+    knownOrigins: List<String>,
+) {
     val item = state.item
     val isVideo = item.type == "VIDEO" || item.mime.startsWith("video/")
     var editingOrigin by rememberSaveable { mutableStateOf(false) }
@@ -106,6 +116,7 @@ private fun CloudItemDetailContent(state: CloudItemDetailUiState.Success, onOpen
     if (editingOrigin) {
         OriginOverrideDialog(
             initial = item.userOverrideOrigin ?: item.inferredOrigin.orEmpty(),
+            suggestions = knownOrigins,
             onDismiss = { editingOrigin = false },
             onSave = { onSetOrigin(it); editingOrigin = false },
         )
@@ -140,7 +151,7 @@ private fun OriginSection(item: CloudItemEntity, onEdit: () -> Unit, onReset: ()
 }
 
 @Composable
-private fun OriginOverrideDialog(initial: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+private fun OriginOverrideDialog(initial: String, suggestions: List<String>, onDismiss: () -> Unit, onSave: (String) -> Unit) {
     var text by rememberSaveable { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -149,6 +160,14 @@ private fun OriginOverrideDialog(initial: String, onDismiss: () -> Unit, onSave:
             Column {
                 Text(stringResource(R.string.origin_dialog_body), style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(12.dp))
+                if (suggestions.isNotEmpty()) {
+                    Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        suggestions.forEach { suggestion ->
+                            FilterChip(selected = text == suggestion, onClick = { text = suggestion }, label = { Text(suggestion) })
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },

@@ -57,6 +57,9 @@ internal interface CloudItemDao {
     @Query("UPDATE cloud_item SET baseUrl = :baseUrl, baseUrlExpiresAt = :expiresAt WHERE id = :id")
     suspend fun updateBaseUrl(id: Long, baseUrl: String, expiresAt: Long)
 
+    @Query("UPDATE cloud_item SET inferredOrigin = :origin WHERE id = :id")
+    suspend fun setInferredOrigin(id: Long, origin: String?)
+
     @Query("UPDATE cloud_item SET userOverrideOrigin = :origin WHERE id = :id")
     suspend fun setUserOverrideOrigin(id: Long, origin: String?)
 

@@ -68,7 +68,7 @@ internal fun LibraryScreen(
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = viewModel(
         factory = appViewModelFactory {
-            LibraryViewModel(it.database.deviceItemDao(), it.database.cloudItemDao(), it.deviceScanner, it.reconciliation, it.cloudScanner, it.auth)
+            LibraryViewModel(it.database.deviceItemDao(), it.database.cloudItemDao(), it.deviceScanner, it.reconciliation, it.cloudScanner, it.auth, it.origins)
         },
     ),
 ) {

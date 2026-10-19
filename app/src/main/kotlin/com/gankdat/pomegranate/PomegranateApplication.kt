@@ -22,6 +22,8 @@ import com.gankdat.pomegranate.data.settings.SettingsRepositoryImpl
 import com.gankdat.pomegranate.data.settings.settingsDataStore
 import com.gankdat.pomegranate.reconcile.ReconciliationRepository
 import com.gankdat.pomegranate.reconcile.ReconciliationRepositoryImpl
+import com.gankdat.pomegranate.reconcile.origin.OriginRepository
+import com.gankdat.pomegranate.reconcile.origin.OriginRepositoryImpl
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +65,10 @@ internal class PomegranateApplication : Application() {
 
     val reconciliation: ReconciliationRepository by lazy {
         ReconciliationRepositoryImpl(database.cloudItemDao(), database.deviceItemDao(), database.matchDao(), database.mediaGroupDao())
+    }
+
+    val origins: OriginRepository by lazy {
+        OriginRepositoryImpl(database.deviceItemDao(), database.cloudItemDao(), database.originRuleDao())
     }
 
     /** Called by the redirect activity; the exchange runs here so it survives that activity finishing. */

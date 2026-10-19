@@ -1136,7 +1136,7 @@
           "4",
           "11"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -1212,7 +1212,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 6,
-        "expansionPrompt": "Break down origin inference into: 1) Create OriginInferrer class with pattern extraction, 2) Implement learning from device census bucket analysis, 3) Create built-in pattern table for WhatsApp/Telegram/Instagram/etc, 4) Implement inference priority (learned > builtin) with confidence scoring, 5) Store rules in OriginRuleEntity and inferred origin in CloudItemEntity, 6) Create OriginRepository and per-item override UI. Focus on regex pattern accuracy."
+        "expansionPrompt": "Break down origin inference into: 1) Create OriginInferrer class with pattern extraction, 2) Implement learning from device census bucket analysis, 3) Create built-in pattern table for WhatsApp/Telegram/Instagram/etc, 4) Implement inference priority (learned > builtin) with confidence scoring, 5) Store rules in OriginRuleEntity and inferred origin in CloudItemEntity, 6) Create OriginRepository and per-item override UI. Focus on regex pattern accuracy.",
+        "updatedAt": "2026-10-19T16:16:20.063Z"
       },
       {
         "id": "13",
@@ -1225,7 +1226,7 @@
           "7",
           "11"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1233,9 +1234,10 @@
             "description": "Enhance LibraryViewModel to query DeviceItemEntity and CloudItemEntity with their MatchEntity joins, computing the three-state status (cloud_only, device_only, both) for each item and aggregate statistics per status.",
             "dependencies": [],
             "details": "1. Create `MediaItemStatus` enum with values: CLOUD_ONLY, DEVICE_ONLY, BOTH.\n2. Create `MediaItemWithStatus` data class containing: item reference, status, match evidence (if matched), and sibling group info.\n3. Add new Room DAO queries in MatchDao:\n   - `@Transaction @Query` to get CloudItemEntity with optional MatchEntity join.\n   - `@Transaction @Query` to get DeviceItemEntity with optional MatchEntity join.\n   - `@Query` to count items by computed status.\n4. In LibraryViewModel:\n   - Query all device items; items with no match in MatchEntity are DEVICE_ONLY.\n   - Query all cloud items; items with no match are CLOUD_ONLY; items with match are BOTH.\n   - Create `statusCounts: StateFlow<Map<MediaItemStatus, Int>>` for filter tab counts.\n   - Create `storageTotals: StateFlow<Map<MediaItemStatus, Long>>` for header statistics.\n   - Add `filterByStatus: MutableStateFlow<MediaItemStatus?>` for active filter.\n5. Optimize queries with indices on match table foreign keys (already in Task 1).\n6. Use `combine()` to merge device and cloud item flows efficiently.\n7. Ensure Room queries run on Dispatchers.IO via repository pattern.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify status computation logic (device-only for unmatched device items, cloud-only for unmatched cloud items, both for matched pairs). Test count aggregation. Test filtering returns correct subset. Integration tests with in-memory Room database containing sample matched and unmatched items.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:08:13.662Z"
           },
           {
             "id": 2,
@@ -1243,9 +1245,10 @@
             "description": "Create a consistent visual system for the three media states (cloud-only, device-only, both) with Material 3 colors, icons, and a reusable MediaStatusIndicator composable.",
             "dependencies": [],
             "details": "1. Create `com.gankdat.pomegranate.ui.common` package if not exists.\n2. Create `MediaStatusTheme.kt` object with:\n   - `cloudOnlyColor`: Material red/orange (md_theme_light_error or custom orange from M3 palette).\n   - `deviceOnlyColor`: Material blue (md_theme_light_primary or tertiary).\n   - `bothColor`: Material green (md_theme_light_tertiary or custom green).\n   - Dark mode variants using M3 dynamic color conventions.\n3. Create `MediaStatusIcon.kt` object with icon references:\n   - `cloudOnlyIcon`: Icons.Outlined.CloudDownload or cloud icon.\n   - `deviceOnlyIcon`: Icons.Outlined.PhoneAndroid or smartphone icon.\n   - `bothIcon`: Icons.Outlined.CheckCircle or sync icon.\n4. Create `MediaStatusIndicator` @Composable:\n   - Parameters: status: MediaItemStatus, modifier, showLabel: Boolean, size: Dp.\n   - Renders icon with status-specific color.\n   - Optional text label (\"Cloud only\", \"Device only\", \"Synced\").\n   - TalkBack content description: \"Status: $statusName\".\n5. Create `MediaStatusBadge` @Composable for small overlay use (no label, fixed small size).\n6. Add @Preview composables showing all states in light/dark mode.\n7. Document color contrast ratios for accessibility compliance.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify correct icon and color for each status. Verify dark mode colors. Screenshot tests for visual regression. Accessibility tests: verify content descriptions are announced by TalkBack.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:08:15.575Z"
           },
           {
             "id": 3,
@@ -1256,9 +1259,10 @@
               2
             ],
             "details": "1. Add `TabRow` component below TopAppBar in LibraryScreen:\n   - Tab items: \"All\", \"Cloud-Only\", \"Device-Only\", \"Both\".\n   - Each tab shows count from LibraryViewModel.statusCounts.\n   - Format: \"Cloud-Only (1,204)\" with number formatting.\n2. Use `ScrollableTabRow` if 4 tabs don't fit on narrow screens.\n3. Wire tab selection to LibraryViewModel.filterByStatus:\n   - null for \"All\" (show everything).\n   - MediaItemStatus.CLOUD_ONLY for \"Cloud-Only\", etc.\n4. Tab styling:\n   - Selected tab: filled background with status color.\n   - Unselected: outline style.\n   - Icon before text matching status (from MediaStatusTheme).\n5. Add header section below tabs showing totals for current filter:\n   - \"Cloud-only: 1,204 items, 38 GB, across 3 picker rounds\".\n   - Use `storageTotals` and `pickerRoundCount` from ViewModel.\n6. Animate count changes using `animateIntAsState`.\n7. Persist selected filter in ViewModel (survives config changes).\n8. Handle empty state per filter: \"No cloud-only items found\".",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify tab switching updates displayed items, verify counts are accurate, verify filter persistence across rotation. Test empty states display correctly. Performance test: verify smooth scrolling with large item lists after filtering.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:08:17.271Z"
           },
           {
             "id": 4,
@@ -1268,9 +1272,10 @@
               2
             ],
             "details": "1. Modify `MediaThumbnail.kt` in `com.gankdat.pomegranate.ui.library`:\n   - Add `status: MediaItemStatus?` parameter (nullable for pre-reconciliation items).\n   - Use Box layout with thumbnail as background.\n2. Position `MediaStatusBadge` in bottom-end corner:\n   - Use `Modifier.align(Alignment.BottomEnd)` with padding(4.dp).\n   - Semi-transparent background circle behind icon for visibility.\n3. Badge styling:\n   - Size: 20.dp icon within 28.dp container.\n   - Background: white/dark with 60% alpha for contrast on any thumbnail.\n   - Drop shadow or border for visibility on light backgrounds.\n4. Handle null status:\n   - Show no badge for items without reconciliation status.\n   - Or show question mark icon for \"unknown\" state.\n5. Maintain existing video duration overlay (position in opposite corner if needed).\n6. Ensure badge doesn't obscure too much thumbnail content.\n7. Add content description combining item name and status.\n8. Test badge visibility on various thumbnail types (dark, light, colorful).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify badge appears in correct position, verify correct icon/color per status, verify video duration overlay still visible. Screenshot tests with various thumbnail backgrounds. Accessibility: verify combined content description is meaningful.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:08:18.940Z"
           },
           {
             "id": 5,
@@ -1281,9 +1286,10 @@
               2
             ],
             "details": "1. Create `ItemDetailViewModel` or extend existing:\n   - Query MatchEntity for the item to get match details.\n   - Query MediaGroupEntity for sibling files.\n   - Load matched device/cloud item details.\n2. Status section at top of detail screen:\n   - Large `MediaStatusIndicator` with showLabel=true.\n   - Explanation text: \"This item exists in Google Photos and has been matched to a file on your device\" (for BOTH).\n   - For CLOUD_ONLY: \"This item is only in Google Photos. Pull it to save locally.\"\n   - For DEVICE_ONLY: Note about picker-round limitation.\n3. Match Evidence section (when status is BOTH):\n   - Card showing: \"Matched by: filename, capture date, dimensions\".\n   - Confidence indicator: \"High confidence\" / \"Medium\" / \"Low\" based on MatchConfidence enum.\n   - Evidence JSON parsed and displayed humanely.\n4. Matched Item link:\n   - \"View device file\" button navigating to device item detail.\n   - \"View cloud item\" for the cloud counterpart.\n5. Sibling Files section:\n   - List sibling items (RAW+JPEG pairs, live photo halves).\n   - Show each sibling with thumbnail and status badge.\n   - Tap navigates to sibling detail.\n6. Add \"incomplete index\" note for DEVICE_ONLY:\n   - \"Note: This file may exist in Google Photos but wasn't selected in picker rounds.\"",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify status badge displays correctly, verify match evidence section appears for matched items and hides for unmatched, verify sibling links navigate correctly. Test all three status states with appropriate explanations. Test JSON evidence parsing doesn't crash on malformed data.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:08:20.678Z"
           },
           {
             "id": 6,
@@ -1293,15 +1299,16 @@
               1
             ],
             "details": "1. Create `ConnectionStatusBar.kt` in `com.gankdat.pomegranate.ui.common`:\n   - Parameters: isConnected: Boolean, pickerRoundsCount: Int, cloudItemsIndexed: Int, modifier.\n2. Design as a horizontal bar/chip group:\n   - Connection indicator: green dot + \"Connected to Google\" or red dot + \"Not connected\".\n   - Picker rounds: \"4 picker rounds\" with cloud icon.\n   - Indexed items: \"6,400 items indexed\" with count icon.\n3. Tap interactions:\n   - Tap connection status → navigate to Connection screen.\n   - Tap picker rounds → show dialog explaining picker-round model and \"Start new round\" button.\n4. Create `ConnectionStatusViewModel` (or use existing connection ViewModel):\n   - Query PickerRoundEntity count from Room.\n   - Query CloudItemEntity total count.\n   - Observe token/connection state from trust module.\n5. Place ConnectionStatusBar:\n   - In LibraryScreen below filter tabs (or in header).\n   - Only visible when Google is connected (or always, showing \"Not connected\").\n6. Warning state:\n   - If connected but 0 picker rounds: \"No items indexed yet - start a picker round\".\n   - Different styling for warning state.\n7. Responsive design: collapse to icons-only on narrow screens.\n8. Add TalkBack descriptions for all interactive elements.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify correct display for connected/disconnected states, verify counts update when picker rounds complete, verify tap actions navigate correctly. Test warning state displays for 0 picker rounds. Test responsive behavior on different screen widths.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:08:22.330Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 6,
         "expansionPrompt": "Break down Library extension into: 1) Update LibraryViewModel to query with MatchEntity joins, 2) Define theme colors and icons for three states (cloud-only/device-only/both), 3) Add filter tabs with counts for each state, 4) Update MediaThumbnail with status badge overlay, 5) Update ItemDetailScreen with status badge and match evidence display, 6) Create ConnectionStatusBar showing picker round coverage. Maintain UI performance with complex queries.",
-        "updatedAt": "2026-10-19T15:57:01.493Z"
+        "updatedAt": "2026-10-19T16:08:22.330Z"
       },
       {
         "id": "14",
@@ -2324,9 +2331,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T15:57:01.493Z",
+      "lastModified": "2026-10-19T16:16:20.064Z",
       "taskCount": 25,
-      "completedCount": 11,
+      "completedCount": 12,
       "tags": [
         "master"
       ]
