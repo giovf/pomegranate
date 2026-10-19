@@ -901,7 +901,7 @@
           "1",
           "9"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -909,9 +909,10 @@
             "description": "Create the census.cloud package and implement PickerApiClient using HttpsURLConnection with Bearer token authorization. Set up base URL constants and common HTTP request infrastructure for all Picker API calls.",
             "dependencies": [],
             "details": "Create package `com.gankdat.pomegranate.census.cloud`. Implement `PickerApiClient` class with:\n- Base URL constant: `https://photospicker.googleapis.com/v1/`\n- Constructor accepting a token provider (suspend function or interface to get current access token from TokenManager)\n- Private helper methods for GET and POST requests using `HttpsURLConnection`\n- Add `Authorization: Bearer {token}` header to all requests\n- Add `Content-Type: application/json` for POST requests\n- Add `Accept: application/json` header\n- Implement response reading with proper stream handling (BufferedReader)\n- Throw appropriate exceptions for HTTP errors (401 for auth failure, 403 for forbidden, etc.)\n- Ensure all connections are closed in finally blocks\n- Use `withContext(Dispatchers.IO)` for network operations\n- Create sealed class `PickerApiResult<T>` for Success/Error responses",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify Authorization header is correctly formatted with Bearer token; verify base URL construction; test error handling for various HTTP status codes (401, 403, 500). Use mock HttpsURLConnection or test against a mock server.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:48:22.288Z"
           },
           {
             "id": 2,
@@ -921,9 +922,10 @@
               1
             ],
             "details": "Add to `PickerApiClient`:\n- `suspend fun createSession(): PickerSession` that POSTs to `sessions` with empty JSON body `{}`\n- Parse response JSON using `org.json.JSONObject` (platform library):\n  - `name`: string (full resource name)\n  - `id`: string (session ID)\n  - `pickerUri`: string (URL for user to select photos)\n  - `mediaItemsSet`: boolean (initially false)\n- Create `PickerSession` data class with these fields plus `createdAt: Instant`\n- Create `PickerSessionResponse` for raw API response\n- Map response to PickerRoundEntity and insert into Room via DAO:\n  - session_id, created_at, item_count (0 initially), state (PENDING)\n- Handle error responses (quota exceeded, invalid credentials)\n- Log session creation for debugging (no sensitive data)",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: parse sample JSON responses including edge cases (missing fields, null values); verify PickerRoundEntity is correctly constructed; test error response parsing. Integration test: mock HTTP response and verify Room insertion.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:48:24.080Z"
           },
           {
             "id": 3,
@@ -933,9 +935,10 @@
               2
             ],
             "details": "Add to `PickerApiClient`:\n- `suspend fun getSession(sessionId: String): PickerSession` - GET to `sessions/{id}`\n- Parse response and update `mediaItemsSet` status\n\nCreate `SessionPoller` class:\n- `suspend fun pollUntilComplete(sessionId: String, timeout: Duration = 10.minutes): PollResult`\n- PollResult sealed class: Complete(session), Timeout, Cancelled, Error(throwable)\n- Implement exponential backoff: start at 1s, max 10s, multiply by 1.5\n- Poll loop with `delay()` between attempts\n- Check for cancellation via `ensureActive()`\n- Timeout handling: if `mediaItemsSet` doesn't become true within timeout, return Timeout\n- Update PickerRoundEntity state to SELECTING during poll, COMPLETE when done\n- Handle network errors gracefully with retry\n- Add logging for poll attempts and status changes",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify exponential backoff timing; test timeout detection; test cancellation handling; mock responses transitioning from false to true. Use fake delay injection for fast tests.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:48:25.867Z"
           },
           {
             "id": 4,
@@ -945,9 +948,10 @@
               3
             ],
             "details": "Add to `PickerApiClient`:\n- `suspend fun listMediaItems(sessionId: String, pageToken: String? = null, pageSize: Int = 100): MediaItemsPage`\n- GET to `sessions/{id}/mediaItems?pageSize={pageSize}&pageToken={token}`\n- Parse response JSON array `mediaItems` and `nextPageToken`\n- Create `MediaItem` data class matching API response:\n  - id: String\n  - type: MediaType (PHOTO, VIDEO)\n  - createTime: Instant (parse ISO 8601)\n  - mimeType: String\n  - mediaFile: MediaFile (filename, width, height, cameraMake?, cameraModel?, durationSeconds?)\n  - baseUrl: String\n- Create `MediaItemsPage` with items list and nextPageToken\n- Implement `suspend fun listAllMediaItems(sessionId: String): List<MediaItem>` that handles pagination automatically\n- Use a loop to collect all pages until nextPageToken is null\n- Handle empty sessions gracefully (return empty list)",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: parse sample mediaItems JSON with all fields; test pagination token handling; test with 0, 1, 100, and 2000+ items (multiple pages). Verify all media types and optional fields are handled correctly.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:48:27.651Z"
           },
           {
             "id": 5,
@@ -957,9 +961,10 @@
               4
             ],
             "details": "Create `CloudItemMapper` class:\n- `fun mapToEntity(mediaItem: MediaItem, sessionId: String, expiresAt: Instant): CloudItemEntity`\n- Map all fields from MediaItem to CloudItemEntity:\n  - picker_media_item_id = mediaItem.id\n  - session_id = sessionId\n  - filename = mediaFile.filename\n  - mime = mimeType\n  - type = mediaItem.type\n  - create_time = createTime\n  - width = mediaFile.width\n  - height = mediaFile.height\n  - duration_ms = durationSeconds * 1000 (if present)\n  - camera_make = mediaFile.cameraMake\n  - camera_model = mediaFile.cameraModel\n  - base_url = baseUrl\n  - base_url_expires_at = expiresAt (now + 60 minutes)\n\nCreate `CloudItemRepository` (or add to existing):\n- `suspend fun insertOrUpdateCloudItems(items: List<CloudItemEntity>)`\n- Use `INSERT OR REPLACE` strategy for duplicates (same picker_media_item_id)\n- Update PickerRoundEntity item_count after insertion\n- Emit completion event for UI updates",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify all field mappings including nullable fields; verify expiry calculation (exactly 60 minutes from now); test upsert behavior for duplicate items. Integration test: insert items and verify database state.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:48:29.417Z"
           },
           {
             "id": 6,
@@ -969,9 +974,10 @@
               5
             ],
             "details": "Create `BaseUrlRefresher` class:\n- `suspend fun ensureValidBaseUrl(cloudItem: CloudItemEntity): CloudItemEntity`\n- Check if `base_url_expires_at` is within a safety margin (e.g., 5 minutes from now)\n- If expired or near-expiry, refresh by calling `listMediaItems` for the session\n- Find the matching item by picker_media_item_id and update the baseUrl and expiry\n- Return the updated entity\n\nAdd to `CloudItemDao`:\n- `@Query` to find items with expiring baseUrls within N minutes\n- `@Update` to batch update baseUrls and expiry timestamps\n\nCreate `suspend fun refreshExpiringBaseUrls(sessionId: String, marginMinutes: Int = 10)`:\n- Query all items in session with baseUrl expiring within margin\n- If any found, re-list the full session\n- Update all items with fresh baseUrls and new expiry\n- Log refresh operations for debugging\n\nConsiderations:\n- Handle case where session is no longer valid (deleted by Google)\n- Implement caching to avoid redundant API calls if multiple items need refresh from same session",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: test expiry detection with various time margins; test refresh flow with mocked API; test batch update of multiple items. Use fake clock for deterministic time-based testing.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:48:31.247Z"
           },
           {
             "id": 7,
@@ -981,15 +987,16 @@
               6
             ],
             "details": "Create `CloudScannerRepository` interface:\n```kotlin\ninterface CloudScannerRepository {\n    suspend fun startPickerRound(): PickerSession\n    suspend fun pollSession(sessionId: String): SessionState\n    suspend fun indexSession(sessionId: String): Int // returns item count\n    fun getCloudItemCount(): Flow<Int>\n    fun getPickerRounds(): Flow<List<PickerRound>>\n    suspend fun refreshExpiringBaseUrls(sessionId: String)\n}\n```\n\nCreate `CloudScannerRepositoryImpl`:\n- Inject PickerApiClient, SessionPoller, CloudItemMapper, DAOs\n- `startPickerRound`: create session, store entity, return session with pickerUri\n- `pollSession`: delegate to SessionPoller, return sealed SessionState\n- `indexSession`: list all items, map to entities, persist, update round count\n- `getCloudItemCount`: Flow from Room `SELECT COUNT(*) FROM cloud_item`\n- `getPickerRounds`: Flow from Room with session_id, created_at, item_count, state\n\nAdd UI support data classes:\n- `PickerRound(sessionId, createdAt, itemCount, state)`\n- `SessionState: Selecting | Complete | Timeout | Error`\n\nTrack coverage display: \"6,400 items in 4 rounds\" from aggregated queries",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: test full flow orchestration with mocked dependencies; verify item count aggregation; verify Flow emissions on data changes. Integration test: simulate complete picker round and verify database state and UI data.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:48:33.155Z"
           }
         ],
         "complexity": 8,
         "recommendedSubtasks": 7,
         "expansionPrompt": "Break down Picker API client into: 1) Create PickerApiClient with HttpsURLConnection and auth header, 2) Implement sessions.create POST and response parsing, 3) Implement sessions.get polling with exponential backoff, 4) Implement mediaItems.list with pagination handling, 5) Map Picker responses to CloudItemEntity and persist to Room, 6) Handle baseUrl expiry (60 min) with session refresh logic, 7) Create CloudScannerRepository interface and track picker round coverage. Test JSON parsing thoroughly.",
-        "updatedAt": "2026-10-19T15:43:14.484Z"
+        "updatedAt": "2026-10-19T15:48:33.155Z"
       },
       {
         "id": "11",
@@ -1002,7 +1009,7 @@
           "4",
           "10"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -1107,7 +1114,8 @@
         ],
         "complexity": 9,
         "recommendedSubtasks": 8,
-        "expansionPrompt": "Break down matching engine into: 1) Create MatchingEngine class with primary matching (filename+timestamp+dimensions), 2) Implement secondary matching for renamed files, 3) Create Confidence enum and Evidence data class with serialization, 4) Implement sibling grouping for RAW+JPEG pairs, 5) Implement sibling grouping for live/motion photos, 6) Implement three-state assignment (CLOUD_ONLY, DEVICE_ONLY, BOTH), 7) Create ReconciliationRepository with incremental reconciliation, 8) Add hash confirmation for AMBIGUOUS matches. Extensive test cases needed."
+        "expansionPrompt": "Break down matching engine into: 1) Create MatchingEngine class with primary matching (filename+timestamp+dimensions), 2) Implement secondary matching for renamed files, 3) Create Confidence enum and Evidence data class with serialization, 4) Implement sibling grouping for RAW+JPEG pairs, 5) Implement sibling grouping for live/motion photos, 6) Implement three-state assignment (CLOUD_ONLY, DEVICE_ONLY, BOTH), 7) Create ReconciliationRepository with incremental reconciliation, 8) Add hash confirmation for AMBIGUOUS matches. Extensive test cases needed.",
+        "updatedAt": "2026-10-19T15:52:07.613Z"
       },
       {
         "id": "12",
@@ -2307,9 +2315,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T15:43:14.485Z",
+      "lastModified": "2026-10-19T15:52:07.613Z",
       "taskCount": 25,
-      "completedCount": 9,
+      "completedCount": 10,
       "tags": [
         "master"
       ]

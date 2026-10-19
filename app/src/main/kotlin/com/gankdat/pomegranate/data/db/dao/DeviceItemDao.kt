@@ -70,6 +70,9 @@ internal interface DeviceItemDao {
     @Query("SELECT COUNT(*) FROM device_item")
     suspend fun count(): Int
 
+    @Query("SELECT id FROM device_item")
+    fun observeIds(): Flow<List<Long>>
+
     /** Callers chunk [mediaStoreIds] (see [MAX_BIND_ARGS]). */
     @Query("DELETE FROM device_item WHERE volume = :volume AND mediaStoreId IN (:mediaStoreIds)")
     suspend fun deleteByMediaStoreIds(volume: String, mediaStoreIds: List<Long>): Int

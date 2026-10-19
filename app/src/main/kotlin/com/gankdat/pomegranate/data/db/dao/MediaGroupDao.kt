@@ -60,4 +60,8 @@ internal interface MediaGroupDao {
 
     @Query("SELECT COUNT(*) FROM media_group")
     suspend fun count(): Int
+
+    /** Membership rows go with the groups through the cascading foreign keys. */
+    @Query("DELETE FROM media_group")
+    suspend fun deleteAll()
 }

@@ -66,6 +66,9 @@ internal interface CloudItemDao {
     @Query("SELECT COUNT(*) FROM cloud_item")
     fun observeCount(): Flow<Int>
 
+    @Query("SELECT id FROM cloud_item")
+    fun observeIds(): Flow<List<Long>>
+
     @Query("DELETE FROM cloud_item")
     suspend fun deleteAll()
 }
