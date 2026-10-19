@@ -17,6 +17,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.gankdat.pomegranate.R
+import com.gankdat.pomegranate.ui.library.ItemDetailRoute
 import com.gankdat.pomegranate.ui.library.LibraryScreen
 import com.gankdat.pomegranate.ui.onboarding.OnboardingScreen
 import com.gankdat.pomegranate.ui.permissions.MediaPermissionGate
@@ -57,11 +58,8 @@ internal fun PomegranateNavHost(
                 }
             }
         }
-        composable(Screen.ItemDetail.route, arguments = Screen.ItemDetail.arguments) { entry ->
-            val itemId = entry.arguments?.getLong(Screen.ARG_ITEM_ID) ?: 0L
-            PomegranateScaffold(navController, stringResource(R.string.title_item_detail)) { padding ->
-                Placeholder(stringResource(R.string.placeholder_item_detail, itemId), padding)
-            }
+        composable(Screen.ItemDetail.route, arguments = Screen.ItemDetail.arguments) {
+            ItemDetailRoute(navController)
         }
         composable(Screen.Pull.route, arguments = Screen.Pull.arguments) { entry ->
             val scope = Screen.Pull.parseScope(entry.arguments?.getString(Screen.ARG_SCOPE))

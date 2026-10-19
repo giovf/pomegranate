@@ -492,7 +492,7 @@
           "2",
           "5"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -500,9 +500,10 @@
             "description": "Implement OnboardingViewModel that manages onboarding flow state, tracks current page, destination selection status, and completion state. Connect to SettingsRepository for persistence.",
             "dependencies": [],
             "details": "Create `com.gankdat.pomegranate.ui.onboarding` package. Implement `OnboardingViewModel` extending ViewModel with: (1) `currentPage: MutableStateFlow<Int>` for pager position, (2) `destinationUri: StateFlow<String?>` collected from SettingsRepository.destinationRootUri, (3) `isDestinationSelected: StateFlow<Boolean>` derived from destinationUri, (4) `onboardingCompleted: StateFlow<Boolean>` collected from SettingsRepository, (5) `setDestinationUri(uri: Uri)` suspend function that calls SettingsRepository.setDestinationRootUri and takes persistable permission. Inject SettingsRepository via constructor. Use viewModelScope for coroutines. Expose `completeOnboarding()` suspend function that sets completion flag in DataStore. Add `canProceed: StateFlow<Boolean>` that requires destination to be selected on page 4.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests with fake SettingsRepository: verify initial state, verify destination URI updates propagate, verify canProceed logic, verify completeOnboarding persists state. Test Flow emissions on state changes.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:28:29.799Z"
           },
           {
             "id": 2,
@@ -512,9 +513,10 @@
               1
             ],
             "details": "Create `OnboardingScreen.kt` using `HorizontalPager` from accompanist or compose-foundation. Page 1 (AppPurposePage): headline 'See where your photos live', subtext explaining pull-back and clean disconnect, simple icon/illustration. Page 2 (PrivacyPage): bullet points - no servers contacted except Google OAuth/Picker APIs, no analytics/telemetry, tokens wiped on disconnect, all data stays on device. Page 3 (ThreeStatePage): visual explanation with MediaStateIndicator icons and colors from Task 5 - device-only (green/phone icon), cloud-only (orange/cloud icon), both (blue/sync icon). Page 4 (DestinationPage): placeholder for SAF picker integration. Add page indicators (dots), swipe navigation, and 'Next'/'Back' buttons. Use Material 3 theming, ensure TalkBack content descriptions on all elements. Wire to OnboardingViewModel for page state.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify all 4 pages render correctly, verify pager navigation works via swipe and buttons, verify page indicator reflects current page, verify back button disabled on page 1, verify accessibility content descriptions present.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:28:31.710Z"
           },
           {
             "id": 3,
@@ -524,9 +526,10 @@
               2
             ],
             "details": "In DestinationPage composable: (1) Create `rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree())` with callback that invokes ViewModel.setDestinationUri(). (2) Add 'Choose Folder' button that launches picker via `launcher.launch(null)` (null for no initial URI). (3) Display selected folder name using `DocumentsContract.getDocumentId(uri)` parsed to extract human-readable path. (4) Show folder icon with path text when selected, 'No folder selected' placeholder otherwise. (5) Add 'Change' button to re-launch picker if already selected. (6) Include guidance text explaining SD card/removable storage preference for large libraries. Use `DocumentFile.fromTreeUri()` to validate the URI is accessible. Handle edge case where user cancels picker (no-op).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual testing: verify picker launches, verify folder selection updates UI, verify cancel returns gracefully, verify folder name displays correctly for internal and external storage paths. UI tests with mock ActivityResultRegistry.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:28:33.401Z"
           },
           {
             "id": 4,
@@ -536,9 +539,10 @@
               3
             ],
             "details": "In OnboardingViewModel.setDestinationUri(): (1) Take persistable permissions via `contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)`. (2) Store URI string in SettingsRepository.setDestinationRootUri(uri.toString()). (3) Handle SecurityException if permission grant fails (show error, don't persist). Create `DestinationValidator` utility class with: `validateDestinationUri(context, uriString): Boolean` that checks `contentResolver.persistedUriPermissions.any { it.uri.toString() == uriString && it.isReadPermission && it.isWritePermission }`. Add startup validation in ViewModel init block - if stored URI exists but permission is revoked, clear the stored URI and show re-selection prompt. Log permission state for debugging (no PII).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify permission taking is called with correct flags, verify URI storage on success, verify error handling on SecurityException. Integration test: verify persisted permission survives app restart, verify revoked permission detection works.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:28:35.151Z"
           },
           {
             "id": 5,
@@ -548,9 +552,10 @@
               4
             ],
             "details": "Create `BackupFolderDetector` utility: (1) `isGooglePhotosBackupFolder(uri: Uri, context: Context): Boolean` - extract path from URI using DocumentsContract, check if path contains '/DCIM/', '/Pictures/', '/Download/', or '/Screenshots/'. Handle both primary and secondary storage path formats. (2) `getBackupFolderWarning(): String` returning user-friendly explanation. In DestinationPage, after folder selection: if `isGooglePhotosBackupFolder()` returns true, show AlertDialog with: title 'Folder May Be Backed Up', message explaining files saved here may re-upload to Google Photos defeating the purpose, suggestion to create a new folder like 'Pomegranate' or exclude in Google Photos settings, 'Choose Different Folder' and 'Use Anyway' buttons. 'Use Anyway' proceeds with warning acknowledged flag. Store acknowledgment to avoid repeat warnings for same folder.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify detection for DCIM/Pictures/Download/Screenshots paths on primary and SD card, verify non-backup folders return false. UI tests: verify dialog appears for risky folders, verify both dialog buttons work correctly.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:28:36.848Z"
           },
           {
             "id": 6,
@@ -560,15 +565,16 @@
               5
             ],
             "details": "In SettingsRepository: add `onboardingCompleted: Flow<Boolean>` (default false) and `setOnboardingCompleted(completed: Boolean)`. In OnboardingViewModel: `completeOnboarding()` calls setOnboardingCompleted(true) then navigates to Library screen. Add 'Get Started' button on page 4 (only enabled when destination selected) that calls completeOnboarding(). In MainActivity: (1) Collect onboardingCompleted flow in onCreate. (2) Use SplashScreen API or simple loading state while checking. (3) Set start destination based on completion state: if false -> OnboardingScreen, if true -> LibraryScreen (from Task 5 navigation). (4) Handle edge case: if onboarding completed but destination URI invalid/revoked, reset onboarding state and show flow again. Ensure navigation graph supports this conditional start destination pattern.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration tests: verify first launch shows onboarding, verify completing onboarding persists across process death, verify subsequent launches skip to Library, verify invalid destination resets to onboarding. Manual test: verify Get Started triggers device scan navigation.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:28:38.550Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 6,
         "expansionPrompt": "Break down onboarding into: 1) Create OnboardingViewModel tracking completion state, 2) Build 4-page HorizontalPager with app purpose/privacy/three-state/destination content, 3) Implement SAF folder picker with ActivityResultContracts.OpenDocumentTree, 4) Add persistable URI permission handling and URI storage, 5) Implement backup folder collision warning detection, 6) Add onboarding completion persistence and MainActivity routing. Focus on SAF permission persistence edge cases.",
-        "updatedAt": "2026-10-19T15:26:10.285Z"
+        "updatedAt": "2026-10-19T15:28:38.550Z"
       },
       {
         "id": "7",
@@ -687,7 +693,7 @@
           "5",
           "7"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -753,7 +759,8 @@
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down Item detail into: 1) Create ItemDetailViewModel with saved state handle for itemId, 2) Build metadata display UI (path, folder, MIME, size, dates, dimensions), 3) Implement full-size preview loading via ContentResolver, 4) Add on-demand SHA-256 hash computation with database update, 5) Implement share action and placeholder sections for status/siblings. Focus on proper formatting of file metadata."
+        "expansionPrompt": "Break down Item detail into: 1) Create ItemDetailViewModel with saved state handle for itemId, 2) Build metadata display UI (path, folder, MIME, size, dates, dimensions), 3) Implement full-size preview loading via ContentResolver, 4) Add on-demand SHA-256 hash computation with database update, 5) Implement share action and placeholder sections for status/siblings. Focus on proper formatting of file metadata.",
+        "updatedAt": "2026-10-19T15:30:28.696Z"
       },
       {
         "id": "9",
@@ -2285,9 +2292,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T15:26:10.285Z",
+      "lastModified": "2026-10-19T15:30:28.696Z",
       "taskCount": 25,
-      "completedCount": 6,
+      "completedCount": 7,
       "tags": [
         "master"
       ]
