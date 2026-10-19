@@ -37,6 +37,9 @@ internal interface PickerRoundDao {
     @Query("UPDATE picker_round SET state = :state, itemCount = :itemCount WHERE sessionId = :sessionId")
     suspend fun setState(sessionId: String, state: PickerRoundState, itemCount: Int)
 
+    @Query("SELECT COUNT(*) FROM picker_round WHERE state = 'INDEXED'")
+    fun observeIndexedCount(): Flow<Int>
+
     @Query("DELETE FROM picker_round")
     suspend fun deleteAll()
 }

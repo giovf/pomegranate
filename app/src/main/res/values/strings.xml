@@ -73,6 +73,23 @@
     <string name="connection_needs_reauth">Google needs you to sign in again. This happens every 7 days while the app is in testing mode.</string>
     <string name="connection_sign_in_again">Sign in again</string>
     <string name="connection_try_again">Try again</string>
+    <string name="picker_title">Index your Google Photos</string>
+    <string name="picker_body">Google only lets apps see photos you pick yourself, up to 2,000 per round. Select everything in Google\'s picker, come back here, and repeat until your whole library is indexed.</string>
+    <plurals name="picker_coverage">
+        <item quantity="one">%1$d item indexed in %2$d rounds</item>
+        <item quantity="other">%1$d items indexed in %2$d rounds</item>
+    </plurals>
+    <string name="picker_last_round">Last round %1$s</string>
+    <string name="picker_start">Pick photos in Google Photos</string>
+    <string name="picker_another">Pick more</string>
+    <string name="picker_starting">Opening the picker…</string>
+    <string name="picker_waiting">Waiting for you to finish picking in Google Photos. Tap Done there, then come back.</string>
+    <string name="picker_reopen">Reopen picker</string>
+    <string name="picker_indexing">Listing your selection…</string>
+    <plurals name="picker_round_done">
+        <item quantity="one">Indexed %1$d item from this round.</item>
+        <item quantity="other">Indexed %1$d items from this round.</item>
+    </plurals>
     <string name="tab_by_folder">By folder</string>
     <string name="tab_by_month">By month</string>
     <string name="group_expand">tap to expand</string>

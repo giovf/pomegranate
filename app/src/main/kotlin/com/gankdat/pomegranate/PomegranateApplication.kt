@@ -9,6 +9,10 @@ import com.gankdat.pomegranate.auth.FileTokenStore
 import com.gankdat.pomegranate.auth.HttpTokenEndpoint
 import com.gankdat.pomegranate.auth.KeystoreTokenCipher
 import com.gankdat.pomegranate.auth.OAuthConfig
+import com.gankdat.pomegranate.census.cloud.CloudScannerRepository
+import com.gankdat.pomegranate.census.cloud.CloudScannerRepositoryImpl
+import com.gankdat.pomegranate.census.cloud.HttpPickerApi
+import com.gankdat.pomegranate.census.cloud.SessionPoller
 import com.gankdat.pomegranate.census.device.DeviceScanner
 import com.gankdat.pomegranate.census.device.DeviceScannerRepository
 import com.gankdat.pomegranate.census.device.DeviceScannerRepositoryImpl
@@ -48,6 +52,11 @@ internal class PomegranateApplication : Application() {
             scope = appScope,
             browser = CustomTabLauncher::open,
         )
+    }
+
+    val cloudScanner: CloudScannerRepository by lazy {
+        val api = HttpPickerApi(accessToken = { auth.getAccessToken() })
+        CloudScannerRepositoryImpl(api, SessionPoller(api), database.cloudItemDao(), database.pickerRoundDao())
     }
 
     /** Called by the redirect activity; the exchange runs here so it survives that activity finishing. */

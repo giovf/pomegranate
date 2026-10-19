@@ -777,7 +777,7 @@
         "dependencies": [
           "5"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -785,9 +785,10 @@
             "description": "Add the androidx.browser:browser library dependency to the version catalog and build.gradle.kts for Custom Tabs support required by the OAuth sign-in flow.",
             "dependencies": [],
             "details": "1. Add browser version to [versions] section in gradle/libs.versions.toml (use stable version, e.g., browser = \"1.8.0\").\n2. Add library entry: androidx-browser = { group = \"androidx.browser\", name = \"browser\", version.ref = \"browser\" }.\n3. Add implementation(libs.androidx.browser) to app/build.gradle.kts dependencies block.\n4. Run ./gradlew --write-verification-metadata sha256 build to regenerate gradle/verification-metadata.xml with the new artifact checksums.\n5. Verify the build completes successfully with the new dependency.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run ./gradlew assembleDebug to verify dependency resolution and build success. Check verification-metadata.xml contains the new checksums.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:42:38.259Z"
           },
           {
             "id": 2,
@@ -797,9 +798,10 @@
               1
             ],
             "details": "1. Create package com.gankdat.pomegranate.auth.\n2. Create OAuthConfig.kt as an object with:\n   - CLIENT_ID: String = BuildConfig.OAUTH_CLIENT_ID (read from local.properties via build config).\n   - REDIRECT_URI: String = \"com.gankdat.pomegranate://oauth/callback\".\n   - SCOPE: String = \"https://www.googleapis.com/auth/photospicker.mediaitems.readonly\".\n   - AUTH_ENDPOINT: String = \"https://accounts.google.com/o/oauth2/v2/auth\".\n   - TOKEN_ENDPOINT: String = \"https://oauth2.googleapis.com/token\".\n   - REVOKE_ENDPOINT: String = \"https://oauth2.googleapis.com/revoke\".\n3. Update build.gradle.kts to read OAUTH_CLIENT_ID from local.properties and expose via buildConfigField.\n4. Add buildFeatures.buildConfig = true to android block.\n5. Document in README that user must add oauth.client.id=<id> to local.properties.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test that OAuthConfig properties are non-empty and URLs are well-formed. Verify buildConfigField is generated correctly in build/generated.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:42:40.060Z"
           },
           {
             "id": 3,
@@ -809,9 +811,10 @@
               2
             ],
             "details": "1. Create PkceUtils.kt in com.gankdat.pomegranate.auth package.\n2. Implement generateCodeVerifier(): String:\n   - Use java.security.SecureRandom to generate 32 random bytes.\n   - Encode with Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING.\n   - Result is 43 characters (valid 43-128 range).\n3. Implement computeCodeChallenge(verifier: String): String:\n   - Hash verifier with java.security.MessageDigest SHA-256.\n   - Encode result with same Base64 flags.\n4. Define CODE_CHALLENGE_METHOD = \"S256\" constant.\n5. All functions are internal, no external API exposure.\n6. Never log the code_verifier or code_challenge values.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify code_verifier length is 43 chars; verify code_verifier is URL-safe Base64; verify computeCodeChallenge produces consistent output for same input; verify different verifiers produce different challenges; verify against known test vectors from RFC 7636.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:42:41.964Z"
           },
           {
             "id": 4,
@@ -822,9 +825,10 @@
               3
             ],
             "details": "1. Create AuthRepository.kt interface in com.gankdat.pomegranate.auth:\n   - fun launchSignIn(activity: Activity)\n   - suspend fun handleRedirect(uri: Uri): AuthResult\n   - suspend fun refreshToken(): AuthResult\n   - suspend fun revokeAndClear()\n   - fun isAuthenticated(): Flow<Boolean>\n   - suspend fun getAccessToken(): String?\n2. Create sealed class AuthResult { Success, Error(message: String), NeedsReauth }.\n3. Create AuthRepositoryImpl with @Volatile private var pendingVerifier: String? for temporary PKCE storage.\n4. Implement launchSignIn():\n   - Generate code_verifier, store in pendingVerifier.\n   - Build auth URL with: client_id, redirect_uri, response_type=code, scope, code_challenge, code_challenge_method=S256, access_type=offline, prompt=consent.\n   - Use CustomTabsIntent.Builder().build().launchUrl(activity, authUri).\n5. Ensure pendingVerifier is only accessed from main thread or properly synchronized.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify auth URL contains all required parameters; verify code_verifier is stored during launchSignIn; verify URL encoding is correct. Manual test: launch Custom Tab and verify Google sign-in page loads.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:42:43.646Z"
           },
           {
             "id": 5,
@@ -834,9 +838,10 @@
               4
             ],
             "details": "1. Create OAuthRedirectActivity.kt in com.gankdat.pomegranate.auth:\n   - extends ComponentActivity.\n   - In onCreate(), get intent.data (the redirect URI).\n   - Extract 'code' and 'error' query parameters.\n   - Forward to AuthRepository or broadcast via LocalBroadcastManager/Flow.\n   - Call finish() to close the activity immediately.\n   - If error present, handle gracefully (user cancelled, access denied).\n2. Update AndroidManifest.xml:\n   - Add <activity android:name=\".auth.OAuthRedirectActivity\" android:exported=\"true\" android:launchMode=\"singleTask\">.\n   - Add intent-filter with <action android:name=\"android.intent.action.VIEW\"/>.\n   - Add <category android:name=\"android.intent.category.DEFAULT\"/> and <category android:name=\"android.intent.category.BROWSABLE\"/>.\n   - Add <data android:scheme=\"com.gankdat.pomegranate\" android:host=\"oauth\" android:path=\"/callback\"/>.\n3. Handle edge cases: activity started without valid data, missing code parameter.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual test: complete OAuth flow and verify redirect is captured; verify app returns to foreground; verify authorization code is extracted. Test with intentional error redirects to verify error handling.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:42:45.300Z"
           },
           {
             "id": 6,
@@ -847,9 +852,10 @@
               5
             ],
             "details": "1. In AuthRepositoryImpl, implement handleRedirect(uri: Uri): AuthResult:\n   - Extract authorization code from uri.getQueryParameter(\"code\").\n   - Retrieve and clear pendingVerifier (if null, return Error).\n   - Build POST body: grant_type=authorization_code, code=<code>, redirect_uri, client_id, code_verifier.\n   - URL-encode each parameter properly.\n2. Create internal suspend fun postTokenRequest(body: String): TokenResponse:\n   - Use withContext(Dispatchers.IO).\n   - Open HttpsURLConnection to TOKEN_ENDPOINT.\n   - Set method POST, Content-Type application/x-www-form-urlencoded.\n   - Write body to outputStream.\n   - Read JSON response, parse access_token, refresh_token, expires_in.\n   - Handle HTTP errors (400, 401, etc.) and return appropriate AuthResult.\n3. Create TokenResponse data class: access_token, refresh_token (nullable), expires_in, token_type.\n4. Parse JSON manually or with org.json (platform API) - no external JSON libraries.\n5. Never log tokens or the code_verifier.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify POST body formatting is correct; verify JSON parsing handles valid response; verify error HTTP codes return Error result. Manual test: complete full OAuth flow and verify tokens are received.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:42:47.466Z"
           },
           {
             "id": 7,
@@ -859,9 +865,10 @@
               6
             ],
             "details": "1. Create TokenStorage.kt in com.gankdat.pomegranate.auth:\n   - private const val KEYSTORE_ALIAS = \"pomegranate_oauth_key\".\n   - private const val KEYSTORE_PROVIDER = \"AndroidKeyStore\".\n2. Implement getOrCreateKey(): SecretKey:\n   - Load existing key from KeyStore if present.\n   - Otherwise generate new AES key with KeyGenParameterSpec.Builder:\n     - setKeySize(256)\n     - setBlockModes(KeyProperties.BLOCK_MODE_GCM)\n     - setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)\n     - setUserAuthenticationRequired(false) (app handles auth).\n3. Implement encrypt(plaintext: String): ByteArray:\n   - Cipher.getInstance(\"AES/GCM/NoPadding\").\n   - cipher.init(Cipher.ENCRYPT_MODE, key) - let system generate IV.\n   - Prepend cipher.iv to cipher.doFinal(plaintext.toByteArray()).\n4. Implement decrypt(ciphertext: ByteArray): String:\n   - Extract IV (first 12 bytes), encrypted data (rest).\n   - cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, iv)).\n5. Store encrypted tokens with Base64 encoding in SharedPreferences (app-private, not backed up).\n6. Implement clearTokens() to remove stored tokens and optionally delete the key.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify encrypt/decrypt round-trip; verify different plaintexts produce different ciphertexts; verify IV is unique per encryption; verify clearTokens removes data. Test on device: verify Keystore key creation and token persistence across app restarts.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:42:49.586Z"
           },
           {
             "id": 8,
@@ -872,15 +879,16 @@
               7
             ],
             "details": "1. Complete AuthRepositoryImpl.refreshToken(): AuthResult:\n   - Load encrypted refresh_token from TokenStorage.\n   - If no refresh_token, return NeedsReauth.\n   - POST to TOKEN_ENDPOINT with grant_type=refresh_token, refresh_token=<token>, client_id.\n   - On success, update stored access_token and expires_at.\n   - On 400/401 error (invalid_grant), return NeedsReauth - this handles Testing mode 7-day expiry.\n2. Track token expiry: store expires_at = currentTimeMillis() + (expires_in * 1000) - 60000 (1-min buffer).\n3. Implement getAccessToken(): String?:\n   - Check if current access_token is expired.\n   - If expired, call refreshToken() automatically.\n   - Return valid token or null if refresh fails.\n4. Implement revokeAndClear():\n   - POST to REVOKE_ENDPOINT with token=<access_token> (revokes all tokens).\n   - Call TokenStorage.clearTokens() regardless of revoke success.\n   - Delete Keystore key.\n   - Clear any in-memory token state.\n5. Implement isAuthenticated(): Flow<Boolean> that observes token presence.\n6. All operations must be idempotent and safe to call multiple times.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify refresh uses correct grant_type; verify expires_at calculation; verify getAccessToken triggers refresh when expired; verify revokeAndClear wipes all data. Manual test: verify 7-day expiry scenario prompts re-auth; verify disconnect fully clears credentials.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T15:42:51.453Z"
           }
         ],
         "complexity": 8,
         "recommendedSubtasks": 8,
         "expansionPrompt": "Break down OAuth implementation into: 1) Add browser dependency for Custom Tabs to libs.versions.toml, 2) Create OAuthConfig object with endpoints and client config, 3) Implement PKCE code_verifier and code_challenge generation, 4) Create AuthRepository interface and implement Custom Tab launch, 5) Add OAuthRedirectActivity and intent-filter to AndroidManifest, 6) Implement token exchange via HttpsURLConnection POST, 7) Implement Keystore-backed encryption for token storage, 8) Add token refresh logic and revocation handling. Critical security code—follow platform APIs exactly.",
-        "updatedAt": "2026-10-19T15:36:14.806Z"
+        "updatedAt": "2026-10-19T15:42:51.453Z"
       },
       {
         "id": "10",
@@ -893,7 +901,7 @@
           "1",
           "9"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -980,7 +988,8 @@
         ],
         "complexity": 8,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Break down Picker API client into: 1) Create PickerApiClient with HttpsURLConnection and auth header, 2) Implement sessions.create POST and response parsing, 3) Implement sessions.get polling with exponential backoff, 4) Implement mediaItems.list with pagination handling, 5) Map Picker responses to CloudItemEntity and persist to Room, 6) Handle baseUrl expiry (60 min) with session refresh logic, 7) Create CloudScannerRepository interface and track picker round coverage. Test JSON parsing thoroughly."
+        "expansionPrompt": "Break down Picker API client into: 1) Create PickerApiClient with HttpsURLConnection and auth header, 2) Implement sessions.create POST and response parsing, 3) Implement sessions.get polling with exponential backoff, 4) Implement mediaItems.list with pagination handling, 5) Map Picker responses to CloudItemEntity and persist to Room, 6) Handle baseUrl expiry (60 min) with session refresh logic, 7) Create CloudScannerRepository interface and track picker round coverage. Test JSON parsing thoroughly.",
+        "updatedAt": "2026-10-19T15:43:14.484Z"
       },
       {
         "id": "11",
@@ -2298,9 +2307,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T15:36:14.806Z",
+      "lastModified": "2026-10-19T15:43:14.485Z",
       "taskCount": 25,
-      "completedCount": 8,
+      "completedCount": 9,
       "tags": [
         "master"
       ]
