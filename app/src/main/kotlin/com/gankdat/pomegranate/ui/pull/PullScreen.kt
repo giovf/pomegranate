@@ -45,6 +45,7 @@ import com.gankdat.pomegranate.ui.format.Formatters
 @Composable
 internal fun PullScreen(
     onDone: () -> Unit,
+    onViewProof: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PullViewModel = viewModel(
         factory = appViewModelFactory {
@@ -58,7 +59,7 @@ internal fun PullScreen(
     when (phase) {
         PullPhase.ChooseScope -> ScopeContent(viewModel, modifier)
         PullPhase.InProgress -> ProgressContent(viewModel, modifier)
-        PullPhase.Completed -> CompletionContent(viewModel, onDone, modifier)
+        PullPhase.Completed -> CompletionContent(viewModel, onDone, onViewProof, modifier)
     }
     if (showNotice) {
         FidelityNoticeDialog(onContinue = viewModel::acknowledgeFidelityNotice, onDismiss = viewModel::dismissFidelityNotice)
@@ -179,7 +180,7 @@ private fun jobStateLabel(state: TransferState, liveBytes: Long): String = when 
 }
 
 @Composable
-private fun CompletionContent(viewModel: PullViewModel, onDone: () -> Unit, modifier: Modifier) {
+private fun CompletionContent(viewModel: PullViewModel, onDone: () -> Unit, onViewProof: () -> Unit, modifier: Modifier) {
     val progress by viewModel.progress.collectAsStateWithLifecycle()
     val summary = progress.summary
     Column(modifier = modifier.fillMaxSize()) {
@@ -209,6 +210,14 @@ private fun CompletionContent(viewModel: PullViewModel, onDone: () -> Unit, modi
             }
         }
         Spacer(Modifier.weight(1f))
+        OutlinedButton(
+            onClick = onViewProof,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+        ) {
+            Text(stringResource(R.string.pull_view_proof))
+        }
         Button(
             onClick = { viewModel.dismissCompletion(); onDone() },
             modifier = Modifier

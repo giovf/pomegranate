@@ -12,6 +12,28 @@
     <string name="title_settings">Settings</string>
     <string name="title_disconnect">Disconnect</string>
     <string name="title_cleanup_guidance">Clean up Google Photos</string>
+    <string name="title_proof">Proof of copy</string>
+    <string name="title_manifest">Manifest</string>
+    <string name="pull_view_proof">View proof of copy</string>
+    <string name="proof_title">Safe to clean up</string>
+    <plurals name="proof_count">
+        <item quantity="one">%1$d item has a verified copy in your destination folder.</item>
+        <item quantity="other">%1$d items have verified copies in your destination folder.</item>
+    </plurals>
+    <string name="proof_size">%1$s written and re-read with matching SHA-256 hashes.</string>
+    <string name="proof_last">Last verified copy %1$s</string>
+    <string name="proof_warning">This covers only what you have indexed and pulled. Anything you never picked in Google Photos is not included.</string>
+    <string name="manifest_export_csv">Export CSV</string>
+    <string name="manifest_export_json">Export JSON</string>
+    <string name="manifest_view">View manifest in app</string>
+    <string name="manifest_written">Saved %1$s</string>
+    <string name="manifest_nothing">Nothing to export yet.</string>
+    <string name="manifest_failed">Could not write the manifest: %1$s</string>
+    <string name="manifest_search">Search filename, path or hash</string>
+    <string name="manifest_verified">Verified</string>
+    <string name="fidelity_label_original">Original</string>
+    <string name="fidelity_label_gps_stripped">Location stripped</string>
+    <string name="fidelity_label_transcoded">Transcoded video</string>
 
     <string name="action_share">Share</string>
     <string name="item_not_found">This item is no longer on the phone.</string>

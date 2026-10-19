@@ -1,7 +1,6 @@
 package com.gankdat.pomegranate.data.db.entity
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -9,22 +8,23 @@ import androidx.room.PrimaryKey
  * One attempt to copy a cloud item to the user's chosen destination. A job
  * reaches [TransferState.DONE] only after the written file's size and
  * SHA-256 have been verified; [sha256] is the hash of the bytes on disk.
+ *
+ * Deliberately not a foreign key to `cloud_item`: a DONE job is the proof of
+ * copy and must outlive the cloud index, which Disconnect wipes. The source
+ * identity is therefore copied in ([sourceId], [originalFilename], [mime]).
  */
 @Entity(
     tableName = "transfer_job",
-    indices = [Index("state"), Index("cloudItemId")],
-    foreignKeys = [
-        ForeignKey(
-            entity = CloudItemEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["cloudItemId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
+    indices = [Index("state"), Index("cloudItemId"), Index("sourceId")],
 )
 internal data class TransferJobEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** Row id of the cloud item at enqueue time; may no longer exist after Disconnect. */
     val cloudItemId: Long,
+    /** Google's persistent media item id. */
+    val sourceId: String,
+    val originalFilename: String,
+    val mime: String,
     val state: TransferState = TransferState.QUEUED,
     /** SAF document URI of the written file; empty until the file is created. */
     val destinationUri: String = "",

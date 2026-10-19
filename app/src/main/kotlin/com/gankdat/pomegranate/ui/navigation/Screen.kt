@@ -43,6 +43,10 @@ internal sealed class Screen(val route: String) {
 
     data object CleanupGuidance : Screen("cleanup")
 
+    data object ProofOfCopy : Screen("proof")
+
+    data object ManifestViewer : Screen("manifest")
+
     companion object {
         const val ARG_ITEM_ID: String = "itemId"
         const val ARG_CLOUD_ITEM_ID: String = "cloudItemId"

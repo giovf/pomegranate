@@ -24,6 +24,8 @@ import com.gankdat.pomegranate.ui.connection.ConnectionScreen
 import com.gankdat.pomegranate.ui.library.CloudItemDetailRoute
 import com.gankdat.pomegranate.ui.library.ItemDetailRoute
 import com.gankdat.pomegranate.ui.library.LibraryScreen
+import com.gankdat.pomegranate.ui.manifest.ManifestViewerScreen
+import com.gankdat.pomegranate.ui.manifest.ProofOfCopyScreen
 import com.gankdat.pomegranate.ui.onboarding.OnboardingScreen
 import com.gankdat.pomegranate.ui.permissions.MediaPermissionGate
 import com.gankdat.pomegranate.ui.pull.PullScreen
@@ -83,7 +85,7 @@ internal fun PomegranateNavHost(
         }
         composable(Screen.Pull.route, arguments = Screen.Pull.arguments) {
             PomegranateScaffold(navController, stringResource(R.string.title_pull)) { padding ->
-                PullScreen(onDone = { navController.popBackStack() }, modifier = Modifier.padding(padding))
+                PullScreen(onDone = { navController.popBackStack() }, onViewProof = navController::navigateToProofOfCopy, modifier = Modifier.padding(padding))
             }
         }
         composable(Screen.Connection.route) {
@@ -100,12 +102,27 @@ internal fun PomegranateNavHost(
                         .padding(16.dp),
                 ) {
                     TextButton(onClick = navController::navigateToConnection) { Text(stringResource(R.string.title_connection)) }
+                    TextButton(onClick = navController::navigateToProofOfCopy) { Text(stringResource(R.string.title_proof)) }
                 }
             }
         }
         composable(Screen.Disconnect.route) {
             PomegranateScaffold(navController, stringResource(R.string.title_disconnect)) { padding ->
                 Placeholder(stringResource(R.string.title_disconnect), padding)
+            }
+        }
+        composable(Screen.ProofOfCopy.route) {
+            PomegranateScaffold(navController, stringResource(R.string.title_proof)) { padding ->
+                ProofOfCopyScreen(
+                    onViewManifest = navController::navigateToManifestViewer,
+                    onCleanupGuidance = { navController.navigate(Screen.CleanupGuidance.route) },
+                    modifier = Modifier.padding(padding),
+                )
+            }
+        }
+        composable(Screen.ManifestViewer.route) {
+            PomegranateScaffold(navController, stringResource(R.string.title_manifest)) { padding ->
+                ManifestViewerScreen(modifier = Modifier.padding(padding))
             }
         }
         composable(Screen.CleanupGuidance.route) {

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "73531c92b707aab78a6b11b475765730",
+    "identityHash": "232ad4f8e64420317e439afb2cc0bf28",
     "entities": [
       {
         "tableName": "device_item",
@@ -515,7 +515,7 @@
       },
       {
         "tableName": "transfer_job",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `cloudItemId` INTEGER NOT NULL, `state` TEXT NOT NULL, `destinationUri` TEXT NOT NULL, `bytesExpected` INTEGER NOT NULL, `bytesWritten` INTEGER NOT NULL, `sha256` TEXT, `fidelity` TEXT NOT NULL, `attempts` INTEGER NOT NULL, `lastError` TEXT, FOREIGN KEY(`cloudItemId`) REFERENCES `cloud_item`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `cloudItemId` INTEGER NOT NULL, `sourceId` TEXT NOT NULL, `originalFilename` TEXT NOT NULL, `mime` TEXT NOT NULL, `state` TEXT NOT NULL, `destinationUri` TEXT NOT NULL, `relativePath` TEXT NOT NULL, `bytesExpected` INTEGER NOT NULL, `bytesWritten` INTEGER NOT NULL, `sha256` TEXT, `fidelity` TEXT NOT NULL, `attempts` INTEGER NOT NULL, `lastError` TEXT, `completedAt` INTEGER)",
         "fields": [
           {
             "fieldPath": "id",
@@ -530,6 +530,24 @@
             "notNull": true
           },
           {
+            "fieldPath": "sourceId",
+            "columnName": "sourceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalFilename",
+            "columnName": "originalFilename",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mime",
+            "columnName": "mime",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
             "fieldPath": "state",
             "columnName": "state",
             "affinity": "TEXT",
@@ -538,6 +556,12 @@
           {
             "fieldPath": "destinationUri",
             "columnName": "destinationUri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "relativePath",
+            "columnName": "relativePath",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -574,6 +598,11 @@
             "fieldPath": "lastError",
             "columnName": "lastError",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "completedAt",
+            "columnName": "completedAt",
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -600,19 +629,15 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_transfer_job_cloudItemId` ON `${TABLE_NAME}` (`cloudItemId`)"
-          }
-        ],
-        "foreignKeys": [
+          },
           {
-            "table": "cloud_item",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "cloudItemId"
+            "name": "index_transfer_job_sourceId",
+            "unique": false,
+            "columnNames": [
+              "sourceId"
             ],
-            "referencedColumns": [
-              "id"
-            ]
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_transfer_job_sourceId` ON `${TABLE_NAME}` (`sourceId`)"
           }
         ]
       },
@@ -717,7 +742,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '73531c92b707aab78a6b11b475765730')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '232ad4f8e64420317e439afb2cc0bf28')"
     ]
   }
 }

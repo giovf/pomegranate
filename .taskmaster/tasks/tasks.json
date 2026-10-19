@@ -1563,9 +1563,10 @@
             "description": "Implement PullViewModel that calculates pull scope options (all cloud-only, selected folder, custom selection), computes sizes and counts for each scope, observes transfer queue progress from WorkManager, and calculates real-time ETA based on download speed.",
             "dependencies": [],
             "details": "Create package `com.gankdat.pomegranate.ui.pull`. Implement `PullViewModel` extending ViewModel with: (1) `PullScope` sealed class with AllCloudOnly, ByFolder(bucketName), CustomSelection(itemIds) variants. (2) `selectedScope: MutableStateFlow<PullScope>` for user selection. (3) Query CloudItemDao for cloud-only items (no match in device_item), compute `scopeOptions: StateFlow<List<ScopeOption>>` where ScopeOption contains count, totalBytes, and scope reference. (4) Inject TransferQueue from Task 14 and expose `transferProgress: StateFlow<TransferProgress>` observing job states. (5) Implement `TransferProgress` data class with: completedItems, totalItems, bytesDownloaded, totalBytes, currentSpeedBytesPerSec, etaSeconds. (6) Calculate ETA using rolling window average of download speed (last 10 samples). (7) Add `startPull()` function that creates TransferJobEntity for each item in scope and enqueues to WorkManager. (8) Add `pausePull()` and `resumePull()` delegating to TransferQueue. (9) Query available space via StorageStatsManager for destination URI from SettingsRepository.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify scope calculation returns correct counts for all cloud-only items; test ETA calculation with various speed inputs; test pause/resume state transitions; verify available space query. Use fake TransferQueue and in-memory Room database.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:34:52.980Z"
           },
           {
             "id": 2,
@@ -1575,9 +1576,10 @@
               1
             ],
             "details": "Create `PullScopeScreen.kt` in ui.pull package. Implement Material 3 Composable with: (1) TopAppBar with 'Pull Media' title and back navigation. (2) LazyColumn with RadioButton + Text for each scope option showing 'All cloud-only (X items, Y GB)', 'By folder: FolderName (X items, Y GB)'. (3) Collect scopeOptions from PullViewModel, display loading state while computing. (4) Space check section: Card showing 'Required: X GB' and 'Available: Y GB' with progress bar visualization. (5) If insufficient space, show Material 3 error banner with red color and warning icon: 'Not enough space. Free X GB or choose fewer items.' (6) 'Start Pull' primary button disabled when insufficient space or no scope selected. (7) Button click navigates to FidelityNoticeDialog if first time (check DataStore flag), otherwise directly to PullProgressScreen. (8) Add contentDescription for accessibility on all interactive elements. (9) Handle empty state when no cloud-only items exist with guidance message.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify radio buttons update selectedScope; verify space check displays correct values; verify insufficient space disables Start button and shows warning; verify Start navigates correctly. Test with various scope combinations including empty state.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:34:54.903Z"
           },
           {
             "id": 3,
@@ -1587,9 +1589,10 @@
               2
             ],
             "details": "Create `FidelityNoticeDialog.kt` in ui.pull package. Implement AlertDialog Composable with: (1) Title: 'About Pulled Media Quality'. (2) Body with bullet points: '• Photos will not include GPS location data', '• Videos may be transcoded to a different format', '• Original quality available via Google Takeout (future feature)'. (3) Icon indicating information/warning using Material 3 icons. (4) Checkbox: 'Don't show this again' with state stored in SettingsRepository as `fidelityNoticeAcknowledged: Flow<Boolean>`. (5) 'Continue' button that: (a) If checkbox checked, sets fidelityNoticeAcknowledged to true, (b) Navigates to PullProgressScreen with selected scope. (6) 'Cancel' button that returns to PullScopeScreen. (7) Dialog is shown when navigating from PullScopeScreen if fidelityNoticeAcknowledged is false. (8) Use dismissOnClickOutside = false to require explicit acknowledgment. Add the new DataStore preference to SettingsRepository interface and implementation.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify dialog appears on first pull; verify checkbox state persists; verify Continue navigates forward; verify Cancel returns to scope screen. Test that dialog does not appear when previously acknowledged.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:34:56.644Z"
           },
           {
             "id": 4,
@@ -1600,9 +1603,10 @@
               3
             ],
             "details": "Create `PullProgressScreen.kt` in ui.pull package. Implement full-screen Composable with: (1) TopAppBar with 'Pulling Media' title (no back button during transfer). (2) `LinearProgressIndicator` showing bytesDownloaded/totalBytes with determinate mode. (3) Text: 'X of Y items completed (Z.Z GB / W.W GB)'. (4) Download speed display: 'Current speed: X.X MB/s' updated every second from PullViewModel.transferProgress. (5) ETA display: 'About X minutes remaining' or 'Calculating...' if insufficient data. (6) 'What's left' section: LazyColumn showing pending/running transfer jobs with CloudItem thumbnail and filename, show 'Downloading...' indicator for RUNNING state. (7) Pause/Resume FilledTonalButton: text changes based on isPaused state from ViewModel, onClick calls pausePull()/resumePull(). (8) Cancel OutlinedButton: onClick shows AlertDialog 'Cancel pull? X items already downloaded will be kept.' with 'Keep Pulling' and 'Cancel Pull' options. (9) Animate progress updates smoothly. (10) Disable device back button during active transfer (BackHandler). (11) Navigate to PullCompletionScreen when totalItems == completedItems.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify progress bar reflects correct percentage; verify item counts update; verify speed/ETA display; verify Pause toggles state; verify Cancel shows confirmation; verify back button is disabled. Test navigation to completion screen when done.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:34:58.423Z"
           },
           {
             "id": 5,
@@ -1625,9 +1629,10 @@
               5
             ],
             "details": "Create `PullCompletionScreen.kt` in ui.pull package. Implement Composable with: (1) TopAppBar with 'Pull Complete' title. (2) Success summary Card: checkmark icon, 'X items pulled successfully', 'Y.Y GB transferred', duration. (3) If failures exist: error Card showing 'Z items failed', expandable list with CloudItem name and lastError from TransferJobEntity, 'Retry Failed' button that re-enqueues FAILED jobs and navigates back to PullProgressScreen. (4) 'View Manifest' FilledTonalButton navigating to ManifestScreen (placeholder for Task 17). (5) If autoDisconnect enabled in settings: show countdown timer 'Disconnecting in X seconds...', cancel button to stop countdown, on countdown complete navigate to DisconnectScreen. (6) 'Done' button navigating to LibraryScreen with popUpTo to clear backstack. (7) Query TransferJobDao for DONE and FAILED jobs from current session to build summary. (8) Store pull session summary in DataStore or Room for manifest generation. (9) Use Material 3 success/error colors appropriately.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify summary shows correct counts; verify failed items list displays; verify Retry re-enqueues and navigates; verify auto-disconnect countdown works; verify Done clears backstack. Test various completion scenarios (all success, some failures, all failures).",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:35:00.338Z"
           },
           {
             "id": 7,
@@ -1646,7 +1651,7 @@
         "complexity": 7,
         "recommendedSubtasks": 7,
         "expansionPrompt": "Break down Pull screen into: 1) Create PullViewModel calculating scope options and sizes, 2) Build PullScopeScreen with radio buttons and space check, 3) Create FidelityNoticeDialog with acknowledgment, 4) Build PullProgressScreen with progress bar/speed/ETA, 5) Implement foreground service for persistent notification, 6) Create PullCompletionScreen with summary and failure handling, 7) Handle background execution continuation. Test notification updates carefully.",
-        "updatedAt": "2026-10-19T16:31:16.525Z"
+        "updatedAt": "2026-10-19T16:35:00.338Z"
       },
       {
         "id": "17",
@@ -1658,7 +1663,7 @@
         "dependencies": [
           "15"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -1723,7 +1728,8 @@
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down manifest export into: 1) Create ManifestGenerator querying DONE TransferJobEntities, 2) Define manifest record structure with all required fields, 3) Implement CSV export to SAF destination, 4) Implement JSON export with metadata, 5) Create ProofOfCopyScreen and in-app manifest viewer. Standard file I/O with structured data formatting."
+        "expansionPrompt": "Break down manifest export into: 1) Create ManifestGenerator querying DONE TransferJobEntities, 2) Define manifest record structure with all required fields, 3) Implement CSV export to SAF destination, 4) Implement JSON export with metadata, 5) Create ProofOfCopyScreen and in-app manifest viewer. Standard file I/O with structured data formatting.",
+        "updatedAt": "2026-10-19T16:37:34.624Z"
       },
       {
         "id": "18",
@@ -2359,7 +2365,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T16:31:16.526Z",
+      "lastModified": "2026-10-19T16:37:34.624Z",
       "taskCount": 25,
       "completedCount": 16,
       "tags": [

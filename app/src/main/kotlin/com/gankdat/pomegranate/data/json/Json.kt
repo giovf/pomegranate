@@ -19,6 +19,9 @@ internal object Json {
     @Suppress("UNCHECKED_CAST")
     fun parseObject(text: String): JsonObject = parse(text) as? JsonObject ?: throw JsonException("expected a JSON object")
 
+    /** A JSON string literal, quotes included. */
+    fun quote(text: String): String = quoteString(text)
+
     private class Reader(private val s: String) {
         private var i = 0
 
@@ -191,10 +194,10 @@ internal fun jsonOf(vararg pairs: Pair<String, Any?>): String = buildString {
     append('{')
     pairs.forEachIndexed { index, (key, value) ->
         if (index > 0) append(',')
-        append(quote(key)).append(':')
+        append(quoteString(key)).append(':')
         when (value) {
             null -> append("null")
-            is String -> append(quote(value))
+            is String -> append(quoteString(value))
             is Boolean, is Long, is Int, is Double -> append(value.toString())
             else -> throw JsonException("unsupported value for '$key'")
         }
@@ -202,7 +205,7 @@ internal fun jsonOf(vararg pairs: Pair<String, Any?>): String = buildString {
     append('}')
 }
 
-private fun quote(text: String): String = buildString {
+private fun quoteString(text: String): String = buildString {
     append('"')
     for (c in text) {
         when (c) {

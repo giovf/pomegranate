@@ -24,6 +24,8 @@ import com.gankdat.pomegranate.reconcile.ReconciliationRepository
 import com.gankdat.pomegranate.reconcile.ReconciliationRepositoryImpl
 import com.gankdat.pomegranate.reconcile.origin.OriginRepository
 import com.gankdat.pomegranate.reconcile.origin.OriginRepositoryImpl
+import com.gankdat.pomegranate.trust.ManifestRepository
+import com.gankdat.pomegranate.trust.ManifestRepositoryImpl
 import com.gankdat.pomegranate.transfer.HttpDownloader
 import com.gankdat.pomegranate.transfer.ResolverSafStorage
 import com.gankdat.pomegranate.transfer.ScannerMediaStoreRegistrar
@@ -94,6 +96,10 @@ internal class PomegranateApplication : Application() {
     }
 
     val transferScheduler: TransferScheduler by lazy { TransferScheduler(this) }
+
+    val manifest: ManifestRepository by lazy {
+        ManifestRepositoryImpl(database.transferJobDao(), settings, ResolverSafStorage(contentResolver), appVersion = BuildConfig.VERSION_NAME)
+    }
 
     /** Called by the redirect activity; the exchange runs here so it survives that activity finishing. */
     fun onOAuthRedirect(redirectUrl: String) {

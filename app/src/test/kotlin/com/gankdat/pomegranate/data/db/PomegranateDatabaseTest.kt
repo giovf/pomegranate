@@ -232,18 +232,18 @@ class PomegranateDatabaseTest {
     }
 
     @Test
-    fun `deleting a picker round cascades to its cloud items, matches and jobs`() = runBlocking {
+    fun `deleting a picker round cascades to its cloud items and matches but keeps transfer jobs`() = runBlocking {
         val round = insertRound("s-1")
         val cloudId = db.cloudItemDao().insert(cloudItem("g-1", sessionId = "s-1"))
         val deviceId = db.deviceItemDao().insert(deviceItem(mediaStoreId = 1))
         db.matchDao().insert(MatchEntity(cloudId, deviceId, MatchConfidence.EXACT, evidence = "{}"))
-        db.transferJobDao().insert(TransferJobEntity(cloudItemId = cloudId, fidelity = Fidelity.ORIGINAL))
+        db.transferJobDao().insert(TransferJobEntity(cloudItemId = cloudId, sourceId = "g-1", originalFilename = "g-1.jpg", mime = "image/jpeg", fidelity = Fidelity.ORIGINAL))
 
         db.pickerRoundDao().delete(round)
 
         assertEquals(0, db.cloudItemDao().count())
         assertEquals(0, db.matchDao().count())
-        assertTrue(db.transferJobDao().getAll().isEmpty())
+        assertEquals(1, db.transferJobDao().getAll().size) // proof of copy survives the cloud index
         assertEquals(1, db.deviceItemDao().count())
     }
 
@@ -337,7 +337,7 @@ class PomegranateDatabaseTest {
         insertRound("s-1")
         val cloudIds = db.cloudItemDao().insertAll((1..3).map { cloudItem("g-$it", sessionId = "s-1") })
         val dao = db.transferJobDao()
-        val jobIds = dao.insertAll(cloudIds.map { TransferJobEntity(cloudItemId = it, fidelity = Fidelity.GPS_STRIPPED) })
+        val jobIds = dao.insertAll(cloudIds.map { TransferJobEntity(cloudItemId = it, sourceId = "g-$it", originalFilename = "g-$it.jpg", mime = "image/jpeg", fidelity = Fidelity.GPS_STRIPPED) })
 
         assertEquals(3, dao.countByState(TransferState.QUEUED))
         assertEquals(jobIds.take(2), dao.getNextByState(TransferState.QUEUED, limit = 2).map { it.id })
@@ -387,7 +387,7 @@ class PomegranateDatabaseTest {
         val deviceId = db.deviceItemDao().insert(deviceItem(mediaStoreId = 1))
         db.mediaGroupDao().insert(MediaGroupEntity(kind = MediaGroupKind.EDIT_PAIR))
         db.matchDao().insert(MatchEntity(cloudId, deviceId, MatchConfidence.AMBIGUOUS, evidence = "{}"))
-        db.transferJobDao().insert(TransferJobEntity(cloudItemId = cloudId, state = TransferState.PAUSED, fidelity = Fidelity.TRANSCODED))
+        db.transferJobDao().insert(TransferJobEntity(cloudItemId = cloudId, sourceId = "g-1", originalFilename = "g-1.jpg", mime = "image/jpeg", state = TransferState.PAUSED, fidelity = Fidelity.TRANSCODED))
         db.originRuleDao().insert(OriginRuleEntity(source = OriginSource.BUILTIN, pattern = "x", originLabel = "X", confidence = 1f))
         db.pickerRoundDao().setState("s-1", PickerRoundState.EXPIRED, itemCount = 0)
 

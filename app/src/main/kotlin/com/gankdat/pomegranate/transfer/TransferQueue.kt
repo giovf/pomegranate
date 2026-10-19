@@ -44,7 +44,13 @@ internal class TransferQueueImpl(
         val items = cloudItems.getAll().associateBy { it.id }
         val entities = fresh.mapNotNull { id ->
             val item = items[id] ?: return@mapNotNull null
-            TransferJobEntity(cloudItemId = id, fidelity = FidelityClassifier.forPicker(isVideo = item.type == "VIDEO" || item.mime.startsWith("video/")))
+            TransferJobEntity(
+                cloudItemId = id,
+                sourceId = item.pickerMediaItemId,
+                originalFilename = item.filename,
+                mime = item.mime,
+                fidelity = FidelityClassifier.forPicker(isVideo = item.type == "VIDEO" || item.mime.startsWith("video/")),
+            )
         }
         jobs.insertAll(entities)
         return entities.size

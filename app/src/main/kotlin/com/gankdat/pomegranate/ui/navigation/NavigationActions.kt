@@ -34,6 +34,14 @@ internal fun NavController.navigateToDisconnect() {
     navigate(Screen.Disconnect.route) { launchSingleTop = true }
 }
 
+internal fun NavController.navigateToProofOfCopy() {
+    navigate(Screen.ProofOfCopy.route) { launchSingleTop = true }
+}
+
+internal fun NavController.navigateToManifestViewer() {
+    navigate(Screen.ManifestViewer.route) { launchSingleTop = true }
+}
+
 /** After a completed disconnect there is nothing to go back to; the whole stack is replaced. */
 internal fun NavController.navigateToCleanupGuidanceAfterDisconnect() {
     navigate(Screen.CleanupGuidance.route) {
