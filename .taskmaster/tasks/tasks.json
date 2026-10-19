@@ -1937,7 +1937,7 @@
           "5",
           "6"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1945,9 +1945,10 @@
             "description": "Implement SettingsViewModel in the ui.settings package that observes SettingsRepository (DataStore) and exposes UI state for all app settings including destination folder, concurrency, network preferences, and behavior toggles.",
             "dependencies": [],
             "details": "1. Create package `com.gankdat.pomegranate.ui.settings`.\n2. Define `SettingsUiState` data class containing: destinationUri (String?), availableSpaceBytes (Long), concurrency (Int, 1-5), wifiOnly (Boolean), pauseOnLowBattery (Boolean), folderStrategy (enum: BY_ORIGIN, BY_MONTH_ONLY), autoDisconnect (Boolean), showFidelityNotice (Boolean), isConnected (Boolean), appVersion (String).\n3. Create `SettingsViewModel` extending ViewModel with:\n   - Inject SettingsRepository (DataStore-backed, from Task 2)\n   - Expose `uiState: StateFlow<SettingsUiState>` combining all settings flows\n   - Expose `availableSpace: StateFlow<Long>` computed from destination URI\n   - Methods for each setting update: updateConcurrency(Int), updateWifiOnly(Boolean), updatePauseOnLowBattery(Boolean), updateFolderStrategy(FolderStrategy), updateAutoDisconnect(Boolean), resetFidelityNotice()\n   - Method updateDestination(Uri) that persists SAF URI permission and updates DataStore\n4. Each update method immediately writes to DataStore (no batching).\n5. Use viewModelScope for coroutine launches.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: verify StateFlow emits correct initial values from DataStore; verify each update method writes to DataStore; verify available space calculation updates when destination changes. Mock SettingsRepository for isolation.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:54:06.060Z"
           },
           {
             "id": 2,
@@ -1957,9 +1958,10 @@
               1
             ],
             "details": "1. Create `SettingsScreen.kt` in `ui.settings` package.\n2. Accept `viewModel: SettingsViewModel = viewModel()` and navigation callbacks: `onNavigateToConnection: () -> Unit`, `onBack: () -> Unit`.\n3. Use Scaffold with TopAppBar (title 'Settings', back navigation icon).\n4. Implement LazyColumn with sections:\n   - Storage section: header, destination folder row (icon, path, tap to change), available space row (info display)\n   - Download section: header, concurrency slider, Wi-Fi only switch, pause on low battery switch\n   - Behavior section: header, folder strategy radio group, auto-disconnect switch, show fidelity notice switch\n   - Privacy section: header, 'View connection status' navigation row, 'What data is stored' info row\n   - About section: header, app version row, 'What this app does' row, 'Open source licenses' row, 'Privacy policy' row\n5. Create reusable Composables: `SettingsSection(title)`, `SettingsSwitchRow`, `SettingsSliderRow`, `SettingsRadioRow`, `SettingsNavigationRow`, `SettingsInfoRow`.\n6. Apply Material 3 theming, proper spacing (16dp horizontal padding), and content descriptions for accessibility.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify all five sections render with correct headers; verify all rows display current values from ViewModel; verify scroll behavior with LazyColumn; verify TopAppBar back navigation triggers callback.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:54:07.929Z"
           },
           {
             "id": 3,
@@ -1970,9 +1972,10 @@
               2
             ],
             "details": "1. In SettingsScreen, implement destination folder row that shows current path (or 'Not set') and available space.\n2. On tap, launch `ActivityResultContracts.OpenDocumentTree` with `ACTION_OPEN_DOCUMENT_TREE`.\n3. When user selects folder:\n   - Request persistable URI permission via `contentResolver.takePersistableUriPermission(uri, FLAG_GRANT_READ_URI_PERMISSION | FLAG_GRANT_WRITE_URI_PERMISSION)`\n   - Check if old destination has files in `Pomegranate/` subfolder using `DocumentsContract.findDocumentPath`\n   - If files exist, show AlertDialog warning: 'Existing files in [old path]/Pomegranate/ will not be moved. New downloads will go to [new path].'\n   - Call viewModel.updateDestination(uri) after confirmation or if no existing files\n4. Implement `calculateAvailableSpace(Uri): Long` using `StorageStatsManager` or `StatFs` on the destination path.\n5. Format space display: 'X.X GB available' using `Formatter.formatShortFileSize()`.\n6. Handle edge cases: permission denied, folder removed, SD card ejected.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Manual testing: verify folder picker launches; verify URI permission persists across app restart; verify warning dialog appears when old destination has files; verify available space updates after selection. Unit test: verify formatShortFileSize output.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:54:09.719Z"
           },
           {
             "id": 4,
@@ -1983,9 +1986,10 @@
               2
             ],
             "details": "1. Concurrency slider (Download section):\n   - Material 3 Slider with valueRange 1f..5f, steps 3 (for values 1,2,3,4,5)\n   - Display current value as label\n   - onValueChangeFinished calls viewModel.updateConcurrency(value.toInt())\n2. Switch controls:\n   - Wi-Fi only (Download): default true, calls viewModel.updateWifiOnly(checked)\n   - Pause on low battery (Download): default false, calls viewModel.updatePauseOnLowBattery(checked)\n   - Auto-disconnect (Behavior): default false, calls viewModel.updateAutoDisconnect(checked)\n   - Show fidelity notice (Behavior): calls viewModel.resetFidelityNotice() to set true\n3. Folder strategy radio group (Behavior section):\n   - Two options: 'By Origin' (YYYY/YYYY-MM/Origin/), 'By Month Only' (YYYY/YYYY-MM/)\n   - RadioButton with label, currently selected highlighted\n   - onSelect calls viewModel.updateFolderStrategy(strategy)\n4. Each control observes ViewModel state and reflects current value.\n5. Provide haptic feedback on switch toggle using LocalHapticFeedback.\n6. All controls have contentDescription for TalkBack accessibility.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify slider shows correct initial value; verify switch toggles update ViewModel; verify radio selection changes are persisted. Integration tests: verify DataStore contains updated values after control changes.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:54:11.467Z"
           },
           {
             "id": 5,
@@ -1995,15 +1999,16 @@
               2
             ],
             "details": "1. Privacy section navigation:\n   - 'View connection status' row: chevron icon, onTap calls onNavigateToConnection() callback\n   - 'What data is stored' row: info icon, onTap shows AlertDialog explaining local-only storage: 'All data stays on your device. The only network calls are to Google APIs when you connect your account. Nothing is sent to any other server.'\n2. About section info dialogs:\n   - App version row: display BuildConfig.VERSION_NAME (non-tappable info row)\n   - 'What this app does' row: onTap shows AlertDialog with brief explanation from PRD context\n   - 'Open source licenses' row: onTap shows dialog or navigate to LicensesScreen (use `aboutlibraries` compatible pattern or simple text placeholder for AndroidX licenses)\n   - 'Privacy policy' row: onTap shows AlertDialog: 'No data leaves your device except to Google APIs. No analytics, no telemetry, no servers.'\n3. Create reusable `InfoDialog(title, message, onDismiss)` Composable.\n4. Add settings gear icon to Library screen TopAppBar that navigates to Settings (integrate with Task 7 navigation).\n5. Register Settings destination in PomegranateNavHost (Task 5 integration).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify tapping Connection row triggers navigation callback; verify each dialog displays correct content; verify dialogs dismiss properly. Integration tests: verify navigation from Library to Settings works.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:54:13.221Z"
           }
         ],
         "complexity": 5,
         "recommendedSubtasks": 5,
         "expansionPrompt": "Break down Settings screen into: 1) Create SettingsViewModel observing SettingsRepository, 2) Build Settings sections (Storage, Download, Behavior, Privacy, About), 3) Implement destination folder change with SAF picker, 4) Add all preference controls (sliders, switches, radios), 5) Implement sub-screen navigation (Connection, About dialogs). Standard preference-style UI pattern.",
-        "updatedAt": "2026-10-19T16:49:48.865Z"
+        "updatedAt": "2026-10-19T16:54:13.221Z"
       },
       {
         "id": "21",
@@ -2016,7 +2021,7 @@
           "17",
           "19"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -2024,9 +2029,10 @@
             "description": "Build the main CleanupGuidanceScreen Composable with pre-cleanup verification that shows proof-of-copy summary, warns about unpulled items, and requires user acknowledgment before proceeding.",
             "dependencies": [],
             "details": "1. Create package `com.gankdat.pomegranate.ui.guidance`.\n2. Create `CleanupGuidanceViewModel` that:\n   - Exposes proof-of-copy summary (total items, verified count, pending count) from ManifestRepository.\n   - Computes `canProceed: Boolean` based on all items being verified or user explicit acknowledgment.\n   - Tracks user acknowledgment state.\n3. Create `CleanupGuidanceScreen` Composable:\n   - Header explaining the purpose of cleanup guidance.\n   - Summary card showing: total cloud items, verified copies count, items not yet pulled (if any).\n   - Warning banner (Material 3 Surface with error container color) if unpulled items exist.\n   - Checkbox with text: \"I understand that I have verified copies of my photos and videos on this device.\"\n   - \"Continue to Cleanup Guide\" button, enabled only when checkbox is checked.\n4. Navigation: Add route `cleanup_guidance` to app navigation graph.\n5. Use Material 3 components: Card, Checkbox, Button, Text with proper typography styles.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: ViewModel logic for canProceed calculation, acknowledgment state. UI tests: verify warning appears when unpulled items exist; verify button disabled until checkbox checked; verify navigation to next step.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:54:16.638Z"
           },
           {
             "id": 2,
@@ -2036,9 +2042,10 @@
               1
             ],
             "details": "1. Create `DeleteGuideScreen` Composable in `ui.guidance` package.\n2. Create `GuidanceStep` data class: stepNumber (Int), title (String), description (String), imageRes (Int? for drawable resource).\n3. Create `GuidanceStepCard` reusable Composable:\n   - Step number in a colored circle (Material 3 primary color).\n   - Title in titleMedium typography.\n   - Description in bodyMedium.\n   - Optional image placeholder (gray rounded rectangle with camera icon if no drawable).\n4. Define delete steps list:\n   - Step 1: Open Google Photos app (icon: Photos app icon placeholder).\n   - Step 2: Go to Library → select album or use search bar.\n   - Step 3: Long press to select first item, then tap \"Select all\" if desired.\n   - Step 4: Tap trash icon → confirm deletion.\n   - Step 5: Go to Trash (Library → Trash) → tap \"Empty trash\" or wait 60 days.\n5. LazyColumn displaying all steps with proper spacing.\n6. Bottom navigation: \"Back\" and \"Next: Disable Backup\" buttons.\n7. Add placeholder drawable resources in res/drawable for each step (can be simple vector icons initially).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify all 5 steps render correctly; verify navigation between screens works; verify scroll behavior. Content review: verify instructions match current Google Photos app flow.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:54:18.349Z"
           },
           {
             "id": 3,
@@ -2048,9 +2055,10 @@
               1
             ],
             "details": "1. Create `DisableBackupGuideScreen` Composable in `ui.guidance` package.\n2. Define backup disable steps list using same `GuidanceStep` model:\n   - Step 1: Open Google Photos app.\n   - Step 2: Tap profile picture (top right) → Photos settings.\n   - Step 3: Tap Backup → toggle off \"Backup\".\n   - Step 4 (Optional): To exclude specific folders - Backup → Back up device folders → toggle off specific folders.\n3. Add informational banner (Material 3 Surface with tertiary container color):\n   - Icon: info icon.\n   - Text: \"Turning off backup only stops future uploads. Photos and videos already in Google Photos will remain there until you delete them.\"\n4. Display steps using same `GuidanceStepCard` component from Task 21.2.\n5. Bottom navigation: \"Back: Delete Guide\" and \"Next: Important Warnings\" buttons.\n6. Reuse GuidanceStepCard component for consistent styling across guide screens.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "UI tests: verify all steps render correctly; verify informational banner is visible; verify navigation flow. Content review: verify instructions are accurate for current Google Photos settings structure.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:54:20.058Z"
           },
           {
             "id": 4,
@@ -2062,15 +2070,16 @@
               3
             ],
             "details": "1. Create `CleanupWarningsScreen` Composable:\n   - Check if destination URI (from SettingsRepository) is in DCIM, Pictures, or Download paths.\n   - If collision detected, show prominent warning card (error container color):\n     - Title: \"Warning: Your destination folder may be backed up\"\n     - Body: Explain that items saved to DCIM/Pictures/Download will re-upload to Google Photos.\n     - Include mini-guide: How to exclude folder in Google Photos (Settings → Backup → Back up device folders → toggle off the folder).\n   - If no collision, show success checkmark with \"Your destination folder is safe from auto-backup.\"\n2. Create `CleanupCompletionScreen` Composable:\n   - Header: \"Cleanup Complete\" with success illustration.\n   - Optional quota comparison section:\n     - Two text fields: \"Storage before cleanup\" and \"Storage after cleanup\" (user-entered, not automated).\n     - Helper text: \"Check your storage in Google Photos → Settings → Storage\"\n   - \"I've completed cleanup\" button that marks guidance as done.\n   - \"Return to Home\" navigation button.\n3. Link entry points: Add \"Cleanup Guide\" action to ProofOfCopyScreen and TransferCompleteScreen.\n4. Store cleanup completion state in DataStore (optional preference).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests: collision detection logic for various URI paths. UI tests: verify warning appears for DCIM/Pictures/Download destinations; verify completion flow; verify navigation from proof-of-copy and completion screens.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-10-19T16:54:21.747Z"
           }
         ],
         "complexity": 4,
         "recommendedSubtasks": 4,
         "expansionPrompt": "Break down cleanup guidance into: 1) Create CleanupGuidanceScreen with pre-cleanup requirements check, 2) Build step-by-step delete guide with screenshots/illustrations, 3) Build step-by-step backup disable guide, 4) Add backup-folder collision warning and completion confirmation. Content-heavy UI with minimal logic.",
-        "updatedAt": "2026-10-19T16:49:50.604Z"
+        "updatedAt": "2026-10-19T16:54:21.747Z"
       },
       {
         "id": "22",
@@ -2085,7 +2094,7 @@
           "16",
           "20"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -2159,7 +2168,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 6,
-        "expansionPrompt": "Break down accessibility work into: 1) Audit all composables and add contentDescription to Image/Icon, 2) Add semantics blocks and heading hierarchy, 3) Ensure 48dp minimum touch targets, 4) Create PomegranateTheme with dynamic color (Material You), 5) Implement dark mode support with custom state colors, 6) Add empty/error/loading states for all screens. TalkBack testing required on device."
+        "expansionPrompt": "Break down accessibility work into: 1) Audit all composables and add contentDescription to Image/Icon, 2) Add semantics blocks and heading hierarchy, 3) Ensure 48dp minimum touch targets, 4) Create PomegranateTheme with dynamic color (Material You), 5) Implement dark mode support with custom state colors, 6) Add empty/error/loading states for all screens. TalkBack testing required on device.",
+        "updatedAt": "2026-10-19T16:55:45.605Z"
       },
       {
         "id": "23",
@@ -2243,7 +2253,7 @@
           "7",
           "10"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -2308,7 +2318,8 @@
         ],
         "complexity": 6,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Break down thumbnail caching into: 1) Create ThumbnailCache with LRU LinkedHashMap and weak references, 2) Create ThumbnailLoader for device (ContentResolver) and cloud (baseUrl+size params), 3) Handle baseUrl expiry with refresh and retry, 4) Create AsyncThumbnail Composable with placeholder/error states, 5) Integrate with Library screen and handle scroll cancellation. Profile memory usage."
+        "expansionPrompt": "Break down thumbnail caching into: 1) Create ThumbnailCache with LRU LinkedHashMap and weak references, 2) Create ThumbnailLoader for device (ContentResolver) and cloud (baseUrl+size params), 3) Handle baseUrl expiry with refresh and retry, 4) Create AsyncThumbnail Composable with placeholder/error states, 5) Integrate with Library screen and handle scroll cancellation. Profile memory usage.",
+        "updatedAt": "2026-10-19T16:55:43.718Z"
       },
       {
         "id": "25",
@@ -2385,9 +2396,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T16:49:50.604Z",
+      "lastModified": "2026-10-19T16:55:45.605Z",
       "taskCount": 25,
-      "completedCount": 19,
+      "completedCount": 21,
       "tags": [
         "master"
       ]

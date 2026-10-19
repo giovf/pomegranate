@@ -89,7 +89,7 @@ private fun CloudItemDetailContent(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        FullSizePreview(ThumbnailSource.Remote(item.baseUrl), item.width, item.height, isVideo)
+        FullSizePreview(ThumbnailSource.Remote(item.baseUrl, item.id, item.sessionId), item.width, item.height, isVideo)
         Column(modifier = Modifier.padding(16.dp)) {
             StatusSection(state.state)
             Spacer(Modifier.height(12.dp))

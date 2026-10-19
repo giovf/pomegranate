@@ -75,8 +75,17 @@ private fun ScopeContent(viewModel: PullViewModel, modifier: Modifier) {
     val selected by viewModel.selected.collectAsStateWithLifecycle()
     val selectedCount = options.firstOrNull { it.choice == selected }?.itemCount ?: 0
 
+    val nothingToPull = options.isNotEmpty() && options.all { it.itemCount == 0 }
     Column(modifier = modifier.fillMaxSize()) {
         Text(stringResource(R.string.pull_scope_intro), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(16.dp))
+        if (nothingToPull) {
+            Text(
+                stringResource(R.string.pull_nothing),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+            )
+        }
         LazyColumn(modifier = Modifier.weight(1f)) {
             items(options, key = { it.choice.toString() }) { option ->
                 Row(

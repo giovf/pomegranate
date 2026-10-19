@@ -24,6 +24,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.gankdat.pomegranate.R
@@ -48,7 +49,10 @@ internal fun MediaGroupHeader(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onToggleExpand)
-            .semantics { contentDescription = "$name, $stats, $action" },
+            .semantics {
+                heading()
+                contentDescription = "$name, $stats, $action"
+            },
         tonalElevation = 1.dp,
     ) {
         Row(

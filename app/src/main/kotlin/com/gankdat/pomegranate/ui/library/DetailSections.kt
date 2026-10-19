@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.data.db.entity.MatchConfidence
@@ -49,7 +51,7 @@ internal fun StatusSection(state: MediaState) {
 /** What matched and how confidently, with a link to the other half of the pair. */
 @Composable
 internal fun MatchSection(match: MatchInfo, onOpenCounterpart: (() -> Unit)?) {
-    Text(stringResource(R.string.section_match), style = MaterialTheme.typography.labelLarge)
+    Text(stringResource(R.string.section_match), style = MaterialTheme.typography.labelLarge, modifier = Modifier.semantics { heading() })
     Spacer(Modifier.height(4.dp))
     val confidence = stringResource(
         when (match.confidence) {
@@ -90,7 +92,7 @@ internal fun MatchSection(match: MatchInfo, onOpenCounterpart: (() -> Unit)?) {
 
 @Composable
 internal fun SiblingsSection(siblings: List<SiblingInfo>) {
-    Text(stringResource(R.string.section_siblings), style = MaterialTheme.typography.labelLarge)
+    Text(stringResource(R.string.section_siblings), style = MaterialTheme.typography.labelLarge, modifier = Modifier.semantics { heading() })
     if (siblings.isEmpty()) {
         Text(stringResource(R.string.siblings_none), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         return

@@ -10,8 +10,8 @@ internal enum class GroupingMode { BY_FOLDER, BY_MONTH }
 internal sealed interface ThumbnailSource {
     data class Local(val volume: String, val mediaStoreId: Long) : ThumbnailSource
 
-    /** Picker base URL; size parameters are appended by the loader. */
-    data class Remote(val baseUrl: String) : ThumbnailSource
+    /** Picker base URL; size parameters are appended by the loader. Ids let the loader refresh an expired link. */
+    data class Remote(val baseUrl: String, val cloudItemId: Long, val sessionId: String) : ThumbnailSource
 }
 
 /**
@@ -61,7 +61,7 @@ internal data class LibraryEntry(
             sizeBytes = null,
             mime = item.mime,
             durationMs = item.durationMs,
-            thumbnail = ThumbnailSource.Remote(item.baseUrl),
+            thumbnail = ThumbnailSource.Remote(item.baseUrl, item.id, item.sessionId),
         )
     }
 }

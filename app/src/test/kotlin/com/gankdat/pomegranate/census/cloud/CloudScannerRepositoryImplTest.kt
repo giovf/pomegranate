@@ -95,6 +95,18 @@ class CloudScannerRepositoryImplTest {
     }
 
     @Test
+    fun `unconditional refresh re-lists even fresh links`() = runBlocking {
+        val session = repo.startPickerRound()
+        api.items[session.id] = mutableListOf(picked("m1", baseUrl = "https://lh3/v1"))
+        repo.indexSession(session.id)
+        api.items[session.id] = mutableListOf(picked("m1", baseUrl = "https://lh3/v2"))
+
+        repo.refreshBaseUrls(session.id)
+
+        assertEquals("https://lh3/v2", db.cloudItemDao().getByPickerMediaItemId("m1")!!.baseUrl)
+    }
+
+    @Test
     fun `a session Google no longer has marks the round expired`() = runBlocking {
         val session = repo.startPickerRound()
         api.items[session.id] = mutableListOf(picked("m1"))

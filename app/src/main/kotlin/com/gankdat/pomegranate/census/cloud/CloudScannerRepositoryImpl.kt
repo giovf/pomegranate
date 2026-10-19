@@ -61,6 +61,15 @@ internal class CloudScannerRepositoryImpl(
         }
     }
 
+    override suspend fun refreshBaseUrls(sessionId: String) {
+        try {
+            listInto(sessionId)
+        } catch (e: PickerApiException) {
+            if (e.isGone) roundDao.setState(sessionId, PickerRoundState.EXPIRED, itemCount = 0)
+            throw e
+        }
+    }
+
     override suspend fun deleteSession(sessionId: String) {
         try {
             api.deleteSession(sessionId)

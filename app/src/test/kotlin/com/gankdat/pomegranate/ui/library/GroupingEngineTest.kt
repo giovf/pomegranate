@@ -17,7 +17,7 @@ internal fun entry(id: Long, bucket: String?, dateTaken: Long, size: Long? = 100
     sizeBytes = size,
     mime = "image/jpeg",
     durationMs = null,
-    thumbnail = if (cloud) ThumbnailSource.Remote("https://lh3/$id") else ThumbnailSource.Local("external_primary", id),
+    thumbnail = if (cloud) ThumbnailSource.Remote("https://lh3/$id", id, "s") else ThumbnailSource.Local("external_primary", id),
 )
 
 class GroupingEngineTest {

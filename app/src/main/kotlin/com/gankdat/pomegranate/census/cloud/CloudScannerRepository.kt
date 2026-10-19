@@ -28,6 +28,9 @@ internal interface CloudScannerRepository {
     /** Re-lists the session if any of its base URLs expire within [marginMillis]; marks the round expired if Google no longer has it. */
     suspend fun refreshExpiringBaseUrls(sessionId: String, marginMillis: Long = DEFAULT_REFRESH_MARGIN_MILLIS)
 
+    /** Re-lists the session unconditionally (a link was rejected before its nominal expiry). */
+    suspend fun refreshBaseUrls(sessionId: String)
+
     /** Tells Google to discard the session; local items stay. */
     suspend fun deleteSession(sessionId: String)
 

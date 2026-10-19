@@ -62,6 +62,7 @@
         <item quantity="one">%1$d item</item>
         <item quantity="other">%1$d items</item>
     </plurals>
+    <string name="pull_nothing">Nothing to pull: every indexed item already has a verified copy. Index more rounds in Google Photos to find more.</string>
     <string name="pull_size_unknown">Google does not report file sizes before download, so make sure your destination has room.</string>
     <plurals name="pull_start">
         <item quantity="one">Pull %1$d item</item>

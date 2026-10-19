@@ -21,7 +21,7 @@ class LibraryEntriesTest {
 
         assertEquals(listOf("d:1" to MediaState.BOTH, "d:2" to MediaState.DEVICE_ONLY, "c:11" to MediaState.CLOUD_ONLY), entries.map { it.key to it.state })
         assertEquals("WhatsApp", entries.last().bucket)
-        assertEquals(ThumbnailSource.Remote("https://lh3/11"), entries.last().thumbnail)
+        assertEquals(ThumbnailSource.Remote("https://lh3/11", 11, "s"), entries.last().thumbnail)
         assertEquals(null, entries.last().sizeBytes)
 
         val totals = LibraryViewModel.totals(entries)
