@@ -138,7 +138,7 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -189,7 +189,8 @@
         ],
         "complexity": 4,
         "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down DataStore implementation into: 1) Add datastore-preferences dependency to libs.versions.toml, 2) Create FolderStrategy enum and SettingsRepository interface, 3) Implement SettingsRepositoryImpl with preference keys and DataStore, 4) Write unit tests for persistence and default values. Consider thread-safety for Flow emissions."
+        "expansionPrompt": "Break down DataStore implementation into: 1) Add datastore-preferences dependency to libs.versions.toml, 2) Create FolderStrategy enum and SettingsRepository interface, 3) Implement SettingsRepositoryImpl with preference keys and DataStore, 4) Write unit tests for persistence and default values. Consider thread-safety for Flow emissions.",
+        "updatedAt": "2026-10-19T14:21:01.484Z"
       },
       {
         "id": "3",
@@ -2250,7 +2251,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-19T13:06:56.042Z",
+      "lastModified": "2026-10-19T14:21:01.484Z",
       "taskCount": 25,
       "completedCount": 1,
       "tags": [
