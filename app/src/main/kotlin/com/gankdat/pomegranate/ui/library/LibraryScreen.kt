@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -114,8 +115,13 @@ internal fun LibraryScreen(
                     Tab(
                         selected = mode == tab,
                         onClick = { viewModel.setGroupingMode(tab) },
-                        text = { Text(stringResource(tab.labelRes())) },
-                        icon = { Icon(painter = painterResource(tab.iconRes()), contentDescription = null) },
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(painter = painterResource(tab.iconRes()), contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(stringResource(tab.labelRes()), maxLines = 1)
+                            }
+                        },
                     )
                 }
             }

@@ -57,10 +57,9 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="com.gankdat.pomegranate"
-                    android:host="oauth"
-                    android:path="/callback" />
+                <!-- com.gankdat.pomegranate:/oauth2redirect has no host, so only the
+                     scheme can be matched; the activity checks the OAuth state. -->
+                <data android:scheme="com.gankdat.pomegranate" />
             </intent-filter>
         </activity>
         <!-- WorkManager's foreground service needs the dataSync type on API 34+. -->

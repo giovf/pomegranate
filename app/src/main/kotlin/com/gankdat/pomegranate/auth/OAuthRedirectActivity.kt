@@ -7,7 +7,7 @@ import com.gankdat.pomegranate.MainActivity
 import com.gankdat.pomegranate.PomegranateApplication
 
 /**
- * Receives `com.gankdat.pomegranate://oauth/callback?...` from the browser,
+ * Receives `com.gankdat.pomegranate:/oauth2redirect?...` from the browser,
  * hands the URL to the auth repository and returns to the app. It renders
  * nothing and finishes immediately.
  */
