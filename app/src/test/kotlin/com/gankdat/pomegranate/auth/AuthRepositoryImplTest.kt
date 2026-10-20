@@ -81,7 +81,8 @@ class AuthRepositoryImplTest {
         assertEquals("state-xyz", params["state"])
         assertEquals("offline", params["access_type"])
         assertEquals("consent", params["prompt"])
-        assertEquals(AuthState.SigningIn, repo.authState.first())
+        // An unanswered sign-in leaves the Connect button available rather than a spinner.
+        assertEquals(AuthState.SignedOut, repo.authState.first())
     }
 
     @Test
@@ -102,6 +103,15 @@ class AuthRepositoryImplTest {
         assertEquals(AuthState.SignedIn, repo.authState.first())
         assertTrue(repo.isAuthenticated.first())
         assertEquals("access-1", repo.getAccessToken())
+    }
+
+    @Test
+    fun `a stale pending request from an earlier session still completes if its redirect arrives`() = runBlocking {
+        repo.beginAuthorization()
+        val restarted = AuthRepositoryImpl(config, store, endpoint, scope, browser = { _, _ -> }, clock = { now })
+        assertEquals(AuthState.SignedOut, restarted.authState.first())
+        assertEquals(AuthResult.Success, restarted.handleRedirect("${OAuthConfig.REDIRECT_URI}?state=state-xyz&code=late"))
+        assertEquals(AuthState.SignedIn, restarted.authState.first())
     }
 
     @Test

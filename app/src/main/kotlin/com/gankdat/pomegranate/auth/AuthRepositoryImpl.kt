@@ -49,7 +49,10 @@ internal class AuthRepositoryImpl(
             !config.isConfigured -> AuthState.NotConfigured
             phase is Phase.Error -> AuthState.Error(phase.message)
             phase is Phase.NeedsReauth -> AuthState.NeedsReauth
-            phase is Phase.Exchanging || record.pending != null -> AuthState.SigningIn
+            // Only while the code is being exchanged. A saved pending request alone
+            // (browser closed, or Google refused) must not trap the UI in a spinner;
+            // it is kept so a late redirect can still complete, and a new Connect replaces it.
+            phase is Phase.Exchanging -> AuthState.SigningIn
             record.tokens != null -> AuthState.SignedIn
             else -> AuthState.SignedOut
         }
