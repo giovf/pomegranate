@@ -41,6 +41,8 @@ internal class TransferEngine(
     private val storage: SafStorage,
     private val downloader: Downloader,
     private val registrar: MediaStoreRegistrar,
+    /** The user's current Google access token, refreshed as needed; null when signed out. */
+    private val accessToken: suspend () -> String?,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
@@ -61,6 +63,7 @@ internal class TransferEngine(
         jobs.update(attempt)
         try {
             val fresh = refreshedItem(item)
+            val token = accessToken() ?: throw TransferException.NotSignedIn()
             val (folderUri, folderPath) = destinationFolder(root, fresh)
             val isVideo = fresh.type == "VIDEO" || fresh.mime.startsWith("video/")
             val name = DestinationLayout.uniqueName(fresh.filename.ifBlank { fresh.pickerMediaItemId }) { storage.childExists(folderUri, it) }
@@ -69,7 +72,7 @@ internal class TransferEngine(
             var written = 0L
             try {
                 storage.openWrite(fileUri).use { sink ->
-                    written = downloader.download(fresh.baseUrl + FidelityClassifier.downloadSuffix(isVideo), sink) { bytes ->
+                    written = downloader.download(fresh.baseUrl + FidelityClassifier.downloadSuffix(isVideo), token, sink) { bytes ->
                         _liveProgress.update { it + (attempt.id to bytes) }
                     }
                 }

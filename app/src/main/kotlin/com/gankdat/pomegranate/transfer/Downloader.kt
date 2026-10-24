@@ -9,12 +9,15 @@ import javax.net.ssl.HttpsURLConnection
 /** Streams a URL's body into a sink, reporting bytes as they land. */
 internal interface Downloader {
     /** Returns the number of bytes written. Throws [TransferException]. */
-    fun download(url: String, sink: OutputStream, onProgress: (bytes: Long) -> Unit): Long
+    fun download(url: String, accessToken: String, sink: OutputStream, onProgress: (bytes: Long) -> Unit): Long
 }
 
-/** Platform `HttpsURLConnection`; the Picker base URL is a signed URL and needs no auth header. */
+/**
+ * Platform `HttpsURLConnection`. Google requires picked items' base URLs to be
+ * fetched with the user's OAuth bearer token, like any other Picker API call.
+ */
 internal class HttpDownloader : Downloader {
-    override fun download(url: String, sink: OutputStream, onProgress: (bytes: Long) -> Unit): Long {
+    override fun download(url: String, accessToken: String, sink: OutputStream, onProgress: (bytes: Long) -> Unit): Long {
         val connection = try {
             URL(url).openConnection() as HttpsURLConnection
         } catch (e: IOException) {
@@ -24,6 +27,7 @@ internal class HttpDownloader : Downloader {
             connection.connectTimeout = CONNECT_TIMEOUT_MILLIS
             connection.readTimeout = READ_TIMEOUT_MILLIS
             connection.instanceFollowRedirects = true
+            connection.setRequestProperty("Authorization", "Bearer $accessToken")
             val status = try {
                 connection.responseCode
             } catch (e: IOException) {

@@ -99,6 +99,7 @@ internal class PomegranateApplication : Application() {
             storage = ResolverSafStorage(contentResolver),
             downloader = HttpDownloader(),
             registrar = ScannerMediaStoreRegistrar(this),
+            accessToken = { auth.getAccessToken() },
         )
     }
 

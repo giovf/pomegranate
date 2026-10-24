@@ -66,9 +66,11 @@ internal class FakeDownloader : Downloader {
     var bodies = mutableMapOf<String, ByteArray>()
     var failWith: TransferException? = null
     val requested = mutableListOf<String>()
+    val tokens = mutableListOf<String>()
 
-    override fun download(url: String, sink: OutputStream, onProgress: (Long) -> Unit): Long {
+    override fun download(url: String, accessToken: String, sink: OutputStream, onProgress: (Long) -> Unit): Long {
         requested += url
+        tokens += accessToken
         failWith?.let { throw it }
         val body = bodies[url] ?: throw TransferException.SessionGone()
         var written = 0L

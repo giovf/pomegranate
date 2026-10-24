@@ -65,6 +65,7 @@ class TransferEngineTest {
     private var now = 1_709_649_000_000L
     private val refreshed = mutableListOf<String>()
     private var refreshFailure: Exception? = null
+    private var token: String? = "access-token"
     private val photoBytes = ByteArray(1_000) { it.toByte() }
 
     private val engine by lazy {
@@ -81,6 +82,7 @@ class TransferEngineTest {
             storage = storage,
             downloader = downloader,
             registrar = { docId, _ -> registered += docId },
+            accessToken = { token },
             ioDispatcher = Dispatchers.Unconfined,
             clock = { now },
         )
@@ -132,6 +134,7 @@ class TransferEngineTest {
         assertEquals(now, job.completedAt)
         assertEquals(1, job.attempts)
         assertEquals(listOf("https://lh3/1=d"), downloader.requested)
+        assertEquals(listOf("access-token"), downloader.tokens) // Google requires the bearer token on media URLs
         assertEquals(listOf("primary:IMG_1.jpg"), registered)
         assertTrue(refreshed.isEmpty())
         assertEquals(MatchConfidence.EXACT, db.matchDao().getForCloudItem(1).single().confidence)
@@ -198,6 +201,15 @@ class TransferEngineTest {
 
         assertEquals(TransferState.QUEUED, engine.run(db.transferJobDao().getById(jobId)!!))
         assertTrue(db.transferJobDao().getById(jobId)!!.lastError!!.startsWith("Size mismatch"))
+        assertTrue(storage.files.isEmpty())
+    }
+
+    @Test
+    fun `signed out fails the job without downloading`() = runBlocking {
+        token = null
+        val jobId = enqueueOne()
+        assertEquals(TransferState.FAILED, engine.run(db.transferJobDao().getById(jobId)!!))
+        assertEquals(emptyList<String>(), downloader.requested)
         assertTrue(storage.files.isEmpty())
     }
 

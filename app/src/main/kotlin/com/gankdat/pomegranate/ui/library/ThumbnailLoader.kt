@@ -33,6 +33,8 @@ internal fun interface BaseUrlRefresher {
 internal class ThumbnailLoader(
     private val resolver: ContentResolver,
     private val refresher: BaseUrlRefresher,
+    /** Google requires the user's bearer token on picked items' base URLs. */
+    private val accessToken: suspend () -> String?,
 ) {
     private val cache = object : LruCache<String, Bitmap>((Runtime.getRuntime().maxMemory() / 8).toInt().coerceAtLeast(MIN_CACHE_BYTES)) {
         override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
@@ -59,11 +61,12 @@ internal class ThumbnailLoader(
     }
 
     private suspend fun loadRemote(source: ThumbnailSource.Remote, size: Size): Bitmap? {
-        return when (val first = fetch(remoteUrl(source.baseUrl, size))) {
+        val token = accessToken() ?: return null
+        return when (val first = fetch(remoteUrl(source.baseUrl, size), token)) {
             is Fetch.Ok -> first.bitmap
             Fetch.Rejected -> {
                 val fresh = refresher.refresh(source.sessionId, source.cloudItemId) ?: return null
-                (fetch(remoteUrl(fresh, size)) as? Fetch.Ok)?.bitmap
+                (fetch(remoteUrl(fresh, size), accessToken() ?: return null) as? Fetch.Ok)?.bitmap
             }
             Fetch.Failed -> null
         }
@@ -78,15 +81,16 @@ internal class ThumbnailLoader(
         data object Failed : Fetch
     }
 
-    private fun fetch(url: String): Fetch {
+    private fun fetch(url: String, token: String): Fetch {
         val connection = URL(url).openConnection() as HttpsURLConnection
         try {
+            connection.setRequestProperty("Authorization", "Bearer $token")
             connection.connectTimeout = TIMEOUT_MILLIS
             connection.readTimeout = TIMEOUT_MILLIS
             return when (val status = connection.responseCode) {
                 HttpURLConnection.HTTP_OK -> connection.inputStream.use { BitmapFactory.decodeStream(it) }?.let { Fetch.Ok(it) } ?: Fetch.Failed
                 HttpURLConnection.HTTP_UNAUTHORIZED, HttpURLConnection.HTTP_FORBIDDEN, HttpURLConnection.HTTP_NOT_FOUND -> Fetch.Rejected
-                else -> if (status in 500..599) Fetch.Failed else Fetch.Failed
+                else -> Fetch.Failed
             }
         } finally {
             connection.disconnect()
@@ -136,6 +140,7 @@ internal class ThumbnailLoader(
                             null
                         }
                     },
+                    accessToken = { app.auth.getAccessToken() },
                 ).also { shared = it }
             }
     }
