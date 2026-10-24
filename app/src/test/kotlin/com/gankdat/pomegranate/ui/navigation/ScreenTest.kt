@@ -17,6 +17,9 @@ class ScreenTest {
         Screen.Settings,
         Screen.Disconnect,
         Screen.CleanupGuidance,
+        Screen.ProofOfCopy,
+        Screen.ManifestViewer,
+        Screen.Coverage,
     )
 
     @Test

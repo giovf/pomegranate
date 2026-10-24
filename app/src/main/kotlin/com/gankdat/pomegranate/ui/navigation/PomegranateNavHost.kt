@@ -12,6 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.ui.connection.ConnectionScreen
+import com.gankdat.pomegranate.ui.coverage.CoverageScreen
 import com.gankdat.pomegranate.ui.connection.DisconnectScreen
 import com.gankdat.pomegranate.ui.guidance.CleanupGuidanceScreen
 import com.gankdat.pomegranate.ui.settings.SettingsScreen
@@ -89,7 +90,11 @@ internal fun PomegranateNavHost(
         }
         composable(Screen.Connection.route) {
             PomegranateScaffold(navController, stringResource(R.string.title_connection)) { padding ->
-                ConnectionScreen(onDisconnect = navController::navigateToDisconnect, modifier = Modifier.padding(padding))
+                ConnectionScreen(
+                    onDisconnect = navController::navigateToDisconnect,
+                    onOpenCoverage = { navController.navigate(Screen.Coverage.route) { launchSingleTop = true } },
+                    modifier = Modifier.padding(padding),
+                )
             }
         }
         composable(Screen.Settings.route) {
@@ -118,6 +123,11 @@ internal fun PomegranateNavHost(
                     onCleanupGuidance = { navController.navigate(Screen.CleanupGuidance.route) },
                     modifier = Modifier.padding(padding),
                 )
+            }
+        }
+        composable(Screen.Coverage.route) {
+            PomegranateScaffold(navController, stringResource(R.string.title_coverage)) { padding ->
+                CoverageScreen(modifier = Modifier.padding(padding))
             }
         }
         composable(Screen.ManifestViewer.route) {

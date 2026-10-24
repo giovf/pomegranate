@@ -213,6 +213,33 @@
     <string name="picker_starting">Opening the picker…</string>
     <string name="picker_waiting">Waiting for you to finish picking in Google Photos. Tap Done there, then come back.</string>
     <string name="picker_reopen">Reopen picker</string>
+    <string name="picker_start_other_device">Pick on a computer or another device</string>
+    <string name="picker_show_qr">Show QR code for another device</string>
+    <string name="picker_other_device_title">Pick on another device</string>
+    <string name="picker_other_device_body">Scan this code or open the link on a computer signed in to the same Google account. Select your photos there and press Done. This phone picks up the selection automatically; keep Pomegranate open or come back to it.</string>
+    <string name="picker_other_device_tip">On a computer: click the first photo, hold Shift and click the last to select everything in between, up to 2,000 per round.</string>
+    <string name="picker_other_device_done">Close</string>
+    <string name="picker_qr_description">QR code with the Google Photos picker link</string>
+    <string name="picker_copy_link">Copy link</string>
+    <string name="picker_share_link">Share link</string>
+    <string name="picker_link_label">Google Photos picker link</string>
+    <string name="title_coverage">Coverage by month</string>
+    <string name="coverage_open">Coverage by month</string>
+    <string name="coverage_intro">Google never says how big your library is, so this compares each month on this phone with what you have indexed. Months marked in orange are the ones to pick next.</string>
+    <plurals name="coverage_months_to_pick">
+        <item quantity="one">%1$d month may need a picker round</item>
+        <item quantity="other">%1$d months may need a picker round</item>
+    </plurals>
+    <string name="coverage_empty">Nothing to compare yet. Scan this phone and index a picker round first.</string>
+    <string name="coverage_undated">No date</string>
+    <string name="coverage_counts">Phone: %1$d · Indexed: %2$d · Matched: %3$d · To pull: %4$d</string>
+    <string name="coverage_hint_not_indexed">Not indexed yet: pick this month next</string>
+    <plurals name="coverage_hint_partial">
+        <item quantity="one">%1$d phone item not found in the index</item>
+        <item quantity="other">%1$d phone items not found in the index</item>
+    </plurals>
+    <string name="coverage_hint_covered">Every phone item is matched</string>
+    <string name="coverage_hint_cloud_only">Only in Google Photos</string>
     <string name="picker_indexing">Listing your selection…</string>
     <plurals name="picker_round_done">
         <item quantity="one">Indexed %1$d item from this round.</item>

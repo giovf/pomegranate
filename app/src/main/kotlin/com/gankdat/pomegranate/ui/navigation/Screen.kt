@@ -47,6 +47,8 @@ internal sealed class Screen(val route: String) {
 
     data object ManifestViewer : Screen("manifest")
 
+    data object Coverage : Screen("coverage")
+
     companion object {
         const val ARG_ITEM_ID: String = "itemId"
         const val ARG_CLOUD_ITEM_ID: String = "cloudItemId"

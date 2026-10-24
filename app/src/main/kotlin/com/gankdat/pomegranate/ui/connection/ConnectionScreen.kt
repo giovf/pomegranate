@@ -21,6 +21,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -43,6 +46,7 @@ import com.gankdat.pomegranate.ui.format.Formatters
 @Composable
 internal fun ConnectionScreen(
     onDisconnect: () -> Unit,
+    onOpenCoverage: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ConnectionViewModel = viewModel(factory = appViewModelFactory { ConnectionViewModel(it.auth, it.cloudScanner, it.reconciliation, it.origins) }),
 ) {
@@ -73,7 +77,7 @@ internal fun ConnectionScreen(
         if (auth == AuthState.SignedIn) {
             tokenStatus?.let { TokenStatusSection(it, refreshing, viewModel::refreshAccess) }
             HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
-            PickerSection(round, coverage, viewModel, activity)
+            PickerSection(round, coverage, viewModel, activity, onOpenCoverage)
             if (rounds.isNotEmpty()) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
                 RoundsHistory(rounds)
@@ -168,7 +172,10 @@ private fun RoundsHistory(rounds: List<PickerRoundEntity>) {
 }
 
 @Composable
-private fun PickerSection(round: RoundState, coverage: CoverageUi, viewModel: ConnectionViewModel, activity: Activity?) {
+private fun PickerSection(round: RoundState, coverage: CoverageUi, viewModel: ConnectionViewModel, activity: Activity?, onOpenCoverage: () -> Unit) {
+    var showQr by rememberSaveable { mutableStateOf(false) }
+    val startOnPhone = { activity?.let { a -> viewModel.startRound { url -> CustomTabLauncher.open(a, url) } } }
+    val startElsewhere = { viewModel.startRound { showQr = true } }
     Text(stringResource(R.string.picker_title), style = MaterialTheme.typography.titleMedium)
     Spacer(Modifier.height(8.dp))
     Text(stringResource(R.string.picker_body), style = MaterialTheme.typography.bodyMedium)
@@ -182,12 +189,14 @@ private fun PickerSection(round: RoundState, coverage: CoverageUi, viewModel: Co
             coverage.lastRoundAt?.let {
                 Text(stringResource(R.string.picker_last_round, Formatters.dateTime(it)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            TextButton(onClick = onOpenCoverage) { Text(stringResource(R.string.coverage_open)) }
         }
     }
     Spacer(Modifier.height(16.dp))
     when (round) {
-        RoundState.Idle -> Button(onClick = { activity?.let { a -> viewModel.startRound { url -> CustomTabLauncher.open(a, url) } } }, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.picker_start))
+        RoundState.Idle -> {
+            Button(onClick = { startOnPhone() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_start)) }
+            OutlinedButton(onClick = startElsewhere, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_start_other_device)) }
         }
         RoundState.Starting, RoundState.Indexing -> {
             CircularProgressIndicator()
@@ -201,14 +210,15 @@ private fun PickerSection(round: RoundState, coverage: CoverageUi, viewModel: Co
             OutlinedButton(onClick = { activity?.let { a -> CustomTabLauncher.open(a, round.pickerUri) } }) {
                 Text(stringResource(R.string.picker_reopen))
             }
+            OutlinedButton(onClick = { showQr = true }) { Text(stringResource(R.string.picker_show_qr)) }
             TextButton(onClick = viewModel::cancelRound) { Text(stringResource(android.R.string.cancel)) }
+            if (showQr) PickOnAnotherDeviceDialog(pickerUri = round.pickerUri, onDismiss = { showQr = false })
         }
         is RoundState.Done -> {
             Text(pluralStringResource(R.plurals.picker_round_done, round.itemCount, round.itemCount), style = MaterialTheme.typography.bodyLarge)
             Spacer(Modifier.height(8.dp))
-            Button(onClick = { activity?.let { a -> viewModel.startRound { url -> CustomTabLauncher.open(a, url) } } }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.picker_another))
-            }
+            Button(onClick = { startOnPhone() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_another)) }
+            OutlinedButton(onClick = startElsewhere, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_start_other_device)) }
         }
         is RoundState.Failed -> {
             Text(round.message, color = MaterialTheme.colorScheme.error)
