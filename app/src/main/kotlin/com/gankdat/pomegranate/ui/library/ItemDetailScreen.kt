@@ -174,7 +174,10 @@ private fun ItemDetailContent(state: ItemDetailUiState.Success, onComputeHash: (
 @Composable
 internal fun FullSizePreview(source: ThumbnailSource, width: Int, height: Int, isVideo: Boolean) {
     val loader = rememberThumbnailLoader()
-    val bitmap by produceState<Bitmap?>(null, source) { value = loader.load(source, PREVIEW_SIZE) }
+    // null = loading; Result failure = could not load (shown as a message, never an endless spinner).
+    val bitmap by produceState<Result<Bitmap>?>(null, source) {
+        value = loader.load(source, PREVIEW_SIZE)?.let { Result.success(it) } ?: Result.failure(IllegalStateException())
+    }
     val ratio = if (width > 0 && height > 0) width.toFloat() / height else 4f / 3f
     Box(
         modifier = Modifier
@@ -183,8 +186,11 @@ internal fun FullSizePreview(source: ThumbnailSource, width: Int, height: Int, i
             .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {
-        val loaded = bitmap
-        if (loaded != null) {
+        val result = bitmap
+        val loaded = result?.getOrNull()
+        if (result == null) {
+            CircularProgressIndicator()
+        } else if (loaded != null) {
             Image(
                 bitmap = loaded.asImageBitmap(),
                 contentDescription = stringResource(if (isVideo) R.string.preview_video else R.string.preview_photo),
@@ -192,7 +198,12 @@ internal fun FullSizePreview(source: ThumbnailSource, width: Int, height: Int, i
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
-            CircularProgressIndicator()
+            Text(
+                stringResource(if (source is ThumbnailSource.Remote) R.string.preview_failed_cloud else R.string.preview_failed_device),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(24.dp),
+            )
         }
     }
 }

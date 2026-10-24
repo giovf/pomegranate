@@ -3,6 +3,13 @@ package com.gankdat.pomegranate.ui.library
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -40,6 +47,8 @@ internal fun MediaGroupHeader(
     onToggleExpand: () -> Unit,
     @DrawableRes iconRes: Int,
     modifier: Modifier = Modifier,
+    /** Bar segments as (fraction of the largest group, colour); empty draws no bar. */
+    storageBar: List<Pair<Float, Color>> = emptyList(),
 ) {
     val stats = pluralStringResource(R.plurals.group_stats, itemCount, itemCount, Formatters.fileSize(totalSizeBytes))
     val action = stringResource(if (isExpanded) R.string.group_collapse else R.string.group_expand)
@@ -66,6 +75,7 @@ internal fun MediaGroupHeader(
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = name, style = MaterialTheme.typography.titleMedium)
                 Text(text = stats, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (storageBar.isNotEmpty()) StorageBar(storageBar)
             }
             Icon(
                 painter = painterResource(R.drawable.ic_expand_more),
@@ -77,3 +87,26 @@ internal fun MediaGroupHeader(
         }
     }
 }
+
+/** Thin bar: total length scales with the folder's size against the largest folder; each segment is one storage volume. */
+@Composable
+private fun StorageBar(segments: List<Pair<Float, Color>>) {
+    val shown = segments.map { (f, c) -> f.coerceIn(0f, 1f) to c }.filter { it.first > 0f }
+    val rest = (1f - shown.sumOf { it.first.toDouble() }.toFloat()).coerceAtLeast(0f)
+    Row(
+        modifier = Modifier
+            .padding(top = 6.dp)
+            .fillMaxWidth()
+            .height(6.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        shown.forEach { (fraction, color) ->
+            // At least a sliver so small folders stay visible.
+            Box(modifier = Modifier.weight(fraction.coerceAtLeast(MIN_SEGMENT)).fillMaxHeight().background(color))
+        }
+        if (rest > 0f) Spacer(Modifier.weight(rest))
+    }
+}
+
+private const val MIN_SEGMENT = 0.005f

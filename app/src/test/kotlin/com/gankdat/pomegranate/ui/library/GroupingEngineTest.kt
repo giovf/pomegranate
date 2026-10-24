@@ -6,7 +6,7 @@ import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-internal fun entry(id: Long, bucket: String?, dateTaken: Long, size: Long? = 100, cloud: Boolean = false) = LibraryEntry(
+internal fun entry(id: Long, bucket: String?, dateTaken: Long, size: Long? = 100, cloud: Boolean = false, volume: String = "external_primary") = LibraryEntry(
     key = if (cloud) "c:$id" else "d:$id",
     state = if (cloud) MediaState.CLOUD_ONLY else MediaState.DEVICE_ONLY,
     deviceItemId = if (cloud) null else id,
@@ -18,6 +18,7 @@ internal fun entry(id: Long, bucket: String?, dateTaken: Long, size: Long? = 100
     mime = "image/jpeg",
     durationMs = null,
     thumbnail = if (cloud) ThumbnailSource.Remote("https://lh3/$id", id, "s") else ThumbnailSource.Local("external_primary", id),
+    volume = if (cloud) null else volume,
 )
 
 class GroupingEngineTest {
@@ -31,19 +32,26 @@ class GroupingEngineTest {
         entry(4, null, 0, size = 40),
         entry(5, "Screenshots", march + 1, size = 50),
         entry(6, null, april, size = null, cloud = true),
+        entry(7, "Camera", april, size = null, cloud = true),
     )
 
     @Test
-    fun `folders sort case-insensitively, unknown buckets are labelled per side, items newest first`() {
+    fun `phone folders first, then Google-only groups, never merged by name`() {
         val groups = GroupingEngine.byFolder(items)
 
-        assertEquals(listOf("Camera", "camera2", GroupingEngine.CLOUD_UNKNOWN_FOLDER, "Screenshots", GroupingEngine.UNKNOWN_FOLDER), groups.map { it.name })
+        assertEquals(
+            listOf("Camera", "camera2", "Screenshots", GroupingEngine.UNKNOWN_FOLDER, GroupingEngine.CLOUD_FOLDER_PREFIX + "Camera", GroupingEngine.CLOUD_UNKNOWN_FOLDER),
+            groups.map { it.name },
+        )
         val camera = groups.first()
         assertEquals(listOf("d:3", "d:1"), camera.items.map { it.key })
         assertEquals(2, camera.itemCount)
         assertEquals(40L, camera.totalSizeBytes)
         assertEquals("folder:Camera", camera.key)
-        assertEquals(0L, groups[2].totalSizeBytes) // cloud-only sizes unknown
+        assertEquals(listOf("d:3", "d:1"), groups.first().items.map { it.key }) // Google-only "Camera" items are not in the phone folder
+        assertEquals(true, groups[4].isCloudOnly)
+        assertEquals(0L, groups[5].totalSizeBytes) // Google-only sizes unknown
+        assertEquals(emptyList<Pair<String, Long>>(), groups[5].sizeByVolume)
     }
 
     @Test
@@ -51,10 +59,16 @@ class GroupingEngineTest {
         val groups = GroupingEngine.byMonth(items, ZoneOffset.UTC, Locale.UK)
 
         assertEquals(listOf("April 2024", "March 2024", GroupingEngine.UNKNOWN_DATE), groups.map { it.name })
-        assertEquals(listOf("d:3", "d:2", "c:6"), groups[0].items.map { it.key })
+        assertEquals(listOf("d:3", "d:2", "c:7", "c:6"), groups[0].items.map { it.key })
         assertEquals(listOf("d:5", "d:1"), groups[1].items.map { it.key })
         assertEquals(listOf("d:4"), groups[2].items.map { it.key })
         assertEquals("month:2024-04", groups[0].key)
+    }
+
+    @Test
+    fun `size is split per storage volume, largest first`() {
+        val group = GroupingEngine.byFolder(listOf(entry(1, "DCIM", march, size = 10), entry(2, "DCIM", march, size = 30, volume = "1234-abcd"), entry(3, "DCIM", march, size = 5))).single()
+        assertEquals(listOf("1234-abcd" to 30L, "external_primary" to 15L), group.sizeByVolume)
     }
 
     @Test

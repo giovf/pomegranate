@@ -32,6 +32,8 @@ internal data class LibraryEntry(
     val mime: String,
     val durationMs: Long?,
     val thumbnail: ThumbnailSource,
+    /** MediaStore volume holding the phone file (`external_primary`, or an SD card / USB id); null for Google-only items. */
+    val volume: String? = null,
 ) {
     val isVideo: Boolean get() = mime.startsWith("video/")
 
@@ -48,6 +50,7 @@ internal data class LibraryEntry(
             mime = item.mime,
             durationMs = item.durationMs,
             thumbnail = ThumbnailSource.Local(item.volume, item.mediaStoreId),
+            volume = item.volume,
         )
 
         fun fromCloud(item: CloudItemEntity) = LibraryEntry(
@@ -75,6 +78,16 @@ internal data class MediaGroup(
 ) {
     val itemCount: Int get() = items.size
     val totalSizeBytes: Long = items.sumOf { it.sizeBytes ?: 0L }
+
+    /** Bytes per storage volume, largest first; empty for Google-only groups (their sizes are unknown). */
+    val sizeByVolume: List<Pair<String, Long>> = items
+        .filter { it.volume != null && (it.sizeBytes ?: 0) > 0 }
+        .groupBy { it.volume!! }
+        .map { (volume, members) -> volume to members.sumOf { it.sizeBytes ?: 0L } }
+        .sortedByDescending { it.second }
+
+    /** True when every item is only in Google Photos. */
+    val isCloudOnly: Boolean get() = items.isNotEmpty() && items.all { it.deviceItemId == null }
 }
 
 internal data class StateTotals(val count: Int, val sizeBytes: Long)

@@ -29,6 +29,7 @@ internal object MatchingEngine {
 
     fun match(cloudItems: List<CloudItemEntity>, deviceItems: List<DeviceItemEntity>): List<MatchProposal> {
         val byName = deviceItems.groupBy { it.displayName.lowercase(Locale.ROOT) }
+        val byBase = deviceItems.groupBy { baseKey(it.displayName, it.mime) }
         val byDimensions = deviceItems.filter { it.width > 0 && it.height > 0 }.groupBy { it.width to it.height }
         val claimed = HashSet<Long>()
         val proposals = ArrayList<MatchProposal>()
@@ -36,7 +37,13 @@ internal object MatchingEngine {
         // Primary pass first for every cloud item so exact pairs claim their device rows before looser rules run.
         val unmatched = ArrayList<CloudItemEntity>()
         for (cloud in cloudItems) {
-            val proposal = primary(cloud, byName[cloud.filename.lowercase(Locale.ROOT)].orEmpty().filter { it.id !in claimed })
+            val sameName = byName[cloud.filename.lowercase(Locale.ROOT)].orEmpty().filter { it.id !in claimed }
+            val proposal = if (sameName.isNotEmpty()) {
+                primary(cloud, sameName, formatChanged = false)
+            } else {
+                // Same name in another format of the same kind (HEIC on one side, JPG on the other).
+                primary(cloud, byBase[baseKey(cloud.filename, cloud.mime)].orEmpty().filter { it.id !in claimed }, formatChanged = true)
+            }
             if (proposal != null) {
                 proposals += proposal
                 claimed += proposal.deviceItemId
@@ -45,7 +52,8 @@ internal object MatchingEngine {
             }
         }
         for (cloud in unmatched) {
-            val candidates = byDimensions[cloud.width to cloud.height].orEmpty().filter { it.id !in claimed }
+            val kind = cloud.mime.substringBefore('/')
+            val candidates = byDimensions[cloud.width to cloud.height].orEmpty().filter { it.id !in claimed && it.mime.substringBefore('/') == kind }
             val proposal = secondary(cloud, candidates) ?: continue
             proposals += proposal
             claimed += proposal.deviceItemId
@@ -53,35 +61,42 @@ internal object MatchingEngine {
         return proposals
     }
 
-    /** Same filename. Confidence then depends on timestamp agreement and dimensions. */
-    private fun primary(cloud: CloudItemEntity, sameName: List<DeviceItemEntity>): MatchProposal? {
+    /**
+     * Same filename (or, with [formatChanged], same name in another format).
+     * Confidence then depends on timestamp agreement and dimensions. Unknown
+     * dimensions on either side do not count against a match.
+     */
+    private fun primary(cloud: CloudItemEntity, sameName: List<DeviceItemEntity>, formatChanged: Boolean): MatchProposal? {
         if (cloud.filename.isBlank() || sameName.isEmpty()) return null
         val scored = sameName.map { device -> device to score(cloud, device) }
         val best = scored.maxByOrNull { it.second.rank } ?: return null
         val ties = scored.count { it.second.rank == best.second.rank }
         val (device, s) = best
-        val confidence = when {
+        val dimsOk = s.dimensions || !dimensionsKnown(cloud, device)
+        val distinctive = sameName.size == 1 && isDistinctive(cloud.filename)
+        val raw = when {
             ties > 1 -> MatchConfidence.AMBIGUOUS
-            s.timestamp == TimestampAgreement.EXACT && s.dimensions -> MatchConfidence.EXACT
-            s.timestamp == TimestampAgreement.ZONE_SHIFTED && s.dimensions -> MatchConfidence.LIKELY
-            s.timestamp == TimestampAgreement.EXACT && !dimensionsKnown(cloud, device) -> MatchConfidence.LIKELY
-            // Phone date unknown (missing, or only the file's copy time): a distinctive name plus identical pixel size is strong evidence.
-            s.timestamp == TimestampAgreement.UNKNOWN && s.dimensions && sameName.size == 1 && isDistinctive(cloud.filename) -> MatchConfidence.LIKELY
-            s.timestamp == TimestampAgreement.DIFFERENT && s.dimensions && !dimensionsKnown(cloud, device) -> MatchConfidence.AMBIGUOUS
-            s.dimensions -> MatchConfidence.AMBIGUOUS // filename + dimensions, timestamp unknown or different
+            s.timestamp == TimestampAgreement.EXACT && dimsOk -> if (s.dimensions) MatchConfidence.EXACT else MatchConfidence.LIKELY
+            s.timestamp == TimestampAgreement.ZONE_SHIFTED && dimsOk -> MatchConfidence.LIKELY
+            // Phone date unknown or only day-precise: a distinctive name plus agreeing size is strong evidence.
+            s.timestamp == TimestampAgreement.UNKNOWN && dimsOk && distinctive -> MatchConfidence.LIKELY
+            s.timestamp == TimestampAgreement.UNKNOWN && dimsOk -> MatchConfidence.AMBIGUOUS
+            s.timestamp == TimestampAgreement.DIFFERENT && s.dimensions -> MatchConfidence.AMBIGUOUS
             else -> return null // same name but nothing else agrees: a different file with a common name
         }
+        val confidence = if (formatChanged && raw == MatchConfidence.EXACT) MatchConfidence.LIKELY else raw
         return MatchProposal(
             cloudItemId = cloud.id,
             deviceItemId = device.id,
             confidence = confidence,
             evidence = Evidence(
                 method = MatchMethod.PRIMARY,
-                filenameMatched = true,
+                filenameMatched = !formatChanged,
                 timestampDeltaMs = s.deltaMs,
                 timestamp = s.timestamp,
                 dimensionsMatched = s.dimensions,
                 candidateCount = sameName.size,
+                note = if (formatChanged) "same name, different file format" else null,
             ),
         )
     }
@@ -148,8 +163,24 @@ internal object MatchingEngine {
     /** The scanner stores the file's write time when no capture date exists; such a date says nothing about the photo. */
     private fun deviceDateKnown(device: DeviceItemEntity): Boolean = device.dateTaken != device.dateModified
 
+    /** Name without extension plus media kind, so a photo never pairs with a video of the same name. */
+    private fun baseKey(filename: String, mime: String): String =
+        filename.substringBeforeLast('.').lowercase(Locale.ROOT) + "|" + mime.substringBefore('/').lowercase(Locale.ROOT)
+
+    /** Filename-derived dates are stored at 12:00 UTC: they are only accurate to the day. */
+    private fun isDayPrecise(millis: Long): Boolean = millis > 0 && millis % ONE_DAY_MS == MIDDAY_MS
+
+    private const val MIDDAY_MS = 12 * 60 * 60_000L
+
     private fun score(cloud: CloudItemEntity, device: DeviceItemEntity): Score {
-        val (agreement, delta) = if (deviceDateKnown(device)) agreement(cloud.createTime, device.dateTaken) else TimestampAgreement.UNKNOWN to null
+        val (agreement, delta) = when {
+            !deviceDateKnown(device) -> TimestampAgreement.UNKNOWN to null
+            isDayPrecise(device.dateTaken) && cloud.createTime > 0 -> {
+                val days = abs(cloud.createTime / ONE_DAY_MS - device.dateTaken / ONE_DAY_MS)
+                (if (days <= 1) TimestampAgreement.UNKNOWN else TimestampAgreement.DIFFERENT) to abs(cloud.createTime - device.dateTaken)
+            }
+            else -> agreement(cloud.createTime, device.dateTaken)
+        }
         val dims = dimensionsKnown(cloud, device) && cloud.width == device.width && cloud.height == device.height ||
             dimensionsKnown(cloud, device) && cloud.width == device.height && cloud.height == device.width // EXIF rotation applied on one side only
         return Score(agreement, delta, dims)

@@ -59,6 +59,28 @@ class MatchingEngineTest {
     }
 
     @Test
+    fun `unknown pixel size on the phone does not block a match`() {
+        assertEquals(MatchConfidence.LIKELY, single(cloud(1, "PXL_20240305_143000123.jpg"), device(10, "PXL_20240305_143000123.jpg", w = 0, h = 0))!!.confidence)
+    }
+
+    @Test
+    fun `a filename-derived phone date is compared by day`() {
+        val noon = (T0 / 86_400_000L) * 86_400_000L + 12 * HOUR
+        val sameDay = single(cloud(1, "IMG-20240305-WA0001.jpg", created = T0), device(10, "IMG-20240305-WA0001.jpg", taken = noon))!!
+        assertEquals(MatchConfidence.LIKELY, sameDay.confidence)
+        val otherDay = single(cloud(1, "IMG-20240305-WA0001.jpg", created = T0 + 30 * 24 * HOUR), device(10, "IMG-20240305-WA0001.jpg", taken = noon))!!
+        assertEquals(MatchConfidence.AMBIGUOUS, otherDay.confidence)
+    }
+
+    @Test
+    fun `same name in another format of the same kind is at most LIKELY, never across photo and video`() {
+        val m = single(cloud(1, "IMG_1234.HEIC").copy(mime = "image/heic"), device(10, "IMG_1234.jpg"))!!
+        assertEquals(MatchConfidence.LIKELY, m.confidence)
+        assertEquals(false, m.evidence.filenameMatched)
+        assertNull(single(cloud(1, "IMG_1234.MOV").copy(mime = "video/quicktime", type = "VIDEO"), device(10, "IMG_1234.jpg")))
+    }
+
+    @Test
     fun `same name and time but different dimensions is not a match`() {
         assertNull(single(cloud(1, "a.jpg", w = 1920, h = 1080), device(10, "a.jpg")))
     }

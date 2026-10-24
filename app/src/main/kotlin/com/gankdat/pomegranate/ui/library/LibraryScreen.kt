@@ -1,6 +1,8 @@
 package com.gankdat.pomegranate.ui.library
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -151,8 +153,12 @@ private fun LibraryList(
     onToggle: (String) -> Unit,
     onOpenItem: (LibraryEntry) -> Unit,
 ) {
+    // Bars scale against the largest group, so they stay meaningful with several storage volumes.
+    val largestGroup = (state.groups.maxOfOrNull { it.totalSizeBytes } ?: 0L).coerceAtLeast(1L).toFloat()
+    val volumes = state.groups.flatMap { g -> g.sizeByVolume.map { it.first } }.distinct()
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 8.dp)) {
         item(key = "filters") { StateFilters(state, onFilter) }
+        if (volumes.isNotEmpty()) item(key = "legend") { StorageLegend(volumes) }
         item(key = "summary") {
             val filtered = state.filter?.let { state.totals[it] }
             val text = if (filtered == null) {
@@ -186,7 +192,8 @@ private fun LibraryList(
                     totalSizeBytes = group.totalSizeBytes,
                     isExpanded = isExpanded,
                     onToggleExpand = { onToggle(group.key) },
-                    iconRes = mode.iconRes(),
+                    iconRes = if (group.isCloudOnly) R.drawable.ic_state_cloud else mode.iconRes(),
+                    storageBar = group.sizeByVolume.map { (volume, bytes) -> bytes.toFloat() / largestGroup to volumeColor(volume) },
                 )
             }
             if (isExpanded) {
@@ -222,6 +229,32 @@ private fun LibraryList(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun volumeColor(volume: String): androidx.compose.ui.graphics.Color =
+    if (volume == android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+
+/** Which colour is which storage; the bars use these, never the three media-state colours. */
+@Composable
+private fun StorageLegend(volumes: List<String>) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Text(stringResource(R.string.storage_bar_legend), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(top = 2.dp)) {
+        val hasRemovable = volumes.any { it != android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY }
+        LegendDot(volumeColor(android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY), stringResource(R.string.storage_internal))
+        if (hasRemovable) LegendDot(MaterialTheme.colorScheme.tertiary, stringResource(R.string.storage_removable))
+        }
+    }
+}
+
+@Composable
+private fun LegendDot(color: androidx.compose.ui.graphics.Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(modifier = Modifier.size(10.dp).clip(androidx.compose.foundation.shape.CircleShape).background(color))
+        Spacer(Modifier.width(4.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
 

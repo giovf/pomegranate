@@ -52,6 +52,8 @@
     <string name="hash_computing">Hashing file…</string>
     <string name="hash_failed">The file could not be read.</string>
     <string name="section_siblings">Related files</string>
+    <string name="preview_failed_cloud">Google Photos did not provide a preview. Check your connection, or that this item\'s round is still available on the Google Photos screen.</string>
+    <string name="preview_failed_device">This file could not be opened. It may have been moved or deleted.</string>
     <string name="preview_photo">Photo preview</string>
     <string name="preview_video">Video preview</string>
     <string name="pull_scope_intro">Choose what to copy from Google Photos into your destination folder. Every file is verified before it counts.</string>
@@ -244,11 +246,19 @@
     <string name="picker_link_label">Google Photos picker link</string>
     <string name="title_coverage">Coverage by month</string>
     <string name="coverage_open">Coverage by month</string>
-    <string name="coverage_intro">Google never says how big your library is, so this compares each month on this phone with what you have indexed from Google Photos. Months marked in orange are the ones to pick next.\n\nEach side uses its own date. If a photo\'s date was lost when moving phones, its copy here and its copy in Google Photos can sit in different months.</string>
-    <plurals name="coverage_months_to_pick">
-        <item quantity="one">%1$d month may need a picker round</item>
-        <item quantity="other">%1$d months may need a picker round</item>
+    <string name="coverage_intro">Google never says how big your library is, so this compares each month on this phone with what you have indexed from Google Photos. Orange months are worth a look: either they were never picked, or the phone has items that were never backed up, such as files saved from the internet.\n\nEach side uses its own date. If a photo\'s date was lost when moving phones, its copy here and its copy in Google Photos can sit in different months.</string>
+    <string name="diag_title">Why some items were not found on this phone</string>
+    <plurals name="diag_cloud_not_on_phone">
+        <item quantity="one">%1$d item in Google Photos was not found on this phone:</item>
+        <item quantity="other">%1$d items in Google Photos were not found on this phone:</item>
     </plurals>
+    <string name="diag_same_name">Same name here, but a different date or size: %1$d</string>
+    <string name="diag_other_format">Same name here in another format, for example HEIC and JPG: %1$d</string>
+    <string name="diag_renamed">Look like a renamed file here (same size, taken within a minute): %1$d</string>
+    <string name="diag_none">Nothing similar here, so most likely only in Google Photos: %1$d</string>
+    <string name="diag_uncertain">Possible matches not certain enough, treated as not on this phone: %1$d</string>
+    <string name="diag_types">Not on this phone, by type: %1$s</string>
+    <string name="diag_phone_folders">Only on this phone, largest folders: %1$s</string>
     <string name="coverage_empty">Nothing to compare yet. Scan this phone and index a picker round first.</string>
     <string name="coverage_undated">No date</string>
     <plurals name="coverage_phone_line">
@@ -383,6 +393,7 @@
     <string name="guidance_backup_note">Turning off backup stops new uploads; it does not delete what is already there.</string>
     <string name="guidance_confirm_button">I have finished cleaning up</string>
     <string name="guidance_confirmed">Clean-up confirmed on %1$s.</string>
+    <string name="storage_bar_legend">Bar length shows each folder\'s size against the largest:</string>
     <string name="tab_by_folder">By folder</string>
     <string name="tab_by_month">By month</string>
     <string name="group_expand">tap to expand</string>
