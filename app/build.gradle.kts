@@ -74,6 +74,11 @@ android {
     lint {
         warningsAsErrors = true
         abortOnError = true
+        // "Newer version available" depends on what Google published today, so
+        // with warnings-as-errors an upstream release would break an unchanged
+        // checkout. Versions are bumped deliberately in libs.versions.toml and
+        // pinned by checksum; check for updates with this lint id manually.
+        disable += "GradleDependency"
     }
 
     testOptions {
