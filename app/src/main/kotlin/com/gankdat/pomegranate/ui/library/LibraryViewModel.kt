@@ -99,10 +99,10 @@ internal class LibraryViewModel(
         _expandedKeys.update { if (key in it) it - key else it + key }
     }
 
-    /** Runs the first full census if none has completed yet; a no-op otherwise. */
+    /** Runs a full census before the first use and once after an update that changes the census rules. */
     fun ensureScanned() {
         viewModelScope.launch {
-            if (scanner.lastScanTime().first() == 0L) runScan(full = true)
+            if (scanner.needsFullScan()) runScan(full = true)
         }
     }
 

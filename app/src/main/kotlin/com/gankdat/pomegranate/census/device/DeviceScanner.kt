@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.exifinterface.media.ExifInterface
@@ -11,13 +12,13 @@ import com.gankdat.pomegranate.data.db.entity.DeviceItemEntity
 
 /**
  * MediaStore-backed [MediaStoreSource]. Queries the unified Files table for
- * images and videos so one projection serves both, and fills in missing
- * date-taken values from EXIF for a bounded number of images per scan.
+ * images and videos so one projection serves both. Capture dates are
+ * resolved by [CaptureDates], which reads a file's own metadata only when
+ * Android's date is missing or looks like a copy time.
  */
 internal class DeviceScanner(context: Context) : MediaStoreSource {
     private val appContext = context.applicationContext
     private val resolver: ContentResolver = appContext.contentResolver
-    private var exifReadsThisScan = 0
 
     override fun volumes(): List<String> {
         val names = MediaStore.getExternalVolumeNames(appContext)
@@ -40,7 +41,6 @@ internal class DeviceScanner(context: Context) : MediaStoreSource {
     }
 
     override fun forEach(volume: String, modifiedAfterSeconds: Long?, consumer: (ScannedMediaItem) -> Unit) {
-        exifReadsThisScan = 0
         val (selection, args) = selection(modifiedAfterSeconds)
         val sort = "${MediaStore.Files.FileColumns._ID} ASC"
         resolver.query(filesUri(volume), PROJECTION, selection, args, sort)?.use { cursor ->
@@ -54,17 +54,18 @@ internal class DeviceScanner(context: Context) : MediaStoreSource {
         val isVideo = getInt(c.mediaType) == MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO
         val mime = getStringOrEmpty(c.mime)
         val dateModifiedMs = getLong(c.dateModified) * 1_000
-        var dateTaken = if (isNull(c.dateTaken)) 0L else getLong(c.dateTaken)
-        if (dateTaken <= 0L && !isVideo && exifReadsThisScan < MAX_EXIF_READS_PER_SCAN) {
-            exifReadsThisScan++
-            dateTaken = readExifDateTaken(contentUri(volume, id)) ?: 0L
+        val displayName = getStringOrEmpty(c.displayName)
+        val storeTaken = if (isNull(c.dateTaken)) 0L else getLong(c.dateTaken)
+        val uri = contentUri(volume, id)
+        val dateTaken = CaptureDates.resolve(storeTaken, dateModifiedMs, displayName) {
+            if (isVideo) readVideoDate(uri) else readExifDateTaken(uri)
         }
         return ScannedMediaItem(
             mediaStoreId = id,
             volume = volume,
             relativePath = getStringOrEmpty(c.relativePath),
             bucket = getStringOrEmpty(c.bucket),
-            displayName = getStringOrEmpty(c.displayName),
+            displayName = displayName,
             mime = mime,
             size = if (isNull(c.size)) 0L else getLong(c.size),
             dateTaken = dateTaken,
@@ -89,6 +90,22 @@ internal class DeviceScanner(context: Context) : MediaStoreSource {
         null
     } catch (_: SecurityException) {
         null
+    }
+
+    private fun readVideoDate(uri: Uri): Long? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(appContext, uri)
+            CaptureDates.parseVideoDate(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE))
+        } catch (_: RuntimeException) {
+            null // Unreadable or unsupported container.
+        } finally {
+            try {
+                retriever.release()
+            } catch (_: java.io.IOException) {
+                // Nothing to release.
+            }
+        }
     }
 
     private fun selection(modifiedAfterSeconds: Long?): Pair<String, Array<String>> {
@@ -120,9 +137,6 @@ internal class DeviceScanner(context: Context) : MediaStoreSource {
     }
 
     companion object {
-        /** EXIF reads open each file; cap them so a large library with no DATE_TAKEN cannot stall a scan. */
-        const val MAX_EXIF_READS_PER_SCAN: Int = 1_000
-
         private val PROJECTION = arrayOf(
             MediaStore.Files.FileColumns._ID,
             MediaStore.Files.FileColumns.MEDIA_TYPE,

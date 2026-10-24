@@ -3,6 +3,7 @@ package com.gankdat.pomegranate.census.cloud
 import com.gankdat.pomegranate.data.db.dao.CloudItemDao
 import com.gankdat.pomegranate.data.db.dao.PickerRoundDao
 import com.gankdat.pomegranate.data.db.entity.PickerRoundEntity
+import com.gankdat.pomegranate.data.db.entity.SessionRange
 import com.gankdat.pomegranate.data.db.entity.PickerRoundState
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
@@ -77,6 +78,26 @@ internal class CloudScannerRepositoryImpl(
             if (!e.isGone) throw e // Already gone at Google: fine.
         }
     }
+
+    override suspend fun openRound(): PickerSession? {
+        val active = roundDao.getByState(PickerRoundState.ACTIVE) // newest first
+        active.drop(1).forEach { roundDao.setState(it.sessionId, PickerRoundState.EXPIRED, itemCount = 0) }
+        val latest = active.firstOrNull() ?: return null
+        val session = try {
+            api.getSession(latest.sessionId)
+        } catch (e: PickerApiException) {
+            if (e.isGone) roundDao.setState(latest.sessionId, PickerRoundState.EXPIRED, itemCount = 0)
+            return null
+        }
+        val expired = session.expireTimeMillis?.let { it <= clock() } == true
+        if (expired && !session.mediaItemsSet) {
+            roundDao.setState(latest.sessionId, PickerRoundState.EXPIRED, itemCount = 0)
+            return null
+        }
+        return session
+    }
+
+    override fun sessionRanges(): Flow<List<SessionRange>> = cloudItemDao.observeSessionRanges()
 
     override fun coverage(): Flow<CloudCoverage> =
         combine(cloudItemDao.observeCount(), roundDao.observeIndexedCount()) { items, rounds -> CloudCoverage(items, rounds) }

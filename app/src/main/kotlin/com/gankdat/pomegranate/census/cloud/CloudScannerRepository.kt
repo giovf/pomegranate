@@ -1,6 +1,7 @@
 package com.gankdat.pomegranate.census.cloud
 
 import com.gankdat.pomegranate.data.db.entity.PickerRoundEntity
+import com.gankdat.pomegranate.data.db.entity.SessionRange
 import kotlinx.coroutines.flow.Flow
 
 internal sealed interface SessionState {
@@ -33,6 +34,14 @@ internal interface CloudScannerRepository {
 
     /** Tells Google to discard the session; local items stay. */
     suspend fun deleteSession(sessionId: String)
+
+    /**
+     * The round still waiting for Done, if any, as Google currently sees it.
+     * Rounds Google has dropped, and older open rounds, are marked expired.
+     */
+    suspend fun openRound(): PickerSession?
+
+    fun sessionRanges(): Flow<List<SessionRange>>
 
     fun coverage(): Flow<CloudCoverage>
 

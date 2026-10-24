@@ -40,6 +40,9 @@ public interface SettingsRepository {
     /** The user ticked "don't show again" on the fidelity notice. */
     public val fidelityNoticeAcknowledged: Flow<Boolean>
 
+    /** Version of the census rules the stored index was built with; a newer app rescans everything once. */
+    public val censusFormatVersion: Flow<Int>
+
     /** Epoch millis when the last device census finished, 0 if never. */
     public val lastDeviceScanTimeMillis: Flow<Long>
 
@@ -63,6 +66,8 @@ public interface SettingsRepository {
     public suspend fun setPartialAccessBannerDismissed(dismissed: Boolean)
 
     public suspend fun setLastDeviceScanTimeMillis(timeMillis: Long)
+
+    public suspend fun setCensusFormatVersion(version: Int)
 
     public suspend fun setOnboardingCompleted(completed: Boolean)
 

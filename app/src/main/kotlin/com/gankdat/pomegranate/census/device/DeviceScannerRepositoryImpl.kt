@@ -33,11 +33,14 @@ internal class DeviceScannerRepositoryImpl(
 
     override fun lastScanTime(): Flow<Long> = settings.lastDeviceScanTimeMillis
 
-    override suspend fun scanAll(): ScanResult = scan(modifiedAfterSeconds = null)
+    override suspend fun scanAll(): ScanResult = scan(modifiedAfterSeconds = null).also { settings.setCensusFormatVersion(CENSUS_FORMAT_VERSION) }
+
+    override suspend fun needsFullScan(): Boolean =
+        settings.lastDeviceScanTimeMillis.first() == 0L || settings.censusFormatVersion.first() < CENSUS_FORMAT_VERSION
 
     override suspend fun scanIncremental(): ScanResult {
         val last = settings.lastDeviceScanTimeMillis.first()
-        if (last <= 0L) return scanAll()
+        if (needsFullScan()) return scanAll()
         // MediaStore's DATE_MODIFIED has one-second resolution; the margin covers clock skew and rounding.
         val since = (last / 1_000 - CLOCK_SKEW_MARGIN_SECONDS).coerceAtLeast(0)
         return scan(modifiedAfterSeconds = since)
@@ -141,6 +144,9 @@ internal class DeviceScannerRepositoryImpl(
 
     companion object {
         const val BATCH_SIZE: Int = 500
+
+        /** Bump when census rules change so existing installs re-read every file once. 2 = capture-date repair. */
+        const val CENSUS_FORMAT_VERSION: Int = 2
         const val CLOCK_SKEW_MARGIN_SECONDS: Long = 60
 
         internal fun ScannedMediaItem.toEntity(): DeviceItemEntity = DeviceItemEntity(

@@ -9,6 +9,9 @@ internal interface DeviceScannerRepository {
     /** Processes only items modified since the last completed scan, then drops vanished rows. */
     suspend fun scanIncremental(): ScanResult
 
+    /** True before the first scan, and once after an update that changes how dates or fingerprints are worked out. */
+    suspend fun needsFullScan(): Boolean
+
     fun observeProgress(): Flow<ScanProgress>
 
     /** Epoch millis of the last completed scan, 0 if none. */

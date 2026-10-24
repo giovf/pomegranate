@@ -63,6 +63,7 @@ class DeviceScannerRepositoryImplTest {
         assertEquals(ScanResult(itemCount = 3, addedCount = 3, updatedCount = 0, unchangedCount = 0, removedCount = 0, skippedVolumes = emptyList(), durationMillis = 0), result)
         assertEquals(3, db.deviceItemDao().count())
         assertEquals(now, settings.lastDeviceScanTimeMillis.first())
+        assertEquals(false, repository.needsFullScan())
         val video = assertNotNull(db.deviceItemDao().getByMediaStoreId("external_primary", 3))
         assertEquals(12_000L, video.durationMs)
         assertFalse(repository.observeProgress().first().isScanning)
@@ -118,6 +119,19 @@ class DeviceScannerRepositoryImplTest {
         assertEquals(now, settings.lastDeviceScanTimeMillis.first())
         // The modified-after filter is the previous scan time in seconds minus the skew margin.
         assertEquals((now - 3_600_000) / 1_000 - DeviceScannerRepositoryImpl.CLOCK_SKEW_MARGIN_SECONDS, source.lastModifiedAfterSeconds)
+    }
+
+    @Test
+    fun `an older census format forces one full rescan`() = runBlocking {
+        source.put(scanned(1))
+        repository.scanAll()
+        settings.setCensusFormatVersion(1)
+        assertEquals(true, repository.needsFullScan())
+
+        repository.scanIncremental()
+
+        assertNull(source.lastModifiedAfterSeconds) // ran as a full scan
+        assertEquals(false, repository.needsFullScan())
     }
 
     @Test

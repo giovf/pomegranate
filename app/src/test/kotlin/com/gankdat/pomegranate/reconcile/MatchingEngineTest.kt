@@ -8,9 +8,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-internal fun device(id: Long, name: String, taken: Long = T0, w: Int = 4000, h: Int = 3000) = DeviceItemEntity(
+internal fun device(id: Long, name: String, taken: Long = T0, w: Int = 4000, h: Int = 3000, modified: Long = taken + 1_000) = DeviceItemEntity(
     id = id, mediaStoreId = id, volume = "external_primary", relativePath = "DCIM/Camera/", bucket = "Camera",
-    displayName = name, mime = "image/jpeg", size = 1_000, dateTaken = taken, dateModified = taken, width = w, height = h, fingerprint = "fp$id",
+    displayName = name, mime = "image/jpeg", size = 1_000, dateTaken = taken, dateModified = modified, width = w, height = h, fingerprint = "fp$id",
 )
 
 internal fun cloud(id: Long, name: String, created: Long = T0, w: Int = 4000, h: Int = 3000) = CloudItemEntity(
@@ -74,6 +74,17 @@ class MatchingEngineTest {
         val m = single(cloud(1, "a.jpg", created = 0), device(10, "a.jpg"))!!
         assertEquals(MatchConfidence.AMBIGUOUS, m.confidence)
         assertEquals(TimestampAgreement.UNKNOWN, m.evidence.timestamp)
+    }
+
+    @Test
+    fun `a phone date that is only the copy time does not block a match on a distinctive name`() {
+        val copied = device(10, "IMG-20190305-WA0001.jpg", taken = T0 + 600 * 24 * HOUR, modified = T0 + 600 * 24 * HOUR)
+        val m = single(cloud(1, "IMG-20190305-WA0001.jpg"), copied)!!
+        assertEquals(MatchConfidence.LIKELY, m.confidence)
+        assertEquals(TimestampAgreement.UNKNOWN, m.evidence.timestamp)
+        // A generic name stays uncertain.
+        val generic = device(11, "image.jpg", taken = T0 + 600 * 24 * HOUR, modified = T0 + 600 * 24 * HOUR)
+        assertEquals(MatchConfidence.AMBIGUOUS, single(cloud(2, "image.jpg"), generic)!!.confidence)
     }
 
     @Test

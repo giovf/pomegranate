@@ -65,6 +65,8 @@ internal object MatchingEngine {
             s.timestamp == TimestampAgreement.EXACT && s.dimensions -> MatchConfidence.EXACT
             s.timestamp == TimestampAgreement.ZONE_SHIFTED && s.dimensions -> MatchConfidence.LIKELY
             s.timestamp == TimestampAgreement.EXACT && !dimensionsKnown(cloud, device) -> MatchConfidence.LIKELY
+            // Phone date unknown (missing, or only the file's copy time): a distinctive name plus identical pixel size is strong evidence.
+            s.timestamp == TimestampAgreement.UNKNOWN && s.dimensions && sameName.size == 1 && isDistinctive(cloud.filename) -> MatchConfidence.LIKELY
             s.timestamp == TimestampAgreement.DIFFERENT && s.dimensions && !dimensionsKnown(cloud, device) -> MatchConfidence.AMBIGUOUS
             s.dimensions -> MatchConfidence.AMBIGUOUS // filename + dimensions, timestamp unknown or different
             else -> return null // same name but nothing else agrees: a different file with a common name
@@ -138,8 +140,16 @@ internal object MatchingEngine {
             } * 2 + if (dimensions) 1 else 0
     }
 
+    /** Camera and app filenames carry counters or dates; "image.jpg" does not. */
+    private fun isDistinctive(filename: String): Boolean = filename.count { it.isDigit() } >= DISTINCTIVE_DIGITS
+
+    private const val DISTINCTIVE_DIGITS = 4
+
+    /** The scanner stores the file's write time when no capture date exists; such a date says nothing about the photo. */
+    private fun deviceDateKnown(device: DeviceItemEntity): Boolean = device.dateTaken != device.dateModified
+
     private fun score(cloud: CloudItemEntity, device: DeviceItemEntity): Score {
-        val (agreement, delta) = agreement(cloud.createTime, device.dateTaken)
+        val (agreement, delta) = if (deviceDateKnown(device)) agreement(cloud.createTime, device.dateTaken) else TimestampAgreement.UNKNOWN to null
         val dims = dimensionsKnown(cloud, device) && cloud.width == device.width && cloud.height == device.height ||
             dimensionsKnown(cloud, device) && cloud.width == device.height && cloud.height == device.width // EXIF rotation applied on one side only
         return Score(agreement, delta, dims)
