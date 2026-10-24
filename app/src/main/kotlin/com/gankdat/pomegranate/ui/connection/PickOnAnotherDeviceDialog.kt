@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.gankdat.pomegranate.R
+import com.gankdat.pomegranate.ui.format.Formatters
 import com.gankdat.pomegranate.ui.qr.QrCodeImage
 
 /**
@@ -32,13 +33,24 @@ import com.gankdat.pomegranate.ui.qr.QrCodeImage
  * of the Google account.
  */
 @Composable
-internal fun PickOnAnotherDeviceDialog(pickerUri: String, onDismiss: () -> Unit) {
+internal fun PickOnAnotherDeviceDialog(pickerUri: String, continueBefore: Long?, onDismiss: () -> Unit) {
     val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.picker_other_device_title)) },
         text = {
             Column {
+                // Where to pick up in Google's newest-first grid: just before the oldest photo of the last round.
+                Text(
+                    text = if (continueBefore != null) {
+                        stringResource(R.string.picker_continue_from, Formatters.date(continueBefore))
+                    } else {
+                        stringResource(R.string.picker_continue_from_start)
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.height(8.dp))
                 Text(stringResource(R.string.picker_other_device_body), style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(12.dp))
                 QrCodeImage(text = pickerUri, contentDescription = stringResource(R.string.picker_qr_description), modifier = Modifier.fillMaxWidth())

@@ -233,6 +233,8 @@
     <string name="picker_waiting">Select up to 2,000 items in Google\'s picker and press Done. This screen updates by itself once you do; nothing is added before Done.</string>
     <string name="picker_start_other_device">Select on a computer</string>
     <string name="picker_other_device_title">Pick on another device</string>
+    <string name="picker_continue_from">Start with photos taken before %1$s</string>
+    <string name="picker_continue_from_start">First round: start with your newest photos at the top</string>
     <string name="picker_other_device_body">Scan this code, or copy or share the link, and open it on a computer signed in to the same Google account. Select your photos there and press Done. When Google says to return to your original device, you are finished on the computer: come back to this screen and the round completes by itself.</string>
     <string name="picker_other_device_tip">On a computer: click the first photo, hold Shift and click the last to select everything in between, up to 2,000 per round.</string>
     <string name="picker_other_device_done">Hide code</string>

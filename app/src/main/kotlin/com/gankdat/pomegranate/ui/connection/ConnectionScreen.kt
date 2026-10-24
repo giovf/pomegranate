@@ -244,7 +244,13 @@ private fun PickerSection(round: RoundState, coverage: CoverageUi, viewModel: Co
                     TextButton(onClick = viewModel::cancelRound) { Text(stringResource(R.string.picker_cancel_round)) }
                 }
             }
-            if (showQr) PickOnAnotherDeviceDialog(pickerUri = round.pickerUri, onDismiss = { showQr = false })
+            if (showQr) {
+                PickOnAnotherDeviceDialog(
+                    pickerUri = round.pickerUri,
+                    continueBefore = coverage.lastRound?.range?.oldest,
+                    onDismiss = { showQr = false },
+                )
+            }
         }
         is RoundState.Done -> {
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
