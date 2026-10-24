@@ -13,6 +13,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -37,7 +42,6 @@ import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.auth.AuthState
 import com.gankdat.pomegranate.auth.CustomTabLauncher
 import com.gankdat.pomegranate.auth.TokenStatus
-import com.gankdat.pomegranate.data.db.entity.PickerRoundEntity
 import com.gankdat.pomegranate.data.db.entity.PickerRoundState
 import com.gankdat.pomegranate.ui.appViewModelFactory
 import com.gankdat.pomegranate.ui.format.Formatters
@@ -152,15 +156,26 @@ private fun TokenStatusSection(status: TokenStatus, refreshing: Boolean, onRefre
 private const val TESTING_MODE_WARN_DAYS = 6
 
 @Composable
-private fun RoundsHistory(rounds: List<PickerRoundEntity>) {
-    Text(stringResource(R.string.rounds_title), style = MaterialTheme.typography.titleMedium)
+private fun RoundsHistory(rounds: List<RoundSummary>) {
+    Text(stringResource(R.string.rounds_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
     Spacer(Modifier.height(8.dp))
-    rounds.forEach { round ->
-        Column(modifier = Modifier.padding(vertical = 6.dp)) {
-            Text(Formatters.dateTime(round.createdAt), style = MaterialTheme.typography.bodyMedium)
+    rounds.forEach { summary ->
+        val round = summary.round
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)) {
+            Text(stringResource(R.string.round_started, Formatters.dateTime(round.createdAt)), style = MaterialTheme.typography.bodyMedium)
             Text(
                 when (round.state) {
-                    PickerRoundState.INDEXED -> pluralStringResource(R.plurals.round_indexed, round.itemCount, round.itemCount)
+                    PickerRoundState.INDEXED -> {
+                        val range = summary.range
+                        val count = range?.itemCount ?: round.itemCount
+                        if (range?.oldest != null && range.newest != null) {
+                            pluralStringResource(R.plurals.round_indexed_range, count, count, Formatters.date(range.oldest), Formatters.date(range.newest))
+                        } else {
+                            pluralStringResource(R.plurals.round_indexed, count, count)
+                        }
+                    }
                     PickerRoundState.ACTIVE -> stringResource(R.string.round_active)
                     PickerRoundState.EXPIRED -> stringResource(R.string.round_expired)
                 },
@@ -176,54 +191,101 @@ private fun PickerSection(round: RoundState, coverage: CoverageUi, viewModel: Co
     var showQr by rememberSaveable { mutableStateOf(false) }
     val startOnPhone = { activity?.let { a -> viewModel.startRound { url -> CustomTabLauncher.open(a, url) } } }
     val startElsewhere = { viewModel.startRound { showQr = true } }
-    Text(stringResource(R.string.picker_title), style = MaterialTheme.typography.titleMedium)
+    val nextRound = coverage.roundCount + 1
+
+    Text(stringResource(R.string.picker_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
     Spacer(Modifier.height(8.dp))
     Text(stringResource(R.string.picker_body), style = MaterialTheme.typography.bodyMedium)
     Spacer(Modifier.height(16.dp))
+
+    // Where things stand: totals, and where the last round left off.
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                pluralStringResource(R.plurals.picker_coverage, coverage.itemCount, coverage.itemCount, coverage.roundCount),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            coverage.lastRoundAt?.let {
-                Text(stringResource(R.string.picker_last_round, Formatters.dateTime(it)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (coverage.roundCount == 0) {
+                Text(stringResource(R.string.picker_nothing_yet), style = MaterialTheme.typography.bodyLarge)
+            } else {
+                Text(pluralStringResource(R.plurals.picker_coverage, coverage.itemCount, coverage.itemCount, coverage.roundCount), style = MaterialTheme.typography.bodyLarge)
+                if (coverage.oldest != null && coverage.newest != null) {
+                    Text(stringResource(R.string.picker_overall_span, Formatters.date(coverage.oldest), Formatters.date(coverage.newest)), style = MaterialTheme.typography.bodyMedium)
+                }
+                coverage.lastRound?.range?.let { last ->
+                    if (last.oldest != null && last.newest != null) {
+                        Text(
+                            stringResource(R.string.picker_left_off, Formatters.date(last.oldest), Formatters.date(last.newest)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
             }
             TextButton(onClick = onOpenCoverage) { Text(stringResource(R.string.coverage_open)) }
         }
     }
     Spacer(Modifier.height(16.dp))
+
     when (round) {
-        RoundState.Idle -> {
-            Button(onClick = { startOnPhone() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_start)) }
-            OutlinedButton(onClick = startElsewhere, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_start_other_device)) }
-        }
-        RoundState.Starting, RoundState.Indexing -> {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(if (round == RoundState.Starting) R.string.picker_starting else R.string.picker_indexing))
-        }
+        RoundState.Idle -> StartRoundButtons(nextRound, startElsewhere, { startOnPhone() })
+        RoundState.Starting -> Busy(stringResource(R.string.picker_starting))
+        RoundState.Indexing -> Busy(stringResource(R.string.picker_indexing))
         is RoundState.Picking -> {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.picker_waiting), style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(onClick = { activity?.let { a -> CustomTabLauncher.open(a, round.pickerUri) } }) {
-                Text(stringResource(R.string.picker_reopen))
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.size(12.dp))
+                        Text(stringResource(R.string.picker_round_open, nextRound), style = MaterialTheme.typography.titleSmall)
+                    }
+                    Text(stringResource(R.string.picker_waiting), style = MaterialTheme.typography.bodyMedium)
+                    round.expiresAt?.let {
+                        Text(stringResource(R.string.picker_expires, Formatters.time(it)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Button(onClick = { showQr = true }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_continue_computer)) }
+                    OutlinedButton(onClick = { activity?.let { a -> CustomTabLauncher.open(a, round.pickerUri) } }, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.picker_continue_phone))
+                    }
+                    TextButton(onClick = viewModel::cancelRound) { Text(stringResource(R.string.picker_cancel_round)) }
+                }
             }
-            OutlinedButton(onClick = { showQr = true }) { Text(stringResource(R.string.picker_show_qr)) }
-            TextButton(onClick = viewModel::cancelRound) { Text(stringResource(android.R.string.cancel)) }
             if (showQr) PickOnAnotherDeviceDialog(pickerUri = round.pickerUri, onDismiss = { showQr = false })
         }
         is RoundState.Done -> {
-            Text(pluralStringResource(R.plurals.picker_round_done, round.itemCount, round.itemCount), style = MaterialTheme.typography.bodyLarge)
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = { startOnPhone() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_another)) }
-            OutlinedButton(onClick = startElsewhere, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_start_other_device)) }
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    val text = if (round.oldest != null && round.newest != null) {
+                        pluralStringResource(R.plurals.picker_round_done_range, round.itemCount, nextRound - 1, round.itemCount, Formatters.date(round.oldest), Formatters.date(round.newest))
+                    } else {
+                        pluralStringResource(R.plurals.picker_round_done, round.itemCount, nextRound - 1, round.itemCount)
+                    }
+                    Text(text, style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.picker_round_done_next), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            StartRoundButtons(nextRound, startElsewhere, { startOnPhone() })
         }
         is RoundState.Failed -> {
             Text(round.message, color = MaterialTheme.colorScheme.error)
             Spacer(Modifier.height(8.dp))
             Button(onClick = viewModel::dismissRoundResult, modifier = Modifier.fillMaxWidth()) { Text(stringResource(android.R.string.ok)) }
         }
+    }
+}
+
+@Composable
+private fun StartRoundButtons(roundNumber: Int, onComputer: () -> Unit, onPhone: () -> Unit) {
+    Text(stringResource(R.string.picker_start_heading, roundNumber), style = MaterialTheme.typography.titleSmall)
+    Spacer(Modifier.height(8.dp))
+    Button(onClick = onComputer, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_start_other_device)) }
+    Text(stringResource(R.string.picker_start_other_device_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(Modifier.height(8.dp))
+    OutlinedButton(onClick = onPhone, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_start)) }
+}
+
+@Composable
+private fun Busy(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+        Spacer(Modifier.size(12.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium)
     }
 }

@@ -42,6 +42,12 @@ internal object Formatters {
             .withLocale(locale)
             .format(Instant.ofEpochMilli(epochMillis).atZone(zone))
 
+    fun date(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault(), locale: Locale = Locale.getDefault()): String =
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).format(Instant.ofEpochMilli(epochMillis).atZone(zone))
+
+    fun time(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault(), locale: Locale = Locale.getDefault()): String =
+        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).format(Instant.ofEpochMilli(epochMillis).atZone(zone))
+
     /** `March 2024` style month label. */
     fun monthYear(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault(), locale: Locale = Locale.getDefault()): String =
         DateTimeFormatter.ofPattern("LLLL yyyy", locale).format(Instant.ofEpochMilli(epochMillis).atZone(zone))

@@ -22,14 +22,21 @@ internal enum class CoverageHint {
     CLOUD_ONLY,
 }
 
+/**
+ * One month, seen from both sides. Each side uses its own date: phone items
+ * by the phone's capture date, indexed items by the date Google holds. The
+ * two halves are therefore independent counts, not a fraction of each other.
+ */
 internal data class MonthCoverage(
     /** Null for items with no usable date. */
     val month: YearMonth?,
+    /** Items on this phone dated this month. */
     val deviceCount: Int,
-    /** Phone items matched to an indexed cloud item. */
+    /** Of those, how many were found among the indexed Google Photos items (in any month). */
     val deviceMatched: Int,
+    /** Indexed Google Photos items that Google dates this month. */
     val cloudCount: Int,
-    /** Indexed cloud items with no phone copy: what a pull would bring down. */
+    /** Of those, how many have no copy on this phone: what a pull would bring down. */
     val cloudOnly: Int,
 ) {
     val hint: CoverageHint = when {

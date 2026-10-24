@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.gankdat.pomegranate.data.db.entity.CloudItemEntity
+import com.gankdat.pomegranate.data.db.entity.SessionRange
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -71,6 +72,15 @@ internal interface CloudItemDao {
 
     @Query("SELECT id FROM cloud_item")
     fun observeIds(): Flow<List<Long>>
+
+    /** Per round: item count and the date span of its photos. An item picked again moves to its latest round. */
+    @Query(
+        "SELECT sessionId, COUNT(*) AS itemCount, " +
+            "MIN(CASE WHEN createTime > 0 THEN createTime END) AS oldest, " +
+            "MAX(CASE WHEN createTime > 0 THEN createTime END) AS newest " +
+            "FROM cloud_item GROUP BY sessionId",
+    )
+    fun observeSessionRanges(): Flow<List<SessionRange>>
 
     @Query("DELETE FROM cloud_item")
     suspend fun deleteAll()

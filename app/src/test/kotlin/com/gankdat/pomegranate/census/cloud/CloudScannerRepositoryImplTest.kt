@@ -134,6 +134,33 @@ class CloudScannerRepositoryImplTest {
     }
 
     @Test
+    fun `an open round is found again, older open rounds and dropped rounds are expired`() = runBlocking {
+        val first = repo.startPickerRound()
+        now += 1_000
+        val second = repo.startPickerRound()
+
+        assertEquals(second.id, repo.openRound()?.id)
+        assertEquals(PickerRoundState.EXPIRED, db.pickerRoundDao().getBySessionId(first.id)?.state)
+
+        api.sessions.remove(second.id)
+        assertEquals(null, repo.openRound())
+        assertEquals(PickerRoundState.EXPIRED, db.pickerRoundDao().getBySessionId(second.id)?.state)
+    }
+
+    @Test
+    fun `session ranges give each round's count and date span`() = runBlocking {
+        val session = repo.startPickerRound()
+        api.items[session.id] = mutableListOf(
+            picked("m1").copy(createTimeMillis = 1_000),
+            picked("m2").copy(createTimeMillis = 5_000),
+            picked("m3").copy(createTimeMillis = 0),
+        )
+        repo.indexSession(session.id)
+
+        assertEquals(listOf(com.gankdat.pomegranate.data.db.entity.SessionRange(session.id, 3, 1_000, 5_000)), repo.sessionRanges().first())
+    }
+
+    @Test
     fun `deleting a session that is already gone is not an error`() = runBlocking {
         val session = repo.startPickerRound()
         repo.deleteSession(session.id)

@@ -91,9 +91,12 @@ private fun MonthRow(row: MonthCoverage) {
             ?: stringResource(R.string.coverage_undated)
         Text(title, style = MaterialTheme.typography.titleSmall)
         Text(
-            stringResource(R.string.coverage_counts, row.deviceCount, row.cloudCount, row.deviceMatched, row.cloudOnly),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            pluralStringResource(R.plurals.coverage_phone_line, row.deviceCount, row.deviceCount, row.deviceMatched),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            pluralStringResource(R.plurals.coverage_cloud_line, row.cloudCount, row.cloudCount, row.cloudOnly),
+            style = MaterialTheme.typography.bodyMedium,
         )
         Text(hintText, style = MaterialTheme.typography.bodySmall, color = if (hintColor == Color.Unspecified) MaterialTheme.colorScheme.onSurfaceVariant else hintColor)
     }
