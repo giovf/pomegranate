@@ -232,9 +232,17 @@ private fun LibraryList(
     }
 }
 
+/**
+ * Internal storage uses the primary colour; removable storage uses the same
+ * hue at the opposite tone (light on a dark theme, dark on a light one), so
+ * the two stay distinct whatever palette dynamic colour picks.
+ */
 @Composable
 private fun volumeColor(volume: String): androidx.compose.ui.graphics.Color =
-    if (volume == android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+    if (volume == android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.inversePrimary
+
+/** Any volume name other than the primary one counts as removable. */
+private const val REMOVABLE_VOLUME = "removable"
 
 /** Which colour is which storage; the bars use these, never the three media-state colours. */
 @Composable
@@ -244,7 +252,7 @@ private fun StorageLegend(volumes: List<String>) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(top = 2.dp)) {
         val hasRemovable = volumes.any { it != android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY }
         LegendDot(volumeColor(android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY), stringResource(R.string.storage_internal))
-        if (hasRemovable) LegendDot(MaterialTheme.colorScheme.tertiary, stringResource(R.string.storage_removable))
+        if (hasRemovable) LegendDot(volumeColor(REMOVABLE_VOLUME), stringResource(R.string.storage_removable))
         }
     }
 }

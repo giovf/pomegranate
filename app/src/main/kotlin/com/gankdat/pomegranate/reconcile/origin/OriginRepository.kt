@@ -38,15 +38,13 @@ internal class OriginRepositoryImpl(
             ruleDao.deleteBySource(OriginSource.LEARNED)
             if (rules.isNotEmpty()) ruleDao.insertAll(rules)
             val inferrer = OriginInferrer(rules)
-            var changed = 0
+            val changes = HashMap<Long, String?>()
             for (item in cloudDao.getAll()) {
                 val inferred = inferrer.infer(item.filename)?.origin
-                if (inferred != item.inferredOrigin) {
-                    cloudDao.setInferredOrigin(item.id, inferred)
-                    changed++
-                }
+                if (inferred != item.inferredOrigin) changes[item.id] = inferred
             }
-            changed
+            if (changes.isNotEmpty()) cloudDao.setInferredOrigins(changes)
+            changes.size
         }
     }
 

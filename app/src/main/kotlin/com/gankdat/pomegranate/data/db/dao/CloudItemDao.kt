@@ -61,6 +61,12 @@ internal interface CloudItemDao {
     @Query("UPDATE cloud_item SET inferredOrigin = :origin WHERE id = :id")
     suspend fun setInferredOrigin(id: Long, origin: String?)
 
+    /** Applies many origin changes in one transaction so observers see a single update, not one per item. */
+    @Transaction
+    suspend fun setInferredOrigins(changes: Map<Long, String?>) {
+        for ((id, origin) in changes) setInferredOrigin(id, origin)
+    }
+
     @Query("UPDATE cloud_item SET userOverrideOrigin = :origin WHERE id = :id")
     suspend fun setUserOverrideOrigin(id: Long, origin: String?)
 

@@ -44,8 +44,7 @@ internal class ReconciliationRepositoryImpl(
                 cloud.filter { it.id !in confirmedCloud },
                 device.filter { it.id !in confirmedDevice },
             )
-            matchDao.deleteAll()
-            matchDao.insertAll(confirmed + proposals.map { MatchEntity(it.cloudItemId, it.deviceItemId, it.confidence, it.evidence.toJson()) })
+            matchDao.replaceAll(confirmed + proposals.map { MatchEntity(it.cloudItemId, it.deviceItemId, it.confidence, it.evidence.toJson()) })
 
             val groups = rebuildGroups(
                 deviceFiles = device.map { SiblingFile(DeviceKey(it.id), it.displayName) },

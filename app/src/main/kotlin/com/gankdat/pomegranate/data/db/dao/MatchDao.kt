@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.gankdat.pomegranate.data.db.entity.MatchConfidence
 import com.gankdat.pomegranate.data.db.entity.MatchEntity
 import kotlinx.coroutines.flow.Flow
@@ -43,4 +44,11 @@ internal interface MatchDao {
 
     @Query("DELETE FROM `match`")
     suspend fun deleteAll()
+
+    /** Swaps the whole match set atomically so observers never see the empty table in between. */
+    @Transaction
+    suspend fun replaceAll(matches: List<MatchEntity>) {
+        deleteAll()
+        insertAll(matches)
+    }
 }
