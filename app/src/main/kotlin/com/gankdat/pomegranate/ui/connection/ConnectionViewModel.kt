@@ -10,6 +10,8 @@ import com.gankdat.pomegranate.census.cloud.CloudScannerRepository
 import com.gankdat.pomegranate.census.cloud.PickerApiException
 import com.gankdat.pomegranate.census.cloud.PickerAuthException
 import com.gankdat.pomegranate.census.cloud.PickerSession
+import com.gankdat.pomegranate.census.cloud.RoundAccounting
+import com.gankdat.pomegranate.data.settings.SettingsRepository
 import com.gankdat.pomegranate.census.cloud.SessionState
 import com.gankdat.pomegranate.data.db.entity.PickerRoundEntity
 import com.gankdat.pomegranate.data.db.entity.PickerRoundState
@@ -43,8 +45,12 @@ internal sealed interface RoundState {
     data class Failed(val message: String) : RoundState
 }
 
-/** One indexed round, with the date span of the photos picked in it. */
-internal data class RoundSummary(val round: PickerRoundEntity, val range: SessionRange?)
+/**
+ * One round, with the date span of the photos picked in it. [selected] is how
+ * many items the round listed; [alreadyIndexed] how many of them an earlier
+ * round had already indexed (null when it cannot be worked out).
+ */
+internal data class RoundSummary(val round: PickerRoundEntity, val range: SessionRange?, val selected: Int, val alreadyIndexed: Int?)
 
 internal data class CoverageUi(
     val itemCount: Int = 0,
@@ -60,15 +66,22 @@ internal class ConnectionViewModel(
     private val cloud: CloudScannerRepository,
     private val reconciliation: ReconciliationRepository,
     private val origins: OriginRepository,
+    settings: SettingsRepository,
 ) : ViewModel() {
     val authState = auth.authState
 
     val tokenStatus: StateFlow<TokenStatus?> = auth.tokenStatus.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Newest first, each with its photos' date span. */
-    val rounds: StateFlow<List<RoundSummary>> = combine(cloud.pickerRounds(), cloud.sessionRanges()) { rounds, ranges ->
+    val rounds: StateFlow<List<RoundSummary>> = combine(cloud.pickerRounds(), cloud.sessionRanges(), settings.roundOverlaps) { rounds, ranges, recorded ->
         val bySession = ranges.associateBy { it.sessionId }
-        rounds.map { RoundSummary(it, bySession[it.sessionId]) }
+        val indexedOldestFirst = rounds.filter { it.state == PickerRoundState.INDEXED }.sortedBy { it.createdAt }
+        val overlaps = RoundAccounting.alreadyIndexed(
+            indexedOldestFirst.map { RoundAccounting.Round(it.sessionId, it.itemCount) },
+            recorded,
+            totalIndexed = ranges.sumOf { it.itemCount },
+        )
+        rounds.map { RoundSummary(it, bySession[it.sessionId], selected = it.itemCount, alreadyIndexed = overlaps[it.sessionId]) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val coverage: StateFlow<CoverageUi> = combine(cloud.coverage(), rounds) { coverage, summaries ->

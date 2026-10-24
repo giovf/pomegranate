@@ -40,6 +40,9 @@ public interface SettingsRepository {
     /** The user ticked "don't show again" on the fidelity notice. */
     public val fidelityNoticeAcknowledged: Flow<Boolean>
 
+    /** Per picker round: how many of its items were already indexed from an earlier round. */
+    public val roundOverlaps: Flow<Map<String, Int>>
+
     /** Version of the census rules the stored index was built with; a newer app rescans everything once. */
     public val censusFormatVersion: Flow<Int>
 
@@ -68,6 +71,11 @@ public interface SettingsRepository {
     public suspend fun setLastDeviceScanTimeMillis(timeMillis: Long)
 
     public suspend fun setCensusFormatVersion(version: Int)
+
+    public suspend fun setRoundOverlap(sessionId: String, alreadyIndexed: Int)
+
+    /** Forgets all round statistics; part of Disconnect. */
+    public suspend fun clearRoundOverlaps()
 
     public suspend fun setOnboardingCompleted(completed: Boolean)
 

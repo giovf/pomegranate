@@ -19,7 +19,8 @@ class CloudScannerRepositoryImplTest {
     private val api = FakePickerApi()
     private var now = 1_700_000_000_000L
     private val poller by lazy { SessionPoller(api, clock = { now }, sleep = { now += it }) }
-    private val repo by lazy { CloudScannerRepositoryImpl(api, poller, db.cloudItemDao(), db.pickerRoundDao(), clock = { now }) }
+    private val overlaps = mutableMapOf<String, Int>()
+    private val repo by lazy { CloudScannerRepositoryImpl(api, poller, db.cloudItemDao(), db.pickerRoundDao(), clock = { now }, recordOverlap = { id, n -> overlaps[id] = n }) }
 
     @Before
     fun setUp() {
@@ -68,6 +69,7 @@ class CloudScannerRepositoryImplTest {
         repo.indexSession(second.id)
 
         assertEquals(2, db.cloudItemDao().count())
+        assertEquals(mapOf(first.id to 0, second.id to 1), overlaps)
         val item = db.cloudItemDao().getByPickerMediaItemId("m1")!!
         assertEquals(second.id, item.sessionId)
         assertEquals("https://lh3/new", item.baseUrl)

@@ -18,6 +18,7 @@ internal class CloudDataWiper(
     private val matches: MatchDao,
     private val rounds: PickerRoundDao,
     private val jobs: TransferJobDao,
+    private val clearRoundStats: suspend () -> Unit = {},
 ) {
     suspend fun wipe(): WipeCounts {
         val counts = WipeCounts(
@@ -30,6 +31,7 @@ internal class CloudDataWiper(
         rounds.deleteAll() // Cascades to cloud_item and, from there, to match and group membership.
         cloudItems.deleteAll() // Belt and braces for items whose round was already gone.
         matches.deleteAll()
+        clearRoundStats()
         return counts
     }
 }

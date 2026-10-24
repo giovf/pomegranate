@@ -70,7 +70,13 @@ internal class PomegranateApplication : Application() {
 
     val cloudScanner: CloudScannerRepository by lazy {
         val api = HttpPickerApi(accessToken = { auth.getAccessToken() })
-        CloudScannerRepositoryImpl(api, SessionPoller(api), database.cloudItemDao(), database.pickerRoundDao())
+        CloudScannerRepositoryImpl(
+            api = api,
+            poller = SessionPoller(api),
+            cloudItemDao = database.cloudItemDao(),
+            roundDao = database.pickerRoundDao(),
+            recordOverlap = settings::setRoundOverlap,
+        )
     }
 
     val reconciliation: ReconciliationRepository by lazy {
@@ -99,7 +105,7 @@ internal class PomegranateApplication : Application() {
     val transferScheduler: TransferScheduler by lazy { TransferScheduler(this) }
 
     val cloudDataWiper: CloudDataWiper by lazy {
-        CloudDataWiper(database.cloudItemDao(), database.matchDao(), database.pickerRoundDao(), database.transferJobDao())
+        CloudDataWiper(database.cloudItemDao(), database.matchDao(), database.pickerRoundDao(), database.transferJobDao(), clearRoundStats = settings::clearRoundOverlaps)
     }
 
     val manifest: ManifestRepository by lazy {

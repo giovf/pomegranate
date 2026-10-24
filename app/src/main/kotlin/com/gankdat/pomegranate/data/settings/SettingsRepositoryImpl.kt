@@ -54,6 +54,8 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
 
     override val fidelityNoticeAcknowledged: Flow<Boolean> = select { it[FIDELITY_NOTICE_ACKNOWLEDGED] ?: false }
 
+    override val roundOverlaps: Flow<Map<String, Int>> = select { decodeOverlaps(it[ROUND_OVERLAPS]) }
+
     override val censusFormatVersion: Flow<Int> = select { it[CENSUS_FORMAT_VERSION] ?: 0 }
 
     override val lastDeviceScanTimeMillis: Flow<Long> = select { it[LAST_DEVICE_SCAN_TIME] ?: 0L }
@@ -96,6 +98,14 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
         dataStore.edit { it[PARTIAL_ACCESS_BANNER_DISMISSED] = dismissed }
     }
 
+    override suspend fun setRoundOverlap(sessionId: String, alreadyIndexed: Int) {
+        dataStore.edit { prefs -> prefs[ROUND_OVERLAPS] = encodeOverlaps(decodeOverlaps(prefs[ROUND_OVERLAPS]) + (sessionId to alreadyIndexed)) }
+    }
+
+    override suspend fun clearRoundOverlaps() {
+        dataStore.edit { it.remove(ROUND_OVERLAPS) }
+    }
+
     override suspend fun setCensusFormatVersion(version: Int) {
         dataStore.edit { it[CENSUS_FORMAT_VERSION] = version }
     }
@@ -115,6 +125,16 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
     private fun <T> select(read: (Preferences) -> T): Flow<T> = dataStore.data.map(read).distinctUntilChanged()
 
     private companion object {
+        /** `id=count` pairs joined by `&`, ids URL-encoded. */
+        fun encodeOverlaps(map: Map<String, Int>): String =
+            map.entries.joinToString("&") { (id, n) -> java.net.URLEncoder.encode(id, "UTF-8") + "=" + n }
+
+        fun decodeOverlaps(text: String?): Map<String, Int> =
+            text.orEmpty().split('&').filter { '=' in it }.mapNotNull { pair ->
+                val n = pair.substringAfter('=').toIntOrNull() ?: return@mapNotNull null
+                java.net.URLDecoder.decode(pair.substringBefore('='), "UTF-8") to n
+            }.toMap()
+
         val DESTINATION_ROOT_URI = stringPreferencesKey("destination_root_uri")
         val FOLDER_STRATEGY = stringPreferencesKey("folder_strategy")
         val DOWNLOAD_CONCURRENCY = intPreferencesKey("download_concurrency")
@@ -126,6 +146,7 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
         val PARTIAL_ACCESS_BANNER_DISMISSED = booleanPreferencesKey("partial_access_banner_dismissed")
         val LAST_DEVICE_SCAN_TIME = longPreferencesKey("last_device_scan_time_millis")
         val CENSUS_FORMAT_VERSION = intPreferencesKey("census_format_version")
+        val ROUND_OVERLAPS = stringPreferencesKey("round_overlaps")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val FIDELITY_NOTICE_ACKNOWLEDGED = booleanPreferencesKey("fidelity_notice_acknowledged")
     }

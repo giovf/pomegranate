@@ -159,10 +159,6 @@
     <string name="token_testing_mode_note">While your Google Cloud project is in testing mode, sign-ins expire after 7 days and you will be asked to sign in again.</string>
     <string name="token_refresh">Refresh access</string>
     <string name="rounds_title">Rounds so far</string>
-    <plurals name="round_indexed">
-        <item quantity="one">%1$d item indexed</item>
-        <item quantity="other">%1$d items indexed</item>
-    </plurals>
     <string name="round_active">Open: waiting for Done</string>
     <string name="round_expired">Closed without Done: nothing added</string>
     <string name="status_dot_connected">Connected to Google Photos</string>
@@ -215,10 +211,15 @@
     <string name="picker_cancel_round">Cancel this round</string>
     <string name="picker_round_done_next">To add more, start the next round below. Each round uses a new link.</string>
     <string name="round_started">Started %1$s</string>
-    <plurals name="round_indexed_range">
-        <item quantity="one">%1$d item, dated %2$s to %3$s</item>
-        <item quantity="other">%1$d items, dated %2$s to %3$s</item>
+    <plurals name="round_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
     </plurals>
+    <plurals name="round_already_indexed">
+        <item quantity="one">%1$d already indexed</item>
+        <item quantity="other">%1$d already indexed</item>
+    </plurals>
+    <string name="round_span">dated %1$s to %2$s</string>
     <plurals name="picker_round_done_range">
         <item quantity="one">Round %1$d finished: %2$d item added, dated %3$s to %4$s.</item>
         <item quantity="other">Round %1$d finished: %2$d items added, dated %3$s to %4$s.</item>

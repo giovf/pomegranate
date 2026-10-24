@@ -52,7 +52,7 @@ internal fun ConnectionScreen(
     onDisconnect: () -> Unit,
     onOpenCoverage: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ConnectionViewModel = viewModel(factory = appViewModelFactory { ConnectionViewModel(it.auth, it.cloudScanner, it.reconciliation, it.origins) }),
+    viewModel: ConnectionViewModel = viewModel(factory = appViewModelFactory { ConnectionViewModel(it.auth, it.cloudScanner, it.reconciliation, it.origins, it.settings) }),
 ) {
     val auth by viewModel.authState.collectAsStateWithLifecycle()
     val round by viewModel.roundState.collectAsStateWithLifecycle()
@@ -168,13 +168,11 @@ private fun RoundsHistory(rounds: List<RoundSummary>) {
             Text(
                 when (round.state) {
                     PickerRoundState.INDEXED -> {
+                        val selected = pluralStringResource(R.plurals.round_selected, summary.selected, summary.selected)
+                        val overlap = summary.alreadyIndexed?.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.round_already_indexed, it, it) }
                         val range = summary.range
-                        val count = range?.itemCount ?: round.itemCount
-                        if (range?.oldest != null && range.newest != null) {
-                            pluralStringResource(R.plurals.round_indexed_range, count, count, Formatters.date(range.oldest), Formatters.date(range.newest))
-                        } else {
-                            pluralStringResource(R.plurals.round_indexed, count, count)
-                        }
+                        val span = if (range?.oldest != null && range.newest != null) stringResource(R.string.round_span, Formatters.date(range.oldest), Formatters.date(range.newest)) else null
+                        listOfNotNull(listOfNotNull(selected, overlap).joinToString(", "), span).joinToString(" · ")
                     }
                     PickerRoundState.ACTIVE -> stringResource(R.string.round_active)
                     PickerRoundState.EXPIRED -> stringResource(R.string.round_expired)

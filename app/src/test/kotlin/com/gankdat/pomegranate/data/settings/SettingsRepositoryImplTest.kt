@@ -63,6 +63,16 @@ class SettingsRepositoryImplTest {
     }
 
     @Test
+    fun `round overlaps accumulate per round and clear`() = runBlocking {
+        assertEquals(emptyMap<String, Int>(), settings.roundOverlaps.first())
+        settings.setRoundOverlap("a-1_x", 0)
+        settings.setRoundOverlap("b&=2", 286)
+        assertEquals(mapOf("a-1_x" to 0, "b&=2" to 286), settings.roundOverlaps.first())
+        settings.clearRoundOverlaps()
+        assertEquals(emptyMap<String, Int>(), settings.roundOverlaps.first())
+    }
+
+    @Test
     fun `battery and cleanup settings persist`() = runBlocking {
         settings.setPauseOnLowBattery(false)
         assertFalse(settings.pauseOnLowBattery.first())

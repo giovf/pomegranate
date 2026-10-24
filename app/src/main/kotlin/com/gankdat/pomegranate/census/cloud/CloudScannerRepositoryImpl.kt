@@ -15,6 +15,8 @@ internal class CloudScannerRepositoryImpl(
     private val cloudItemDao: CloudItemDao,
     private val roundDao: PickerRoundDao,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Receives, per indexed round, how many items were already indexed from an earlier round. */
+    private val recordOverlap: suspend (sessionId: String, alreadyIndexed: Int) -> Unit = { _, _ -> },
 ) : CloudScannerRepository {
 
     override suspend fun startPickerRound(): PickerSession {
@@ -46,7 +48,9 @@ internal class CloudScannerRepositoryImpl(
     }
 
     override suspend fun indexSession(sessionId: String): Int {
-        val count = listInto(sessionId)
+        var alreadyIndexed = 0
+        val count = listInto(sessionId) { existing -> if (existing != null && existing.sessionId != sessionId) alreadyIndexed++ }
+        recordOverlap(sessionId, alreadyIndexed)
         roundDao.setState(sessionId, PickerRoundState.INDEXED, itemCount = count)
         return count
     }
@@ -105,13 +109,14 @@ internal class CloudScannerRepositoryImpl(
     override fun pickerRounds(): Flow<List<PickerRoundEntity>> = roundDao.observeAll()
 
     /** Pages through the session and upserts every item, keyed by Google's persistent media item id. */
-    private suspend fun listInto(sessionId: String): Int {
+    private suspend fun listInto(sessionId: String, onExisting: (com.gankdat.pomegranate.data.db.entity.CloudItemEntity?) -> Unit = {}): Int {
         var pageToken: String? = null
         var count = 0
         do {
             val listedAt = clock()
             val page = api.listMediaItems(sessionId, pageToken)
             for (item in page.items) {
+                onExisting(cloudItemDao.getByPickerMediaItemId(item.id))
                 cloudItemDao.upsert(CloudItemMapper.toEntity(item, sessionId, listedAt))
                 count++
             }
