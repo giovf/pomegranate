@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": "1",
+        "id": 1,
         "title": "Set up Room database and core data model",
         "description": "Create the Room database with all core entity tables (device_item, cloud_item, media_group, match, transfer_job, origin_rule, picker_round) and DAOs for data access. This is the foundation for all data persistence in the app.",
         "details": "1. Add Room dependencies to gradle/libs.versions.toml (androidx.room:room-runtime, room-ktx, room-compiler via KSP).\n2. Add KSP plugin to build.gradle.kts for Room annotation processing.\n3. Create package `com.gankdat.pomegranate.data.db`.\n4. Define entities:\n   - `DeviceItemEntity`: id (Long PK), volume (String), relativePath, bucket, displayName, mime, size (Long), dateTaken (Long), dateModified (Long), width (Int), height (Int), durationMs (Long?), fingerprint (String), sha256 (String?).\n   - `CloudItemEntity`: id (Long PK), pickerMediaItemId (String unique), sessionId (String), filename, mime, type, createTime (Long), width, height, durationMs, cameraMake?, cameraModel?, baseUrl, baseUrlExpiresAt (Long), inferredOrigin?, userOverrideOrigin?.\n   - `MediaGroupEntity`: id (Long PK), kind (enum: SINGLE, LIVE_PHOTO, MOTION_PHOTO, RAW_PAIR, EDIT_PAIR).\n   - `DeviceItemGroupCrossRef` and `CloudItemGroupCrossRef` for many-to-many.\n   - `MatchEntity`: cloudItemId (FK), deviceItemId (FK), confidence (enum: EXACT, LIKELY, AMBIGUOUS), evidence (String JSON).\n   - `TransferJobEntity`: id (Long PK), cloudItemId (FK), state (enum: QUEUED, RUNNING, VERIFYING, DONE, FAILED, PAUSED), destinationUri, bytesExpected, bytesWritten, sha256?, fidelity (enum: ORIGINAL, GPS_STRIPPED, TRANSCODED), attempts, lastError?.\n   - `OriginRuleEntity`: id (Long PK), source (enum: LEARNED, BUILTIN), pattern, originLabel, confidence (Float).\n   - `PickerRoundEntity`: sessionId (String PK), createdAt (Long), itemCount (Int), state (String).\n5. Create type converters for enums.\n6. Create DAOs with basic CRUD + query methods.\n7. Create `PomegranateDatabase` abstract class annotated with @Database.\n8. Write unit tests for entity creation and basic DAO operations.",
@@ -129,7 +129,7 @@
         "updatedAt": "2026-10-19T13:06:56.041Z"
       },
       {
-        "id": "2",
+        "id": 2,
         "title": "Implement DataStore for app settings",
         "description": "Set up Jetpack DataStore (Preferences) for persistent app settings including destination root URI, folder strategy, concurrency level, Wi-Fi only mode, and auto-disconnect option.",
         "details": "1. Add DataStore dependency to libs.versions.toml (androidx.datastore:datastore-preferences).\n2. Create package `com.gankdat.pomegranate.data.settings`.\n3. Define `SettingsRepository` interface:\n   - `destinationRootUri: Flow<String?>` (persisted SAF URI)\n   - `folderStrategy: Flow<FolderStrategy>` (enum: BY_ORIGIN, BY_MONTH_ONLY)\n   - `downloadConcurrency: Flow<Int>` (default 3)\n   - `wifiOnly: Flow<Boolean>` (default true)\n   - `autoDisconnect: Flow<Boolean>` (default false)\n   - Suspend setters for each.\n4. Implement `SettingsRepositoryImpl` using Preferences DataStore.\n5. Create preference keys as private constants.\n6. Provide DataStore instance via a top-level property delegate at Application scope.\n7. Create `FolderStrategy` enum in `com.gankdat.pomegranate.data.model`.\n8. Write unit tests for settings persistence and defaults.",
@@ -197,7 +197,7 @@
         "updatedAt": "2026-10-19T14:23:17.342Z"
       },
       {
-        "id": "3",
+        "id": 3,
         "title": "Build runtime permissions flow for media access",
         "description": "Implement the runtime permissions request flow for READ_MEDIA_IMAGES and READ_MEDIA_VIDEO (Android 13+) with proper rationale screens, handling of partial grants (Android 14+ visual user selected), and graceful degradation.",
         "details": "1. Create package `com.gankdat.pomegranate.ui.permissions`.\n2. Add permissions to AndroidManifest.xml:\n   - READ_MEDIA_IMAGES, READ_MEDIA_VIDEO (API 33+)\n   - READ_MEDIA_VISUAL_USER_SELECTED (API 34+)\n   - No WRITE_EXTERNAL_STORAGE (not needed, using SAF).\n3. Create `PermissionState` sealed class: Granted, PartiallyGranted (selectedPhotosAccess), Denied, PermanentlyDenied.\n4. Create `PermissionViewModel` that tracks current permission state and handles requests.\n5. Create `PermissionRationaleScreen` Composable:\n   - Explain why the app needs media access (to scan photos/videos on device).\n   - Explain what the app does NOT do (no upload, no analytics).\n   - \"Grant access\" button triggers permission request.\n6. Handle `shouldShowRequestPermissionRationale` for re-prompting.\n7. Handle permanent denial: show screen with \"Open Settings\" button using `Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)`.\n8. For Android 14+ partial grant (READ_MEDIA_VISUAL_USER_SELECTED), show a \"Select more photos\" option that re-requests.\n9. Use Activity Result APIs (rememberLauncherForActivityResult) for permission requests.\n10. Persist permission state awareness in DataStore to show appropriate UI on next launch.",
@@ -294,7 +294,7 @@
         "updatedAt": "2026-10-19T14:34:28.848Z"
       },
       {
-        "id": "4",
+        "id": 4,
         "title": "Implement MediaStore device scanner",
         "description": "Build the MediaStore scanner that indexes all photos and videos across all volumes (internal and removable storage), computing fingerprints and storing results in the Room database with support for incremental rescans.",
         "details": "1. Create package `com.gankdat.pomegranate.census.device`.\n2. Create `DeviceScanner` class that queries MediaStore:\n   - Query MediaStore.Images.Media and MediaStore.Video.Media.\n   - Use MediaStore.getExternalVolumeNames(context) for all volumes.\n   - Project columns: _ID, VOLUME_NAME, RELATIVE_PATH, BUCKET_DISPLAY_NAME, DISPLAY_NAME, MIME_TYPE, SIZE, DATE_TAKEN, DATE_MODIFIED, WIDTH, HEIGHT, DURATION (video).\n3. Create `Fingerprint` data class: displayName + size + dateTaken + width + height.\n4. Compute fingerprint string as hash of concatenated values.\n5. Create `DeviceScannerRepository` interface with:\n   - `suspend fun scanAll(): ScanResult` (full scan)\n   - `suspend fun scanIncremental(lastScanTime: Long): ScanResult` (items modified since)\n   - `fun observeProgress(): Flow<ScanProgress>`\n6. Implement repository to:\n   - Query MediaStore in batches (500 items).\n   - Upsert into Room DeviceItemEntity.\n   - Track added/updated/unchanged counts.\n   - Store lastScanTime in DataStore.\n7. Create `ScanResult` data class: itemCount, addedCount, updatedCount, duration.\n8. Create `ScanProgress` data class: scannedCount, totalEstimate (from MediaStore count query).\n9. Handle ContentObserver for future real-time updates (stub for now).\n10. Add EXIF parsing for dateTaken fallback when MediaStore returns 0 (use ExifInterface from androidx.exifinterface).",
@@ -403,7 +403,7 @@
         "updatedAt": "2026-10-19T15:17:53.089Z"
       },
       {
-        "id": "5",
+        "id": 5,
         "title": "Create navigation and app shell with Compose",
         "description": "Set up the app's navigation architecture using Jetpack Navigation Compose, define all screens as destinations, and create the app shell with top bar and navigation components.",
         "details": "1. Add Navigation Compose dependency to libs.versions.toml (androidx.navigation:navigation-compose).\n2. Create package `com.gankdat.pomegranate.ui.navigation`.\n3. Define `Screen` sealed class with destinations:\n   - Onboarding, Library, ItemDetail, Pull, Connection, Settings, Disconnect, CleanupGuidance.\n4. Create `PomegranateNavHost` Composable with NavController.\n5. Update MainActivity to use PomegranateNavHost.\n6. Create `PomegranateTopBar` Composable with dynamic title and navigation icon.\n7. Create `PomegranateScaffold` that wraps screens with TopBar and handles back navigation.\n8. Implement navigation arguments for ItemDetail (itemId) and Pull (scope).\n9. Add type-safe navigation with Kotlin Serialization (if using Navigation 2.8+) or use string routes.\n10. Create `NavController` extension functions for common navigation patterns.\n11. Handle deep links for OAuth redirect (to be connected in Task 9).",
@@ -482,7 +482,7 @@
         "updatedAt": "2026-10-19T14:29:24.023Z"
       },
       {
-        "id": "6",
+        "id": 6,
         "title": "Build onboarding screens and destination picker",
         "description": "Create the onboarding flow explaining the app's purpose and privacy guarantees, and implement the Storage Access Framework (SAF) destination folder picker for where pulled media will be saved.",
         "details": "1. Create package `com.gankdat.pomegranate.ui.onboarding`.\n2. Create `OnboardingViewModel` tracking completion state and destination selection.\n3. Build `OnboardingScreen` as a pager with pages:\n   - Page 1: App purpose (\"See where your photos live, pull them back, leave cleanly\").\n   - Page 2: Privacy guarantees (no servers, no analytics, only Google APIs contacted, tokens wiped).\n   - Page 3: Three-state model explanation (device-only, cloud-only, both) with icons/colors.\n   - Page 4: Destination picker integration.\n4. Implement SAF folder picker:\n   - Use `Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)` with `rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree())`.\n   - Take persistable URI permission: `contentResolver.takePersistableUriPermission(uri, FLAG_GRANT_READ|WRITE)`.\n   - Store URI in SettingsRepository.\n   - Display selected folder name using `DocumentsContract.getDocumentId`.\n5. Detect and highlight SD card/removable storage in picker guidance.\n6. Show warning if selected folder is in a Google Photos backup folder (DCIM, Pictures, Download):\n   - Check if path contains these directories.\n   - Show dialog explaining re-upload risk and how to exclude in Google Photos.\n7. Create \"Get Started\" button that triggers device scan and navigates to Library.\n8. Persist onboarding completion in DataStore.\n9. Check onboarding state in MainActivity to show onboarding vs main app.",
@@ -577,7 +577,7 @@
         "updatedAt": "2026-10-19T15:28:38.550Z"
       },
       {
-        "id": "7",
+        "id": 7,
         "title": "Implement Library screen with folder and month grouping",
         "description": "Build the main Library screen that displays the device census results grouped by folder (bucket) and by month, showing counts and storage totals for each group with Material 3 design.",
         "details": "1. Create package `com.gankdat.pomegranate.ui.library`.\n2. Create `LibraryViewModel` that observes device items from Room:\n   - Compute groups by bucket and by month.\n   - Calculate counts and total sizes per group.\n   - Expose `libraryState: StateFlow<LibraryUiState>`.\n3. Define `LibraryUiState`: Loading, Empty, Success(groups, totalCount, totalSize).\n4. Create `LibraryScreen` Composable with:\n   - Tab row for \"By Folder\" and \"By Month\" views.\n   - LazyColumn with group headers showing name, count, size.\n   - Expandable groups showing thumbnails (GridView within each).\n5. Implement thumbnail loading:\n   - Use MediaStore.Images.Thumbnails or ContentResolver.loadThumbnail.\n   - Cache with Coil (if approved) or implement simple LRU memory cache using platform APIs only (LinkedHashMap with access order, weak references for bitmaps).\n6. Create `MediaGroupHeader` Composable: folder icon, name, \"X items • Y MB\".\n7. Create `MediaThumbnail` Composable: square thumbnail with video duration overlay for videos.\n8. Add pull-to-refresh that triggers incremental scan.\n9. Show last scan time in a subtle footer or snackbar.\n10. Handle empty state with guidance to grant permissions or add media.\n11. Use Material 3 components: TopAppBar, Card, Surface, proper theming.",
@@ -683,7 +683,7 @@
         "updatedAt": "2026-10-19T15:24:02.387Z"
       },
       {
-        "id": "8",
+        "id": 8,
         "title": "Build Item detail screen with metadata display",
         "description": "Create the item detail screen showing full metadata for a selected photo or video including path, folder, size, timestamps, dimensions/duration, fingerprint, and (once reconciliation exists) its three-state status.",
         "details": "1. Create `ItemDetailScreen` Composable in `com.gankdat.pomegranate.ui.library`.\n2. Create `ItemDetailViewModel` taking itemId as saved state handle argument:\n   - Load DeviceItemEntity from Room.\n   - Expose `itemState: StateFlow<ItemDetailUiState>`.\n3. Display:\n   - Full-size preview (using ContentResolver to open the actual file URI).\n   - Path: volume + relative path + display name.\n   - Folder (bucket) as a chip that navigates to filtered library view.\n   - File type (MIME) with human-readable label.\n   - Size in human-readable format (KB/MB/GB).\n   - Date taken and date modified (formatted).\n   - Dimensions (width x height) for images.\n   - Duration (formatted mm:ss) for videos.\n   - Fingerprint (truncated, expandable).\n   - SHA-256 if computed (or button to compute it on demand).\n4. Add \"Compute hash\" button that calculates SHA-256 from file content and updates database.\n5. Placeholder section for \"Status\" (cloud-only/device-only/both) to be populated after reconciliation.\n6. Placeholder section for \"Sibling files\" (RAW+JPEG pairs, etc.) to be populated after media grouping.\n7. Use Material 3 design: full-bleed image with system bar handling, scrollable content below.\n8. Add share action in TopAppBar to share the item using system share sheet.",
@@ -768,7 +768,7 @@
         "updatedAt": "2026-10-19T15:32:14.143Z"
       },
       {
-        "id": "9",
+        "id": 9,
         "title": "Implement OAuth PKCE flow with Custom Tabs",
         "description": "Build the OAuth 2.0 PKCE authentication flow using Custom Tabs for the Google sign-in, handling the app-link redirect, and storing tokens securely in the Android Keystore.",
         "details": "1. Create package `com.gankdat.pomegranate.auth`.\n2. Add Custom Tabs dependency to libs.versions.toml (androidx.browser:browser).\n3. Create `OAuthConfig` object with:\n   - Client ID placeholder (to be filled by user from Google Cloud Console).\n   - Redirect URI: `com.gankdat.pomegranate://oauth/callback`.\n   - Scope: `https://www.googleapis.com/auth/photospicker.mediaitems.readonly`.\n   - Auth endpoint: `https://accounts.google.com/o/oauth2/v2/auth`.\n   - Token endpoint: `https://oauth2.googleapis.com/token`.\n4. Implement PKCE:\n   - Generate code_verifier (43-128 char random string).\n   - Compute code_challenge = BASE64URL(SHA256(code_verifier)).\n   - code_challenge_method = S256.\n5. Create `AuthRepository` interface:\n   - `fun launchSignIn(activity: Activity)`\n   - `suspend fun handleRedirect(uri: Uri): AuthResult`\n   - `suspend fun refreshToken(): AuthResult`\n   - `suspend fun revokeAndClear()`\n   - `fun isAuthenticated(): Flow<Boolean>`\n   - `suspend fun getAccessToken(): String?`\n6. Implement `AuthRepositoryImpl`:\n   - Launch Custom Tab with auth URL.\n   - Store code_verifier temporarily in memory.\n   - On redirect, exchange code for tokens using HttpsURLConnection POST to token endpoint.\n7. Set up app link in AndroidManifest.xml:\n   - Add intent-filter for the redirect URI scheme/host.\n   - Create `OAuthRedirectActivity` that captures the redirect and forwards to the main flow.\n8. Implement Keystore-backed token storage:\n   - Generate AES key in Android Keystore.\n   - Encrypt tokens before storing in SharedPreferences/DataStore.\n   - Use `javax.crypto.Cipher` with `KeyGenParameterSpec`.\n9. Handle token refresh (expires_in tracking).\n10. Handle Testing mode 7-day expiry: detect refresh failure and prompt re-authentication gracefully.\n11. Never log tokens; wipe all on revoke.",
@@ -891,7 +891,7 @@
         "updatedAt": "2026-10-19T15:42:51.453Z"
       },
       {
-        "id": "10",
+        "id": 10,
         "title": "Build Google Photos Picker API client",
         "description": "Implement the Picker API client for creating sessions, polling for completion, listing media items with pagination, and building the local cloud index from selected items.",
         "details": "1. Create package `com.gankdat.pomegranate.census.cloud`.\n2. Create `PickerApiClient` class using `HttpsURLConnection`:\n   - Base URL: `https://photospicker.googleapis.com/v1/`\n   - Add `Authorization: Bearer {token}` header.\n3. Implement `sessions.create`:\n   - POST to `sessions` with empty body.\n   - Parse response: `name`, `id`, `pickerUri`, `mediaItemsSet` (false initially).\n   - Store PickerRoundEntity in Room.\n4. Launch Picker UI:\n   - Open `pickerUri` in Custom Tab or system browser.\n   - User selects photos in Google's UI.\n5. Implement polling for `sessions.get`:\n   - GET `sessions/{id}`.\n   - Poll with exponential backoff until `mediaItemsSet` becomes true.\n   - Handle timeout (user abandons picker).\n6. Implement `mediaItems.list`:\n   - GET `sessions/{id}/mediaItems` with `pageSize=100`.\n   - Handle `nextPageToken` for pagination.\n   - Parse MediaItem: `id`, `type`, `createTime`, `mimeType`, `mediaFile` (filename, width, height, cameraMake, cameraModel, durationSeconds), `baseUrl`.\n7. For each media item, insert/update CloudItemEntity in Room:\n   - Store baseUrl with computed expiry (now + 60 minutes).\n8. Create `CloudScannerRepository` interface:\n   - `suspend fun startPickerRound(): PickerSession`\n   - `suspend fun pollSession(sessionId: String): SessionState`\n   - `suspend fun indexSession(sessionId: String): Int` (returns item count)\n   - `fun getCloudItemCount(): Flow<Int>`\n   - `fun getPickerRounds(): Flow<List<PickerRound>>`\n9. Track coverage across rounds in UI (\"6,400 items in 4 rounds\").\n10. Handle baseUrl expiry: refresh by re-listing session before pulling.",
@@ -999,7 +999,7 @@
         "updatedAt": "2026-10-19T15:48:33.155Z"
       },
       {
-        "id": "11",
+        "id": 11,
         "title": "Implement matching engine and reconciliation",
         "description": "Build the matching engine that reconciles cloud items with device items, assigns three-state status (cloud-only, device-only, both) with confidence levels, and groups sibling files (RAW+JPEG, live photos, motion photos).",
         "details": "1. Create package `com.gankdat.pomegranate.reconcile`.\n2. Create `MatchingEngine` class with deterministic matching:\n   - Primary match: filename + createTime (within 1 second tolerance) + dimensions.\n   - Secondary match: filename pattern + dimensions (for renamed files).\n   - Hash confirmation for AMBIGUOUS cases.\n3. Create `Confidence` enum: EXACT (all fields match), LIKELY (most match), AMBIGUOUS (partial match, needs hash).\n4. Create `Evidence` data class capturing what matched and what didn't.\n5. Implement matching algorithm:\n   - Index device items by filename prefix (before extension).\n   - For each cloud item, find candidates by filename.\n   - Score candidates by timestamp proximity and dimension match.\n   - Insert MatchEntity with confidence and serialized evidence.\n6. Implement sibling grouping:\n   - Detect RAW+JPEG: same base name, one is .dng/.arw/.cr2, other is .jpg.\n   - Detect live photos (iOS): .heic + .mov with same base name.\n   - Detect motion photos (Pixel): .jpg with embedded video, or .MP.jpg sidecar.\n   - Detect original+edited: _original suffix or similar patterns.\n   - Create MediaGroupEntity for each group.\n7. Implement three-state assignment:\n   - CLOUD_ONLY: cloud item with no match.\n   - DEVICE_ONLY: device item with no match (though cloud index is incomplete).\n   - BOTH: cloud item with EXACT or LIKELY match.\n8. Create `ReconciliationRepository`:\n   - `suspend fun reconcile(): ReconciliationResult`\n   - `fun getItemsByState(state: MediaState): Flow<List<MediaItem>>`\n   - `fun getAmbiguousMatches(): Flow<List<AmbiguousMatch>>`\n9. Add hash computation for ambiguous matches: compute SHA-256 of device file, compare with cloud (if available via download + hash).\n10. Handle incremental reconciliation when either index updates.",
@@ -1126,7 +1126,7 @@
         "updatedAt": "2026-10-19T15:54:43.820Z"
       },
       {
-        "id": "12",
+        "id": 12,
         "title": "Implement origin inference for folder organization",
         "description": "Build the origin inference system that learns filename patterns from device folders (e.g., WA0012 → WhatsApp) and includes built-in patterns for common apps, used to organize pulled media into meaningful folders.",
         "details": "1. Create package `com.gankdat.pomegranate.reconcile.origin`.\n2. Create `OriginInferrer` class.\n3. Implement learning from device census:\n   - For each bucket (folder), extract filename patterns.\n   - Common patterns: prefix (IMG-, VID-), suffix conventions, app identifiers (WA, TG, SC).\n   - Store learned rules in OriginRuleEntity with source=LEARNED.\n   - Track confidence based on pattern frequency (90%+ files match → high confidence).\n4. Create built-in pattern table (source=BUILTIN):\n   - WhatsApp: `IMG-YYYYMMDD-WA\\d{4}`, `VID-YYYYMMDD-WA\\d{4}`, bucket contains \"WhatsApp\".\n   - Telegram: filename contains hash pattern, bucket contains \"Telegram\".\n   - Screenshots: `Screenshot_`, bucket is \"Screenshots\".\n   - Camera: `IMG_YYYYMMDD_HHMMSS`, `PXL_YYYYMMDD_HHMMSS` (Pixel), bucket is \"Camera\" or \"DCIM/Camera\".\n   - Instagram: bucket contains \"Instagram\".\n   - Facebook: bucket contains \"Facebook\".\n   - Twitter/X: bucket contains \"Twitter\".\n   - Snapchat: bucket contains \"Snapchat\".\n5. Implement inference for cloud items:\n   - Check learned rules first (higher specificity).\n   - Fall back to built-in rules.\n   - Return inferred origin + confidence.\n   - Store in CloudItemEntity.inferredOrigin.\n6. Create UI for per-item origin override before pull.\n7. Unknown origin (low confidence on all rules) → null, file goes to `YYYY-MM/` directly.\n8. Create `OriginRepository`:\n   - `suspend fun learnFromDeviceCensus()`\n   - `fun inferOrigin(filename: String): OriginResult?`\n   - `suspend fun setUserOverride(cloudItemId: Long, origin: String)`",
@@ -1222,7 +1222,7 @@
         "updatedAt": "2026-10-19T16:18:58.525Z"
       },
       {
-        "id": "13",
+        "id": 13,
         "title": "Extend Library screen with three-state view and status filters",
         "description": "Enhance the Library screen to show the three-state status (cloud-only, device-only, both) for each item with consistent colors and icons, add filter tabs, and display reconciliation evidence.",
         "details": "1. Update `LibraryViewModel` to include reconciliation state:\n   - Query items with their MatchEntity joins.\n   - Compute status for each: cloud_only (red/cloud icon), device_only (blue/phone icon), both (green/check icon).\n2. Define theme colors and icons for each state:\n   - Cloud-only: Material red/orange, cloud_download icon.\n   - Device-only: Material blue, phone_android icon.\n   - Both: Material green, check_circle icon.\n3. Update `LibraryScreen` with status filter tabs:\n   - All, Cloud-Only, Device-Only, Both.\n   - Show counts next to each tab.\n4. Update `MediaThumbnail` to show status badge overlay.\n5. Add storage totals per status in header:\n   - \"Cloud-only: 1,204 items, 38 GB, across 3 picker rounds\".\n6. Update `ItemDetailScreen` to show:\n   - Status badge with explanation.\n   - Match evidence (what matched, confidence).\n   - Link to matched device/cloud item.\n   - Sibling files if part of a group.\n7. Add \"Reconcile\" action in TopAppBar that triggers reconciliation.\n8. Show reconciliation progress during the operation.\n9. Handle the incomplete cloud index case: \"Device-only\" items may actually be backed up; show a note explaining the picker-round limitation.\n10. Create `ConnectionStatusBar` Composable showing:\n   - Whether Google is connected.\n   - How many picker rounds completed.\n   - Total cloud items indexed.",
@@ -1317,7 +1317,7 @@
         "updatedAt": "2026-10-19T16:08:22.330Z"
       },
       {
-        "id": "14",
+        "id": 14,
         "title": "Build transfer job queue and WorkManager execution",
         "description": "Implement the persistent transfer job queue using Room and WorkManager that downloads cloud-only media with bounded concurrency, automatic retry, pause/resume, and network/battery constraints.",
         "details": "1. Add WorkManager dependency to libs.versions.toml (androidx.work:work-runtime-ktx).\n2. Create package `com.gankdat.pomegranate.transfer`.\n3. Create `TransferQueue` class managing TransferJobEntity:\n   - `suspend fun enqueue(cloudItemIds: List<Long>)`: insert QUEUED jobs.\n   - `suspend fun pause(jobId: Long)`: set PAUSED.\n   - `suspend fun resume(jobId: Long)`: set QUEUED.\n   - `suspend fun cancel(jobId: Long)`: remove job.\n   - `fun observeJobs(): Flow<List<TransferJob>>`.\n4. Create `TransferWorker` extending CoroutineWorker:\n   - Query next N QUEUED jobs (N = concurrency setting).\n   - Process in bounded concurrency (Semaphore).\n   - Update job state to RUNNING.\n   - Download file (Task 15).\n   - Update to VERIFYING, verify, update to DONE or FAILED.\n5. Configure WorkManager constraints:\n   - NetworkType.CONNECTED (or UNMETERED if wifiOnly setting).\n   - RequiresBatteryNotLow (optional setting).\n6. Implement retry with exponential backoff:\n   - Max 5 attempts.\n   - Store attempt count and lastError in job.\n7. Handle baseUrl expiry:\n   - Check expiry before download.\n   - If expired, call Picker API to refresh (re-list session).\n8. Create periodic WorkManager job to process queue:\n   - Run every 15 minutes if jobs pending.\n   - Use ExistingPeriodicWorkPolicy.KEEP.\n9. Create one-shot work request for immediate start.\n10. Handle app restart: WorkManager persists state; query for incomplete jobs.\n11. Show notification during transfer (Task 16).",
@@ -1429,7 +1429,7 @@
         "updatedAt": "2026-10-19T16:27:54.985Z"
       },
       {
-        "id": "15",
+        "id": 15,
         "title": "Implement SAF file writer with folder layout and verification",
         "description": "Build the SAF file writer that downloads media from Picker URLs, writes to the user's chosen destination with the YYYY/YYYY-MM/Origin folder layout, verifies integrity, and registers with MediaStore.",
         "details": "1. Create `TransferDownloader` class in `com.gankdat.pomegranate.transfer`.\n2. Implement file download:\n   - Open HttpsURLConnection to baseUrl + \"=d\" (photo) or \"=dv\" (video).\n   - Stream to temporary file in app cache.\n   - Track bytes downloaded for progress.\n3. Implement folder layout creation via SAF:\n   - Root: user's chosen destination URI.\n   - Create `Pomegranate/` if not exists.\n   - Create `YYYY/` for year.\n   - Create `YYYY-MM/` for month.\n   - Create `<Origin>/` if inferred origin exists.\n   - Use `DocumentsContract.createDocument` for folders.\n   - Cache folder URIs to avoid repeated lookups.\n4. Write file to final location:\n   - Create document with `DocumentsContract.createDocument`.\n   - Copy from temp file using ContentResolver streams.\n   - Delete temp file.\n5. Implement verification:\n   - Verify size matches expected (from Picker metadata).\n   - Compute SHA-256 of written file.\n   - Store hash in TransferJobEntity.\n   - Only mark DONE after verification passes.\n6. Determine fidelity badge:\n   - GPS_STRIPPED for all photos (Picker strips GPS).\n   - TRANSCODED for all videos (Picker transcodes).\n   - Store in TransferJobEntity.fidelity.\n7. Register with MediaStore:\n   - Use `MediaStore.Images.Media.getContentUri(EXTERNAL)` or Video.\n   - Insert row with file path (convert SAF URI to file path if possible).\n   - Or use `MediaScannerConnection.scanFile`.\n8. Handle sibling files:\n   - Download all siblings together.\n   - Place in same folder.\n   - Group verification.\n9. Handle motion photo video halves:\n   - Photo via `=d`, video via `=dv`.\n   - Name video as `{basename}.mp4`.",
@@ -1544,7 +1544,7 @@
         "updatedAt": "2026-10-19T16:28:09.201Z"
       },
       {
-        "id": "16",
+        "id": 16,
         "title": "Build Pull screen with progress and notifications",
         "description": "Create the Pull screen UI for selecting scope, showing fidelity warnings, displaying real-time progress with a truthful 'what's left' list, and providing persistent notifications during transfer.",
         "details": "1. Create package `com.gankdat.pomegranate.ui.pull`.\n2. Create `PullViewModel`:\n   - Calculate scope: all cloud-only, selected folder, or selection.\n   - Observe transfer queue progress.\n   - Compute ETA based on current download speed.\n3. Create `PullScopeScreen` Composable:\n   - Show scope options as radio buttons.\n   - Display count and estimated size for each scope.\n   - Show pre-flight space check: compare required size vs available space on destination.\n   - Warn if insufficient space.\n4. Create `FidelityNoticeDialog`:\n   - Explain that photos lose GPS, videos are transcoded.\n   - Link to future Takeout-indexed mode for full fidelity.\n   - Checkbox \"Don't show again\" (store in DataStore).\n   - Must acknowledge before first pull.\n5. Create `PullProgressScreen` Composable:\n   - Overall progress bar (bytes downloaded / total bytes).\n   - Items completed / total items.\n   - Current download speed.\n   - \"What's left\" scrollable list showing pending items.\n   - Pause/Resume button.\n   - Cancel button with confirmation.\n6. Implement foreground service for notification:\n   - Show persistent notification during transfer.\n   - Display progress in notification (small icon, progress bar, \"X of Y items\").\n   - Add Pause action in notification.\n   - Use NotificationCompat with CATEGORY_PROGRESS.\n7. Create `PullCompletionScreen`:\n   - Summary: X items pulled, Y GB, Z failed.\n   - List of failures with retry option.\n   - Button to view manifest.\n   - Button to disconnect (if auto-disconnect enabled, show countdown).\n8. Handle background execution: continue when app backgrounded.",
@@ -1656,7 +1656,7 @@
         "updatedAt": "2026-10-19T17:22:52.849Z"
       },
       {
-        "id": "17",
+        "id": 17,
         "title": "Implement manifest export and proof of copy",
         "description": "Build the manifest export feature that generates a verifiable record of all successfully pulled files (path, size, hash, source ID, fidelity) in CSV and JSON formats, providing proof for safe cleanup.",
         "details": "1. Create package `com.gankdat.pomegranate.trust`.\n2. Create `ManifestGenerator` class:\n   - Query TransferJobEntity where state = DONE.\n   - Generate manifest data.\n3. Define manifest record structure:\n   - source_id (Picker mediaItem ID)\n   - original_filename\n   - destination_path (relative to root)\n   - size_bytes\n   - sha256_hash\n   - fidelity (ORIGINAL, GPS_STRIPPED, TRANSCODED)\n   - pulled_at (ISO timestamp)\n   - verified (boolean, always true for DONE jobs)\n4. Generate CSV export:\n   - Header row with field names.\n   - One row per file.\n   - Write to `<root>/Pomegranate/manifest-YYYY-MM-DD.csv`.\n5. Generate JSON export:\n   - Array of records.\n   - Include metadata: app version, export timestamp, total count, total size.\n   - Write to `<root>/Pomegranate/manifest-YYYY-MM-DD.json`.\n6. Create `ProofOfCopyScreen` Composable:\n   - \"Safe to clean up\" summary.\n   - Total items with verified copies: X.\n   - Total size: Y GB.\n   - Warning: \"This does not include items you haven't indexed or pulled yet.\"\n   - Buttons: Export CSV, Export JSON, View manifest in app.\n7. Create in-app manifest viewer:\n   - LazyColumn with search.\n   - Show each file with checkmark and details.\n8. Create `ManifestRepository`:\n   - `suspend fun exportCsv(destinationUri: Uri)`\n   - `suspend fun exportJson(destinationUri: Uri)`\n   - `fun getManifestSummary(): Flow<ManifestSummary>`",
@@ -1739,7 +1739,7 @@
         "updatedAt": "2026-10-19T16:40:53.132Z"
       },
       {
-        "id": "18",
+        "id": 18,
         "title": "Build Connection screen and status display",
         "description": "Create the Connection screen showing current Google account connection status, what the app can access, picker round history, and provide controls for managing the connection.",
         "details": "1. Create package `com.gankdat.pomegranate.ui.connection`.\n2. Create `ConnectionViewModel`:\n   - Observe AuthRepository.isAuthenticated().\n   - Load picker round history from Room.\n   - Calculate total items indexed.\n3. Create `ConnectionScreen` Composable:\n   - Connection status card:\n     - \"Connected to Google Photos\" or \"Not connected\".\n     - Google account email (if available from token).\n     - Scope: \"Can view and download media you select in the picker\".\n   - Picker rounds section:\n     - List of completed rounds with timestamps and item counts.\n     - Total: \"X items indexed across Y rounds\".\n     - Button: \"Index more\" → start new picker round.\n   - Token status:\n     - \"Access valid\" or \"Needs refresh\".\n     - For Testing mode: show expiry warning if approaching 7 days.\n   - Actions:\n     - \"Refresh access\" button.\n     - \"Disconnect\" button → navigate to Disconnect flow.\n4. Show connection status indicator in TopAppBar across all screens:\n   - Small icon: green dot if connected, gray if not.\n5. Handle reconnection gracefully:\n   - If token expired (Testing mode 7-day limit), prompt to reconnect.\n   - Show message explaining Testing mode limitation.\n6. Add \"Connect\" button for first-time connection:\n   - Navigate to OAuth flow.\n   - After success, prompt to start first picker round.",
@@ -1827,7 +1827,7 @@
         "updatedAt": "2026-10-19T16:47:02.095Z"
       },
       {
-        "id": "19",
+        "id": 19,
         "title": "Implement Disconnect flow with token revocation and data wipe",
         "description": "Build the Disconnect feature that revokes the Google OAuth token, wipes all tokens and cloud data, and guides the user through confirming the removal in their Google Account permissions.",
         "details": "1. Create `DisconnectScreen` Composable in `com.gankdat.pomegranate.ui.connection`.\n2. Create `DisconnectViewModel` tracking disconnect steps.\n3. Pre-disconnect checklist:\n   - Show warning if pending transfers exist.\n   - Option to cancel pending transfers or complete them first.\n4. Implement disconnect steps:\n   - Step 1: Revoke token with Google.\n     - POST to `https://oauth2.googleapis.com/revoke?token={token}`.\n     - Handle success/failure.\n   - Step 2: Wipe local secrets.\n     - Delete encrypted tokens from Keystore-backed storage.\n     - Clear code_verifier if stored.\n   - Step 3: Wipe cloud index.\n     - Delete all CloudItemEntity rows.\n     - Delete all MatchEntity rows.\n     - Delete all PickerRoundEntity rows.\n     - Keep device census and pulled files manifest.\n   - Step 4: Clear cached thumbnails.\n     - Delete cached cloud item thumbnails.\n5. Create guided confirmation checklist:\n   - Explain what was done.\n   - \"Verify in Google Account\" button → deep link to https://myaccount.google.com/permissions.\n   - Screenshot guidance showing what to look for.\n   - Checkbox: \"I've confirmed the app is no longer listed\".\n6. Implement auto-disconnect option:\n   - Setting: \"Disconnect automatically when pull completes\".\n   - Trigger disconnect flow after successful completion.\n   - Show notification before auto-disconnect with cancel option.\n7. Post-disconnect state:\n   - Connection screen shows \"Not connected\".\n   - Library view shows only device items.\n   - Clear indication that cloud data is no longer indexed.",
@@ -1928,7 +1928,7 @@
         "updatedAt": "2026-10-19T16:47:13.802Z"
       },
       {
-        "id": "20",
+        "id": 20,
         "title": "Create Settings screen with all configuration options",
         "description": "Build the Settings screen providing access to all app configuration including destination folder, download concurrency, network preferences, auto-disconnect, and app information.",
         "details": "1. Create package `com.gankdat.pomegranate.ui.settings`.\n2. Create `SettingsViewModel` observing and updating SettingsRepository.\n3. Create `SettingsScreen` Composable with Material 3 preference-style list:\n   - Storage section:\n     - Destination folder: show current path, tap to change (SAF picker).\n     - Show available space on destination.\n   - Download section:\n     - Concurrency: slider 1-5, default 3.\n     - Wi-Fi only: switch, default true.\n     - \"Pause on low battery\": switch.\n   - Behavior section:\n     - Folder strategy: radio (By Origin / By Month Only).\n     - Auto-disconnect: switch, default false.\n     - Show fidelity notice: switch (reset to show again).\n   - Privacy section:\n     - \"View connection status\" → navigate to Connection screen.\n     - \"What data is stored\" → info dialog explaining local-only storage.\n   - About section:\n     - App version.\n     - \"What this app does\" → brief explanation.\n     - \"Open source licenses\" → placeholder or generate from dependencies.\n     - \"Privacy policy\" → text explaining no data leaves device except to Google APIs.\n4. Each setting should update DataStore immediately on change.\n5. Add settings access from TopAppBar menu on Library screen.\n6. Handle destination folder change:\n   - Warn about existing pulled files in old location.\n   - Don't move files, just update future destination.",
@@ -2013,7 +2013,7 @@
         "updatedAt": "2026-10-19T16:54:13.221Z"
       },
       {
-        "id": "21",
+        "id": 21,
         "title": "Build cloud cleanup guidance screens",
         "description": "Create step-by-step guidance screens for users to manually clean up their Google Photos storage after verified copies exist, including how to delete items and turn off backup.",
         "details": "1. Create package `com.gankdat.pomegranate.ui.guidance`.\n2. Create `CleanupGuidanceScreen` Composable.\n3. Pre-cleanup requirements check:\n   - Show proof-of-copy summary.\n   - Warn if any items not yet pulled.\n   - \"Proceed\" only if user acknowledges they have verified copies.\n4. Step-by-step guide for deleting from Google Photos:\n   - Step 1: Open Google Photos app.\n   - Step 2: Go to Library → select album or use search.\n   - Step 3: Select items (long press, then select all if desired).\n   - Step 4: Tap delete → confirm.\n   - Step 5: Empty trash (Settings → Free up space or Trash → Empty).\n   - Include screenshots or illustrations for each step.\n5. Step-by-step guide for turning off backup:\n   - Step 1: Open Google Photos app.\n   - Step 2: Tap profile icon → Photos settings.\n   - Step 3: Backup → toggle off.\n   - Step 4: (Optional) Exclude specific folders.\n   - Note: explain that this stops future backups, doesn't delete existing.\n6. Add backup-folder collision warning here too:\n   - If destination is in DCIM/Pictures/Download, items will re-upload.\n   - Show how to exclude folder from backup in Google Photos.\n7. Create \"I've completed cleanup\" confirmation:\n   - Optional: compare cloud quota before/after (user-reported, not automated).\n8. Link to guidance from completion screen and proof-of-copy screen.",
@@ -2084,7 +2084,7 @@
         "updatedAt": "2026-10-19T16:54:21.747Z"
       },
       {
-        "id": "22",
+        "id": 22,
         "title": "Implement accessibility and dark mode polish",
         "description": "Complete the accessibility pass ensuring TalkBack compatibility with proper content descriptions, large touch targets, and implement proper dark mode and dynamic color theming.",
         "details": "1. Accessibility audit:\n   - Add contentDescription to all Image and Icon composables.\n   - Use semantics {} blocks for complex components.\n   - Ensure all interactive elements have minimum 48dp touch target.\n   - Add proper heading hierarchy with semantics { heading() }.\n   - Test with TalkBack: verify all screens are navigable.\n   - Verify focus order is logical.\n2. Create `PomegranateTheme` Composable:\n   - Use MaterialTheme with Material 3.\n   - Implement dynamic color (Material You) for Android 12+:\n     - Use dynamicLightColorScheme/dynamicDarkColorScheme.\n   - Fall back to static color scheme for older devices.\n   - Define custom colors for three states (cloud-only, device-only, both).\n3. Dark mode support:\n   - Use isSystemInDarkTheme() to follow system setting.\n   - Ensure all custom colors work in both light and dark.\n   - Test all screens in dark mode.\n4. Edge-to-edge display:\n   - Already using enableEdgeToEdge() in MainActivity.\n   - Verify content doesn't overlap with system bars.\n   - Use WindowInsets correctly in all screens.\n5. Create empty states for all screens:\n   - Library: \"No media found\" with permission check prompt.\n   - Pull: \"All items already on device\".\n   - Connection: clear prompts to connect.\n6. Error state handling:\n   - Network errors: clear message with retry.\n   - Permission denied: explanation with settings link.\n   - Storage full: warning with cleanup guidance.\n7. Add loading states:\n   - Skeleton loaders for lists.\n   - Progress indicators for operations.",
@@ -2180,7 +2180,7 @@
         "updatedAt": "2026-10-19T16:58:20.442Z"
       },
       {
-        "id": "23",
+        "id": 23,
         "title": "Configure release build and prepare for sideload distribution",
         "description": "Finalize the release build configuration with R8 optimization, signing configuration placeholder, version management, and prepare documentation for sideloading the APK.",
         "details": "1. Release build configuration (already started in build.gradle.kts):\n   - isMinifyEnabled = true (already set).\n   - isShrinkResources = true (already set).\n   - Review proguard-rules.pro:\n     - Keep Room entities.\n     - Keep WorkManager classes.\n     - Keep OAuth redirect Activity.\n2. Signing configuration:\n   - Create keystore instructions in docs (DO NOT commit keystore).\n   - Add signing config block reading from local.properties or env vars.\n   - Document signing process for release builds.\n3. Version management:\n   - versionCode: integer, increment for each release.\n   - versionName: semantic version (0.1.0 → 1.0.0 for first release).\n   - Consider version name from git tag.\n4. Create sideload documentation:\n   - How to enable \"Install unknown apps\" for file manager.\n   - How to transfer APK to device.\n   - How to verify APK signature (for advanced users).\n5. Build verification:\n   - Verify release APK runs correctly.\n   - Verify R8 doesn't break anything.\n   - Test Room database operations.\n   - Test OAuth flow.\n   - Test WorkManager.\n6. Create release checklist:\n   - Update version numbers.\n   - Run full test suite.\n   - Build release APK.\n   - Test on fresh device install.\n   - Sign with release key.\n   - Archive APK with version name.\n7. Document Google Cloud project setup:\n   - Create project.\n   - Enable Photos Picker API.\n   - Create Android OAuth client.\n   - Add package name and SHA-1 fingerprint.\n   - Keep client ID separate from repo (env var or local.properties).",
@@ -2257,7 +2257,7 @@
         "updatedAt": "2026-10-19T17:07:03.225Z"
       },
       {
-        "id": "24",
+        "id": 24,
         "title": "Implement thumbnail caching for cloud items",
         "description": "Build an efficient thumbnail caching system for cloud items using Picker baseUrl with size parameters, with proper cache invalidation and memory management.",
         "details": "1. Create package `com.gankdat.pomegranate.ui.common`.\n2. Create `ThumbnailCache` class:\n   - LRU memory cache using LinkedHashMap with accessOrder=true.\n   - Max size based on available memory (1/8 of heap).\n   - Weak reference wrappers for Bitmap values.\n3. Create `ThumbnailLoader` class:\n   - For device items: use ContentResolver.loadThumbnail.\n   - For cloud items: append `=w200-h200` to baseUrl for thumbnail.\n   - Download thumbnail via HttpsURLConnection.\n   - Decode to Bitmap with inSampleSize for memory efficiency.\n4. Handle baseUrl expiry for thumbnails:\n   - If load fails with 403, baseUrl expired.\n   - Trigger refresh of baseUrl (re-list picker session).\n   - Retry load.\n5. Create `AsyncThumbnail` Composable:\n   - Show placeholder while loading.\n   - Display thumbnail when loaded.\n   - Handle errors with fallback icon.\n   - Remember loaded state to avoid reloading on recomposition.\n6. Disk cache (optional, if memory cache insufficient):\n   - Cache thumbnails in app's cache directory.\n   - Key by item ID.\n   - Clear on disconnect (cloud items) or when source deleted (device items).\n7. Cancel loading for items scrolled off screen:\n   - Use coroutine cancellation.\n   - Track visible items in LazyColumn.\n8. Integrate with Library screen and Item detail screen.",
@@ -2341,7 +2341,7 @@
         "updatedAt": "2026-10-19T16:58:08.201Z"
       },
       {
-        "id": "25",
+        "id": 25,
         "title": "Add network security configuration and verify TLS",
         "description": "Configure network security to enforce TLS, disable cleartext traffic, and ensure all Google API communications are secure with certificate validation.",
         "details": "1. Create res/xml/network_security_config.xml:\n   - Set cleartextTrafficPermitted=\"false\" (default for API 28+, explicit for safety).\n   - Trust system CAs only (no custom trust managers).\n   - Pin Google domains if desired (optional, may break with cert rotation).\n2. Reference in AndroidManifest.xml:\n   - android:networkSecurityConfig=\"@xml/network_security_config\".\n3. Verify HttpsURLConnection usage:\n   - No custom HostnameVerifier.\n   - No custom SSLSocketFactory.\n   - No TrustManager that accepts all certs.\n4. Audit all network calls:\n   - OAuth endpoints (accounts.google.com, oauth2.googleapis.com).\n   - Picker API (photospicker.googleapis.com).\n   - Media downloads (from baseUrl domains).\n5. Handle connection errors gracefully:\n   - SSL handshake failure: clear message.\n   - Certificate errors: don't offer bypass option.\n6. Log network requests in debug builds only:\n   - Never log tokens or sensitive data.\n   - Log URLs, response codes for debugging.\n7. Verify by testing:\n   - All API calls succeed on production.\n   - App fails safely on MITM attempt (use proxy to test).\n8. Document security model in README:\n   - On-device only processing.\n   - HTTPS to Google APIs only.\n   - No analytics or tracking.",
@@ -2411,6 +2411,118 @@
         "recommendedSubtasks": 4,
         "expansionPrompt": "Break down network security into: 1) Create network_security_config.xml with cleartextTrafficPermitted=false, 2) Reference config in AndroidManifest.xml, 3) Audit all HttpsURLConnection usage for security issues, 4) Test TLS enforcement and document security model. Security review is critical.",
         "updatedAt": "2026-10-19T16:28:17.990Z"
+      },
+      {
+        "id": 26,
+        "title": "Verify pulls end to end on the owner's phone",
+        "description": "Confirm the bearer-token fix: Google-only previews load, a small pull (3-5 items incl. one video and one motion photo) downloads, verifies with SHA-256, lands in the SAF layout and appears in the manifest. Confirm whether earlier picker rounds can still be re-listed after the 60-minute baseUrl lifetime.",
+        "details": "Owner-run checklist with a fresh debug APK. Record: preview success, per-item fidelity badge, destination path, manifest entry, behaviour when a round's session is gone (round marked expired, items re-pick prompt). Capture what Google returns for =d and =dv on a motion photo and =dv on an ordinary photo (status code + content type only, nothing identifying). Findings feed tasks for motion photo support.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 27,
+        "title": "Detect motion photos among picked items",
+        "description": "Pure, unit-tested classifier deciding which picked photos get a video request: Pixel PXL_*.MP.jpg and MVIMG_* names directly; other camera stills by reading the downloaded still's XMP for MotionPhoto/MicroVideo markers (Camera:MotionPhoto, GCamera:MotionPhoto, GCamera:MicroVideo).",
+        "details": "New file in transfer/ (e.g. MotionPhotoDetector.kt). Filename rule plus a bounded XMP scan of the first APP1 segments of the still (no third-party parser; plain byte scan for the XMP packet). Ordinary photos must never trigger the extra request. Tests: Pixel/legacy/Samsung names, XMP present/absent, truncated input.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          26
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 28,
+        "title": "Fetch the video half of motion photos during pulls",
+        "description": "For detected motion photos, request baseUrl=dv with the bearer token right after the still, wait for READY/retry briefly, and treat any failure (non-video content type, 4xx) as 'still only' without failing the item.",
+        "details": "Extend Downloader/TransferEngine; refresh the baseUrl via the existing re-list path if it expired between requests. Count and log nothing identifying. Same host as today (Google media URLs), so no new endpoint. Tests with a fake HTTP layer: clip returned, no clip, expired URL then refreshed.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          27
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 29,
+        "title": "Rebuild motion photos as a single file",
+        "description": "Write still + clip as one Motion Photo format 1.0 JPEG (XMP Container:Directory with Primary and MotionPhoto items, Item:Length of the MP4, presentation timestamp -1), then append the MP4. HEIC stills keep the clip as a same-name .mp4 beside the photo instead.",
+        "details": "Pure byte-level writer in transfer/ that inserts or replaces the XMP APP1 segment after SOI and preserves existing EXIF. Hash and verify the rebuilt bytes as written (manifest records the written file). Unit tests: structure parses back (segment order, lengths, offset of MP4 == file length - Item:Length), EXIF preserved, idempotent on a still that already has XMP.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          28
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 30,
+        "title": "Fidelity label and manifest support for rebuilt motion photos",
+        "description": "Add Fidelity.MOTION_REBUILT (stored as text, no Room schema change) and a 'still only' outcome for motion photos whose clip could not be fetched; show both in pull results, item detail and the CSV/JSON manifest with honest wording (location removed, video re-encoded).",
+        "details": "Update Converters only if needed (enum names are strings), strings.xml, manifest exporters and their tests, docs/ARCHITECTURE.md fidelity list and README 'Honest about fidelity'. No DB version bump.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          29
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 31,
+        "title": "Review screen for uncertain matches",
+        "description": "Side-by-side review of AMBIGUOUS matches (phone thumbnail vs Google thumbnail, name, date, size, dimensions) with Same / Different / Skip; decisions persist and survive re-reconciliation.",
+        "details": "Hash confirmation cannot work for Picker downloads (GPS stripped, video transcoded), so the user decides. Persist decisions without a Room schema change if possible (DataStore keyed by pickerMediaItemId + device mediaStoreId), or add a proper migration 1->2 with an exported schema and a migration test. Entry point from Coverage's match breakdown card.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 32,
+        "title": "Make sibling-group rebuild atomic",
+        "description": "ReconciliationRepositoryImpl.rebuildGroups deletes and re-inserts media groups row by row; wrap it in one transaction so detail screens never see groups missing mid-rebuild.",
+        "details": "Add a @Transaction DAO method (no @Upsert, see JVM test note) or run delete+inserts inside a single transactional DAO call. Add a test that observes groups during reconcile and never sees an empty set when groups existed.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
+      },
+      {
+        "id": 33,
+        "title": "Tune matching from the owner's match breakdown",
+        "description": "Use the Coverage breakdown card counts (same name/different details, other format, renamed candidates, nothing similar) from the owner's phone to add or relax matching rules, keeping false matches out.",
+        "details": "Needs the owner's screenshot of the card (counts, folder names, file types only). Each new rule gets unit tests with synthetic fixtures; no real filenames committed.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          26
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 34,
+        "title": "Package the next app version",
+        "description": "Bump versionCode/versionName once the motion photo and review features land, bundling the accumulated UI fixes (storage bars, folder grouping, atomic updates), and follow docs/RELEASE.md.",
+        "details": "Owner asked not to cut versions for small non-functional tweaks; this is the first functional release after them. No store submission.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          30,
+          31
+        ],
+        "priority": "low",
+        "subtasks": []
       }
     ],
     "metadata": {
@@ -2420,7 +2532,10 @@
       "completedCount": 25,
       "tags": [
         "master"
-      ]
+      ],
+      "created": "2026-10-25T20:09:20.507Z",
+      "description": "Tasks for master context",
+      "updated": "2026-10-25T20:09:33.700Z"
     }
   }
 }
