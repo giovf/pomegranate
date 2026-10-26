@@ -2523,6 +2523,19 @@
         ],
         "priority": "low",
         "subtasks": []
+      },
+      {
+        "id": 35,
+        "title": "Prepare for a Play Store release",
+        "description": "Get everything ready for the owner to publish: privacy policy page (GitHub Pages), OAuth consent screen moved out of Testing (check whether the Picker scope needs Google verification), release signing via Play App Signing with an upload key kept out of git, Data safety answers, dataSync foreground service justification, store listing text that follows Google's trademark rules, and a closed-test plan (12 testers, 14 days for new personal accounts).",
+        "details": "Owner does the actual publishing from their own accounts (CLAUDE.md: ask before publishing). Licence is PolyForm Noncommercial 1.0.0; the owner as copyright holder may publish. No outside contributions accepted. Revisit ARCHITECTURE.md 'out of scope' list (Play Store release work) with the owner before starting.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          34
+        ],
+        "priority": "low",
+        "subtasks": []
       }
     ],
     "metadata": {
@@ -2535,7 +2548,7 @@
       ],
       "created": "2026-10-25T20:09:20.507Z",
       "description": "Tasks for master context",
-      "updated": "2026-10-25T20:09:33.700Z"
+      "updated": "2026-10-26T16:37:22.886Z"
     }
   }
 }
