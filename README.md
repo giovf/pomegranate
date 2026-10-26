@@ -80,10 +80,22 @@ committed.
   Docker Desktop's Rosetta emulation; see `.devcontainer/Dockerfile`.
 - **Claude Code + Taskmaster**: work is broken down in `.taskmaster/tasks/`;
   `task-master next` shows the next task, `task-master set-status --id <id> --status done`
-  closes it. Conventions for contributors (human or AI) are in `CLAUDE.md`.
+  closes it. Coding conventions (for people and AI assistants) are in `CLAUDE.md`.
 - **Dependencies**: change versions only in `gradle/libs.versions.toml`, then
   regenerate checksums with `./gradlew --write-verification-metadata sha256 build`.
 
 ## Licence
 
-Not yet decided.
+Source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE.md).
+You may use, copy, modify and share the code for any noncommercial purpose
+(personal use, study, research, hobby projects, charities, schools). Commercial
+use is not permitted. Keep the `Required Notice` line from `LICENSE.md` with any
+copy you share.
+
+This is not an OSI open-source licence.
+
+## Contributions
+
+This is a personal project and does not accept pull requests or other
+contributions. You are welcome to fork it and change your copy under the
+licence above.
