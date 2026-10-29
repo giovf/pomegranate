@@ -34,6 +34,8 @@
     <string name="fidelity_label_original">Original</string>
     <string name="fidelity_label_gps_stripped">Location stripped</string>
     <string name="fidelity_label_transcoded">Transcoded video</string>
+    <string name="fidelity_label_motion_rebuilt">Rebuilt motion photo: location stripped, video re-encoded</string>
+    <string name="fidelity_label_motion_still_only">Motion photo saved as still: location stripped, no motion</string>
 
     <string name="action_share">Share</string>
     <string name="item_not_found">This item is no longer on the phone.</string>
@@ -114,7 +116,7 @@
     <string name="pull_retry_failed">Retry failed</string>
     <string name="pull_back_to_library">Back to library</string>
     <string name="fidelity_notice_title">What you get from Google</string>
-    <string name="fidelity_notice_body">Google\'s picker hands out photos without their location data and videos as re-encoded copies, not the originals you uploaded. Every pulled file is labelled accordingly. Full-fidelity export via Google Takeout is planned for a later version.</string>
+    <string name="fidelity_notice_body">Google\'s picker hands out photos without their location data and videos as re-encoded copies, not the originals you uploaded. Motion photos are rebuilt from Google\'s still and its re-encoded clip where possible. Every pulled file is labelled accordingly. Full-fidelity export via Google Takeout is planned for a later version.</string>
     <string name="fidelity_notice_dont_show">Don\'t show this again</string>
     <string name="fidelity_notice_continue">Continue</string>
     <string name="onboarding_back">Back</string>

@@ -148,5 +148,7 @@ internal fun fidelityLabel(fidelity: Fidelity): String = stringResource(
         Fidelity.ORIGINAL -> R.string.fidelity_label_original
         Fidelity.GPS_STRIPPED -> R.string.fidelity_label_gps_stripped
         Fidelity.TRANSCODED -> R.string.fidelity_label_transcoded
+        Fidelity.MOTION_REBUILT -> R.string.fidelity_label_motion_rebuilt
+        Fidelity.MOTION_STILL_ONLY -> R.string.fidelity_label_motion_still_only
     },
 )

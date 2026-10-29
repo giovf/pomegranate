@@ -54,6 +54,15 @@ internal enum class Fidelity {
 
     /** Video re-encoded by Google; not the original upload. */
     TRANSCODED,
+
+    /**
+     * Motion photo rebuilt here from Google's still (GPS removed) and its
+     * separately served, re-encoded clip; not byte-identical to the original.
+     */
+    MOTION_REBUILT,
+
+    /** Motion photo saved as its still only (GPS removed): Google served no usable clip, or the still is not a JPEG. */
+    MOTION_STILL_ONLY,
 }
 
 /** Where an [OriginRuleEntity] came from. */

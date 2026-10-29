@@ -29,7 +29,8 @@ and `docs/ARCHITECTURE.md`. Research on what Google's APIs do and don't allow
   from Google Photos (no API exists); it guides the manual clean-up only after
   copies are verified.
 - **Honest about fidelity.** Google's Picker strips GPS from photos and
-  transcodes video; every pulled file carries a badge saying what you got.
+  transcodes video; motion photos are rebuilt from the still and the
+  re-encoded clip. Every pulled file carries a badge saying what you got.
 - **Minimal dependencies.** Android platform, Kotlin and AndroidX only; JUnit
   for tests. Every artifact is pinned and checksum-verified.
 

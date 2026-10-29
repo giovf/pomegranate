@@ -6,11 +6,13 @@ import com.gankdat.pomegranate.census.cloud.PickerAuthException
 import com.gankdat.pomegranate.data.db.dao.CloudItemDao
 import com.gankdat.pomegranate.data.db.dao.TransferJobDao
 import com.gankdat.pomegranate.data.db.entity.CloudItemEntity
+import com.gankdat.pomegranate.data.db.entity.Fidelity
 import com.gankdat.pomegranate.data.db.entity.TransferJobEntity
 import com.gankdat.pomegranate.data.db.entity.TransferState
 import com.gankdat.pomegranate.data.settings.SettingsRepository
 import com.gankdat.pomegranate.reconcile.ReconciliationRepository
 import com.gankdat.pomegranate.trust.Sha256
+import java.io.File
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineDispatcher
@@ -43,6 +45,8 @@ internal class TransferEngine(
     private val registrar: MediaStoreRegistrar,
     /** The user's current Google access token, refreshed as needed; null when signed out. */
     private val accessToken: suspend () -> String?,
+    /** App-private folder for a photo and its clip while a motion photo is checked and rebuilt. */
+    private val scratchDir: File,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
@@ -70,11 +74,18 @@ internal class TransferEngine(
             val fileUri = storage.createFile(folderUri, fresh.mime, name)
             val relativePath = "$folderPath/$name"
             var written = 0L
+            var fidelity = attempt.fidelity
             try {
-                storage.openWrite(fileUri).use { sink ->
-                    written = downloader.download(fresh.baseUrl + FidelityClassifier.downloadSuffix(isVideo), token, sink) { bytes ->
-                        _liveProgress.update { it + (attempt.id to bytes) }
+                if (isVideo) {
+                    storage.openWrite(fileUri).use { sink ->
+                        written = downloader.download(fresh.baseUrl + FidelityClassifier.downloadSuffix(isVideo = true), token, sink) { bytes ->
+                            _liveProgress.update { it + (attempt.id to bytes) }
+                        }
                     }
+                } else {
+                    val photo = pullPhoto(attempt.id, fresh, token, fileUri)
+                    written = photo.first
+                    fidelity = photo.second
                 }
                 currentCoroutineContext().ensureActive()
                 jobs.update(attempt.copy(state = TransferState.VERIFYING, destinationUri = fileUri, relativePath = relativePath, bytesWritten = written, bytesExpected = written))
@@ -88,10 +99,12 @@ internal class TransferEngine(
                         bytesWritten = written,
                         bytesExpected = written,
                         sha256 = sha256,
+                        fidelity = fidelity,
                         completedAt = clock(),
                     ),
                 )
-                reconciliation.confirmWithCloudHash(fresh.id, sha256)
+                // A rebuilt motion photo is our own assembly, so its hash says nothing about the phone's copy.
+                if (fidelity != Fidelity.MOTION_REBUILT) reconciliation.confirmWithCloudHash(fresh.id, sha256)
                 TransferState.DONE
             } catch (e: TransferException) {
                 storage.deleteOwnFile(fileUri)
@@ -105,6 +118,67 @@ internal class TransferEngine(
         } finally {
             _liveProgress.update { it - attempt.id }
         }
+    }
+
+    /**
+     * Photos land in scratch first so a motion photo can be recognised. Its
+     * clip is fetched only when the still or its name says it is one; a clip
+     * Google will not serve (4xx, or not a video) leaves the still, labelled
+     * as such. Network and server errors still fail the attempt so it retries.
+     * Returns bytes written to [fileUri] and the fidelity of what was written.
+     */
+    private fun pullPhoto(jobId: Long, item: CloudItemEntity, token: String, fileUri: String): Pair<Long, Fidelity> {
+        scratchDir.mkdirs()
+        val stillFile = File.createTempFile("still", ".part", scratchDir)
+        val clipFile = File.createTempFile("clip", ".part", scratchDir)
+        try {
+            val stillBytes = stillFile.outputStream().buffered().use { sink ->
+                downloader.download(item.baseUrl + FidelityClassifier.downloadSuffix(isVideo = false), token, sink) { bytes ->
+                    _liveProgress.update { it + (jobId to bytes) }
+                }
+            }
+            val still = stillFile.readBytes()
+            if (still.size.toLong() != stillBytes) throw TransferException.Verification("Size mismatch in scratch copy")
+            val plan = MotionPhotos.plan(item.filename, still)
+            val clipLength = if (plan == MotionPlan.FETCH_CLIP) fetchClip(jobId, item, token, stillBytes, clipFile) else null
+            return storage.openWrite(fileUri).use { sink ->
+                when {
+                    clipLength != null -> clipFile.inputStream().buffered().use { clip ->
+                        val head = clipFile.inputStream().use { it.readNBytes(12) }
+                        MotionPhotoWriter.write(still, clip, clipLength, MotionPhotos.clipMime(head), sink) to Fidelity.MOTION_REBUILT
+                    }
+                    else -> {
+                        sink.write(still)
+                        sink.flush()
+                        val fidelity = if (plan == MotionPlan.FETCH_CLIP || plan == MotionPlan.STILL_ONLY) Fidelity.MOTION_STILL_ONLY else Fidelity.GPS_STRIPPED
+                        still.size.toLong() to fidelity
+                    }
+                }
+            }
+        } catch (e: IllegalArgumentException) {
+            throw TransferException.Verification(e.message ?: "could not rebuild motion photo")
+        } finally {
+            stillFile.delete()
+            clipFile.delete()
+        }
+    }
+
+    /** Downloads the clip half into [clipFile]; null when Google has no usable clip for this photo. */
+    private fun fetchClip(jobId: Long, item: CloudItemEntity, token: String, stillBytes: Long, clipFile: File): Long? {
+        val length = try {
+            clipFile.outputStream().buffered().use { sink ->
+                downloader.download(item.baseUrl + FidelityClassifier.downloadSuffix(isVideo = true), token, sink) { bytes ->
+                    _liveProgress.update { it + (jobId to stillBytes + bytes) }
+                }
+            }
+        } catch (e: TransferException.SessionGone) {
+            return null // 400/403/404: no video half for this item
+        } catch (e: TransferException.Http) {
+            if (e.retryable) throw e
+            return null
+        }
+        val head = clipFile.inputStream().use { it.readNBytes(12) }
+        return length.takeIf { it > 0 && MotionPhotos.isMp4(head) }
     }
 
     private suspend fun refreshedItem(item: CloudItemEntity): CloudItemEntity {

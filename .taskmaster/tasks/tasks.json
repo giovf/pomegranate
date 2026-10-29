@@ -2429,12 +2429,13 @@
         "description": "Pure, unit-tested classifier deciding which picked photos get a video request: Pixel PXL_*.MP.jpg and MVIMG_* names directly; other camera stills by reading the downloaded still's XMP for MotionPhoto/MicroVideo markers (Camera:MotionPhoto, GCamera:MotionPhoto, GCamera:MicroVideo).",
         "details": "New file in transfer/ (e.g. MotionPhotoDetector.kt). Filename rule plus a bounded XMP scan of the first APP1 segments of the still (no third-party parser; plain byte scan for the XMP packet). Ordinary photos must never trigger the extra request. Tests: Pixel/legacy/Samsung names, XMP present/absent, truncated input.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "26"
         ],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-10-29T17:41:20.683Z"
       },
       {
         "id": "28",
@@ -2442,12 +2443,13 @@
         "description": "For detected motion photos, request baseUrl=dv with the bearer token right after the still, wait for READY/retry briefly, and treat any failure (non-video content type, 4xx) as 'still only' without failing the item.",
         "details": "Extend Downloader/TransferEngine; refresh the baseUrl via the existing re-list path if it expired between requests. Count and log nothing identifying. Same host as today (Google media URLs), so no new endpoint. Tests with a fake HTTP layer: clip returned, no clip, expired URL then refreshed.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "27"
         ],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-10-29T17:41:22.665Z"
       },
       {
         "id": "29",
@@ -2455,12 +2457,13 @@
         "description": "Write still + clip as one Motion Photo format 1.0 JPEG (XMP Container:Directory with Primary and MotionPhoto items, Item:Length of the MP4, presentation timestamp -1), then append the MP4. HEIC stills keep the clip as a same-name .mp4 beside the photo instead.",
         "details": "Pure byte-level writer in transfer/ that inserts or replaces the XMP APP1 segment after SOI and preserves existing EXIF. Hash and verify the rebuilt bytes as written (manifest records the written file). Unit tests: structure parses back (segment order, lengths, offset of MP4 == file length - Item:Length), EXIF preserved, idempotent on a still that already has XMP.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "28"
         ],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-10-29T17:41:24.484Z"
       },
       {
         "id": "30",
@@ -2468,12 +2471,13 @@
         "description": "Add Fidelity.MOTION_REBUILT (stored as text, no Room schema change) and a 'still only' outcome for motion photos whose clip could not be fetched; show both in pull results, item detail and the CSV/JSON manifest with honest wording (location removed, video re-encoded).",
         "details": "Update Converters only if needed (enum names are strings), strings.xml, manifest exporters and their tests, docs/ARCHITECTURE.md fidelity list and README 'Honest about fidelity'. No DB version bump.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "29"
         ],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-10-29T17:41:26.694Z"
       },
       {
         "id": "31",
@@ -2541,9 +2545,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-29T17:33:39.322Z",
+      "lastModified": "2026-10-29T17:41:26.694Z",
       "taskCount": 35,
-      "completedCount": 26,
+      "completedCount": 30,
       "tags": [
         "master"
       ]

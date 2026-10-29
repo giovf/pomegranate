@@ -58,7 +58,9 @@ compileSdk 37. Dependency policy: platform + AndroidX only (JUnit 4 for tests).
   Limits that shape the design: user-driven selection, ≤2,000 items per
   session, base URLs valid 60 min, photos lose GPS, videos are transcoded.
   Every pulled item carries a fidelity badge (Original / Location stripped /
-  Transcoded video). The client sits behind an interface so a Takeout-indexed
+  Transcoded video / Rebuilt motion photo / Motion photo saved as still).
+  Motion photos (detected by name or XMP, so ordinary photos cost one
+  request) are rebuilt as one Motion Photo JPEG from `=d` + `=dv`. The client sits behind an interface so a Takeout-indexed
   source can be added later without touching reconcile/transfer.
 - No API can delete from Google Photos; the app only guides manual clean-up
   after copies are verified.

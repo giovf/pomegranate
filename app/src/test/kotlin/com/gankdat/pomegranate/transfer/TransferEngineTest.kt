@@ -11,8 +11,10 @@ import com.gankdat.pomegranate.census.cloud.PickerApiException
 import com.gankdat.pomegranate.census.cloud.PickerSession
 import com.gankdat.pomegranate.census.cloud.SessionState
 import com.gankdat.pomegranate.data.db.PomegranateDatabase
+import com.gankdat.pomegranate.data.db.entity.Fidelity
 import com.gankdat.pomegranate.data.db.entity.MatchConfidence
 import com.gankdat.pomegranate.data.db.entity.PickerRoundEntity
+import com.gankdat.pomegranate.data.db.entity.TransferJobEntity
 import com.gankdat.pomegranate.data.db.entity.TransferState
 import com.gankdat.pomegranate.data.model.FolderStrategy
 import com.gankdat.pomegranate.data.settings.SettingsRepositoryImpl
@@ -83,6 +85,7 @@ class TransferEngineTest {
             downloader = downloader,
             registrar = { docId, _ -> registered += docId },
             accessToken = { token },
+            scratchDir = File(folder.root, "scratch"),
             ioDispatcher = Dispatchers.Unconfined,
             clock = { now },
         )
@@ -227,7 +230,7 @@ class TransferEngineTest {
         assertEquals(2, queue.enqueue(listOf(1, 2, 2, 99)))
         assertEquals(0, queue.enqueue(listOf(1, 2)))
         val jobs = db.transferJobDao().getAll()
-        assertEquals(listOf(com.gankdat.pomegranate.data.db.entity.Fidelity.GPS_STRIPPED, com.gankdat.pomegranate.data.db.entity.Fidelity.TRANSCODED), jobs.map { it.fidelity })
+        assertEquals(listOf(Fidelity.GPS_STRIPPED, Fidelity.TRANSCODED), jobs.map { it.fidelity })
 
         queue.pause(jobs[0].id)
         assertEquals(TransferState.PAUSED, db.transferJobDao().getById(jobs[0].id)!!.state)
@@ -248,4 +251,74 @@ class TransferEngineTest {
         assertEquals(0, retried.attempts)
         assertNotNull(retried)
     }
+
+    // region motion photos
+
+    private val motionStill = Jpegs.build(Jpegs.jfif, Jpegs.exif, Jpegs.quant)
+    private val motionClip = Jpegs.mp4(4_000)
+
+    private suspend fun runMotion(): Pair<TransferState, TransferJobEntity> {
+        db.cloudItemDao().insert(cloud(2, "PXL_20240305_101112345.MP.jpg", created = now).copy(inferredOrigin = "Camera", baseUrlExpiresAt = now + 3_600_000))
+        downloader.bodies["https://lh3/2=d"] = motionStill
+        assertEquals(1, queue.enqueue(listOf(2)))
+        val jobId = db.transferJobDao().getByState(TransferState.QUEUED).single().id
+        val state = engine.run(db.transferJobDao().getById(jobId)!!)
+        return state to db.transferJobDao().getById(jobId)!!
+    }
+
+    private fun scratchIsEmpty() = File(folder.root, "scratch").listFiles().orEmpty().isEmpty()
+
+    @Test
+    fun `ordinary photo costs one request and keeps the location-stripped label`() = runBlocking {
+        val jobId = enqueueOne()
+        assertEquals(TransferState.DONE, engine.run(db.transferJobDao().getById(jobId)!!))
+        assertEquals(listOf("https://lh3/1=d"), downloader.requested)
+        assertEquals(Fidelity.GPS_STRIPPED, db.transferJobDao().getById(jobId)!!.fidelity)
+        assertTrue(scratchIsEmpty())
+    }
+
+    @Test
+    fun `motion photo is rebuilt from the still and its clip`() = runBlocking {
+        downloader.bodies["https://lh3/2=dv"] = motionClip
+        val (state, job) = runMotion()
+
+        assertEquals(TransferState.DONE, state)
+        assertEquals(listOf("https://lh3/2=d", "https://lh3/2=dv"), downloader.requested)
+        assertEquals(Fidelity.MOTION_REBUILT, job.fidelity)
+        val written = storage.files.getValue(job.destinationUri).toByteArray()
+        assertEquals(written.size.toLong(), job.bytesWritten)
+        assertEquals(Sha256.hex(written), job.sha256)
+        assertEquals(4_000L, MotionPhotos.embeddedVideoLength(written))
+        assertTrue(written.copyOfRange(written.size - motionClip.size, written.size).contentEquals(motionClip))
+        assertTrue(scratchIsEmpty())
+    }
+
+    @Test
+    fun `motion photo without a clip at Google is saved as its still and labelled`() = runBlocking {
+        // No body for =dv: the fake answers like a 404.
+        val (state, job) = runMotion()
+        assertEquals(TransferState.DONE, state)
+        assertEquals(Fidelity.MOTION_STILL_ONLY, job.fidelity)
+        assertTrue(storage.files.getValue(job.destinationUri).toByteArray().contentEquals(motionStill))
+    }
+
+    @Test
+    fun `a clip that is not a video is ignored`() = runBlocking {
+        downloader.bodies["https://lh3/2=dv"] = motionStill
+        val (state, job) = runMotion()
+        assertEquals(TransferState.DONE, state)
+        assertEquals(Fidelity.MOTION_STILL_ONLY, job.fidelity)
+    }
+
+    @Test
+    fun `a server error on the clip retries the whole item instead of dropping the motion`() = runBlocking {
+        downloader.failures["https://lh3/2=dv"] = TransferException.Http(503)
+        val (state, job) = runMotion()
+        assertEquals(TransferState.QUEUED, state)
+        assertEquals(1, storage.deleted.size)
+        assertEquals("", job.destinationUri)
+        assertTrue(scratchIsEmpty())
+    }
+
+    // endregion
 }

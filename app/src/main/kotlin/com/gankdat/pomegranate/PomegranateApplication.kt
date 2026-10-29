@@ -100,6 +100,7 @@ internal class PomegranateApplication : Application() {
             downloader = HttpDownloader(),
             registrar = ScannerMediaStoreRegistrar(this),
             accessToken = { auth.getAccessToken() },
+            scratchDir = java.io.File(cacheDir, "transfer"),
         )
     }
 

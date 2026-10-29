@@ -65,6 +65,7 @@ internal class FakeSafStorage : SafStorage {
 internal class FakeDownloader : Downloader {
     var bodies = mutableMapOf<String, ByteArray>()
     var failWith: TransferException? = null
+    val failures = mutableMapOf<String, TransferException>()
     val requested = mutableListOf<String>()
     val tokens = mutableListOf<String>()
 
@@ -72,6 +73,7 @@ internal class FakeDownloader : Downloader {
         requested += url
         tokens += accessToken
         failWith?.let { throw it }
+        failures[url]?.let { throw it }
         val body = bodies[url] ?: throw TransferException.SessionGone()
         var written = 0L
         body.toList().chunked(7).forEach { chunk ->
