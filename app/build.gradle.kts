@@ -77,8 +77,9 @@ android {
         // "Newer version available" depends on what Google published today, so
         // with warnings-as-errors an upstream release would break an unchanged
         // checkout. Versions are bumped deliberately in libs.versions.toml and
-        // pinned by checksum; check for updates with this lint id manually.
-        disable += "GradleDependency"
+        // pinned by checksum; check for updates with these lint ids manually.
+        // AndroidGradlePluginVersion is the same check for AGP and the Gradle wrapper.
+        disable += listOf("GradleDependency", "AndroidGradlePluginVersion")
     }
 
     testOptions {
