@@ -2485,10 +2485,11 @@
         "description": "Side-by-side review of AMBIGUOUS matches (phone thumbnail vs Google thumbnail, name, date, size, dimensions) with Same / Different / Skip; decisions persist and survive re-reconciliation.",
         "details": "Hash confirmation cannot work for Picker downloads (GPS stripped, video transcoded), so the user decides. Persist decisions without a Room schema change if possible (DataStore keyed by pickerMediaItemId + device mediaStoreId), or add a proper migration 1->2 with an exported schema and a migration test. Entry point from Coverage's match breakdown card.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-10-29T17:49:20.059Z"
       },
       {
         "id": "32",
@@ -2545,9 +2546,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-29T17:41:26.694Z",
+      "lastModified": "2026-10-29T17:49:20.059Z",
       "taskCount": 35,
-      "completedCount": 30,
+      "completedCount": 31,
       "tags": [
         "master"
       ]

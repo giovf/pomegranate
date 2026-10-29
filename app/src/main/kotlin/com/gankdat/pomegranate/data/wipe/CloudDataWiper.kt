@@ -10,7 +10,8 @@ internal data class WipeCounts(val cloudItems: Int, val matches: Int, val rounds
 
 /**
  * Forgets everything learned from Google: the cloud index, the matches
- * against it and the picker rounds. Kept on purpose: the device census,
+ * against it, the picker rounds and (through [clearRoundStats]) the round
+ * statistics and match verdicts kept in settings. Kept on purpose: the device census,
  * DONE transfer jobs (proof of copy) and origin rules.
  */
 internal class CloudDataWiper(

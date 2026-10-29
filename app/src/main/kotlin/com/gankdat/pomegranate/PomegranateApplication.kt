@@ -17,10 +17,12 @@ import com.gankdat.pomegranate.census.device.DeviceScanner
 import com.gankdat.pomegranate.census.device.DeviceScannerRepository
 import com.gankdat.pomegranate.census.device.DeviceScannerRepositoryImpl
 import com.gankdat.pomegranate.data.db.PomegranateDatabase
+import com.gankdat.pomegranate.data.model.MatchDecision
 import com.gankdat.pomegranate.data.settings.SettingsRepository
 import com.gankdat.pomegranate.data.settings.SettingsRepositoryImpl
 import com.gankdat.pomegranate.data.settings.settingsDataStore
 import com.gankdat.pomegranate.data.wipe.CloudDataWiper
+import com.gankdat.pomegranate.reconcile.MatchDecisionStore
 import com.gankdat.pomegranate.reconcile.ReconciliationRepository
 import com.gankdat.pomegranate.reconcile.ReconciliationRepositoryImpl
 import com.gankdat.pomegranate.reconcile.origin.OriginRepository
@@ -37,6 +39,7 @@ import com.gankdat.pomegranate.transfer.TransferScheduler
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
@@ -80,7 +83,17 @@ internal class PomegranateApplication : Application() {
     }
 
     val reconciliation: ReconciliationRepository by lazy {
-        ReconciliationRepositoryImpl(database.cloudItemDao(), database.deviceItemDao(), database.matchDao(), database.mediaGroupDao())
+        ReconciliationRepositoryImpl(
+            database.cloudItemDao(),
+            database.deviceItemDao(),
+            database.matchDao(),
+            database.mediaGroupDao(),
+            decisions = object : MatchDecisionStore {
+                override suspend fun all() = settings.matchDecisions.first()
+
+                override suspend fun record(decision: MatchDecision) = settings.recordMatchDecision(decision)
+            },
+        )
     }
 
     val origins: OriginRepository by lazy {
@@ -107,7 +120,10 @@ internal class PomegranateApplication : Application() {
     val transferScheduler: TransferScheduler by lazy { TransferScheduler(this) }
 
     val cloudDataWiper: CloudDataWiper by lazy {
-        CloudDataWiper(database.cloudItemDao(), database.matchDao(), database.pickerRoundDao(), database.transferJobDao(), clearRoundStats = settings::clearRoundOverlaps)
+        CloudDataWiper(database.cloudItemDao(), database.matchDao(), database.pickerRoundDao(), database.transferJobDao(), clearRoundStats = {
+            settings.clearRoundOverlaps()
+            settings.clearMatchDecisions()
+        })
     }
 
     val manifest: ManifestRepository by lazy {

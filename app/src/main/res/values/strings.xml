@@ -440,4 +440,29 @@
     <string name="media_state_device_only">On this phone only</string>
     <string name="media_state_cloud_only">In Google Photos only</string>
     <string name="media_state_both">On this phone and in Google Photos</string>
+    <!-- Review uncertain matches -->
+    <string name="title_review_matches">Check uncertain matches</string>
+    <string name="review_intro">Pomegranate could not tell whether these are the same photo or video. Compare them and choose. Tap a picture to see it larger.</string>
+    <string name="review_on_phone">On this phone</string>
+    <string name="review_in_google">In Google Photos</string>
+    <string name="review_size_unknown">Size not shown by Google</string>
+    <string name="review_date_unknown">Date unknown</string>
+    <string name="review_dimensions_unknown">Size in pixels unknown</string>
+    <string name="review_same">Same photo or video</string>
+    <string name="review_different">Different</string>
+    <string name="review_skip">Not sure, skip</string>
+    <string name="review_done">Nothing left to check</string>
+    <string name="review_done_body">Your answers are remembered, so these pairs will not be asked about again.</string>
+    <plurals name="review_remaining">
+        <item quantity="one">%d pair to check</item>
+        <item quantity="other">%d pairs to check</item>
+    </plurals>
+    <plurals name="review_show_skipped">
+        <item quantity="one">Show the %d skipped pair again</item>
+        <item quantity="other">Show the %d skipped pairs again</item>
+    </plurals>
+    <plurals name="review_open">
+        <item quantity="one">Check %d uncertain match</item>
+        <item quantity="other">Check %d uncertain matches</item>
+    </plurals>
 </resources>

@@ -8,6 +8,7 @@ import com.gankdat.pomegranate.data.db.PomegranateDatabase
 import com.gankdat.pomegranate.data.db.entity.MatchConfidence
 import com.gankdat.pomegranate.data.db.entity.MediaGroupKind
 import com.gankdat.pomegranate.data.db.entity.PickerRoundEntity
+import com.gankdat.pomegranate.data.model.MatchDecision
 import com.gankdat.pomegranate.data.model.MediaState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -21,8 +22,17 @@ import org.junit.Test
 
 class ReconciliationRepositoryImplTest {
     private lateinit var db: PomegranateDatabase
+    private val verdicts = mutableListOf<MatchDecision>()
+    private val store = object : MatchDecisionStore {
+        override suspend fun all(): List<MatchDecision> = verdicts.toList()
+
+        override suspend fun record(decision: MatchDecision) {
+            verdicts.removeAll { it.pickerMediaItemId == decision.pickerMediaItemId && it.mediaStoreId == decision.mediaStoreId }
+            verdicts += decision
+        }
+    }
     private val repo by lazy {
-        ReconciliationRepositoryImpl(db.cloudItemDao(), db.deviceItemDao(), db.matchDao(), db.mediaGroupDao(), Dispatchers.Unconfined)
+        ReconciliationRepositoryImpl(db.cloudItemDao(), db.deviceItemDao(), db.matchDao(), db.mediaGroupDao(), Dispatchers.Unconfined, decisions = store)
     }
 
     @Before
@@ -64,6 +74,39 @@ class ReconciliationRepositoryImplTest {
         assertEquals(listOf(1L), raw.cloudItems.map { it.id }) // matched cloud twin joined the device group
         val live = groups.single { it.group.kind == MediaGroupKind.LIVE_PHOTO }
         assertEquals(listOf(3L, 4L), live.cloudItems.map { it.id }.sorted())
+    }
+
+    private suspend fun ambiguousPair() {
+        // Same name and size, capture times a day apart: the engine cannot tell.
+        db.deviceItemDao().insert(device(1, "a.jpg", taken = T0 + 86_400_000))
+        db.cloudItemDao().insert(cloud(1, "a.jpg"))
+        repo.reconcile()
+        assertEquals(MatchConfidence.AMBIGUOUS, db.matchDao().getForCloudItem(1).single().confidence)
+    }
+
+    @Test
+    fun `saying same confirms the match now and on every later reconcile`() = runBlocking {
+        ambiguousPair()
+        repo.decide(1, 1, same = true)
+        assertEquals(listOf(MatchDecision("g1", "external_primary", 1, same = true)), verdicts)
+        assertEquals(MatchConfidence.EXACT, db.matchDao().getForCloudItem(1).single().confidence)
+        assertEquals(MediaState.BOTH, repo.observeStates().first().cloudStates[1])
+
+        repo.reconcile()
+        val match = db.matchDao().getForCloudItem(1).single()
+        assertEquals(MatchConfidence.EXACT, match.confidence)
+        assertEquals(MatchMethod.USER_CONFIRMED, Evidence.fromJson(match.evidence)?.method)
+        assertEquals(MatchConfidence.EXACT, repo.confirmWithCloudHash(1, "not-the-phone-hash")) // the user's word stands
+    }
+
+    @Test
+    fun `saying different removes the match and it is never proposed again`() = runBlocking {
+        ambiguousPair()
+        repo.decide(1, 1, same = false)
+        assertTrue(db.matchDao().getForCloudItem(1).isEmpty())
+        repo.reconcile()
+        assertTrue(db.matchDao().getForCloudItem(1).isEmpty())
+        assertEquals(MediaState.CLOUD_ONLY, repo.observeStates().first().cloudStates[1])
     }
 
     @Test

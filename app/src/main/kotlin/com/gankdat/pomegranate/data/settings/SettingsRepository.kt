@@ -1,6 +1,7 @@
 package com.gankdat.pomegranate.data.settings
 
 import com.gankdat.pomegranate.data.model.FolderStrategy
+import com.gankdat.pomegranate.data.model.MatchDecision
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -43,6 +44,9 @@ public interface SettingsRepository {
     /** Per picker round: how many of its items were already indexed from an earlier round. */
     public val roundOverlaps: Flow<Map<String, Int>>
 
+    /** The user's verdicts on uncertain matches; references Google ids, so cleared on Disconnect. */
+    public val matchDecisions: Flow<List<MatchDecision>>
+
     /** Version of the census rules the stored index was built with; a newer app rescans everything once. */
     public val censusFormatVersion: Flow<Int>
 
@@ -76,6 +80,12 @@ public interface SettingsRepository {
 
     /** Forgets all round statistics; part of Disconnect. */
     public suspend fun clearRoundOverlaps()
+
+    /** Records a verdict, replacing any earlier one for the same pair. */
+    public suspend fun recordMatchDecision(decision: MatchDecision)
+
+    /** Forgets every verdict; part of Disconnect. */
+    public suspend fun clearMatchDecisions()
 
     public suspend fun setOnboardingCompleted(completed: Boolean)
 

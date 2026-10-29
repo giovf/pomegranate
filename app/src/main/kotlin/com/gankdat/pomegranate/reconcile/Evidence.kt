@@ -7,7 +7,14 @@ import com.gankdat.pomegranate.data.json.jsonOf
 import com.gankdat.pomegranate.data.json.long
 import com.gankdat.pomegranate.data.json.string
 
-internal enum class MatchMethod { PRIMARY, SECONDARY, HASH_CONFIRMED }
+internal enum class MatchMethod {
+    PRIMARY,
+    SECONDARY,
+    HASH_CONFIRMED,
+
+    /** The user compared both sides and said they are the same. */
+    USER_CONFIRMED,
+}
 
 /** How the device and Google timestamps relate. */
 internal enum class TimestampAgreement {

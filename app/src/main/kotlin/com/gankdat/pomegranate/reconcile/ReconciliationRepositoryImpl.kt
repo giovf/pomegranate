@@ -5,8 +5,11 @@ import com.gankdat.pomegranate.data.db.dao.DeviceItemDao
 import com.gankdat.pomegranate.data.db.dao.GroupPlan
 import com.gankdat.pomegranate.data.db.dao.MatchDao
 import com.gankdat.pomegranate.data.db.dao.MediaGroupDao
+import com.gankdat.pomegranate.data.db.entity.CloudItemEntity
+import com.gankdat.pomegranate.data.db.entity.DeviceItemEntity
 import com.gankdat.pomegranate.data.db.entity.MatchConfidence
 import com.gankdat.pomegranate.data.db.entity.MatchEntity
+import com.gankdat.pomegranate.data.model.MatchDecision
 import com.gankdat.pomegranate.data.model.MediaState
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +27,7 @@ internal class ReconciliationRepositoryImpl(
     private val groupDao: MediaGroupDao,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val decisions: MatchDecisionStore = MatchDecisionStore.NONE,
 ) : ReconciliationRepository {
     private val lock = Mutex()
 
@@ -33,14 +37,17 @@ internal class ReconciliationRepositoryImpl(
             val cloud = cloudItemDao.getAll()
             val device = deviceItemDao.getAll()
 
-            // Hash-confirmed verdicts are the only state worth preserving across runs.
-            val confirmed = matchDao.getAll().filter { Evidence.fromJson(it.evidence)?.method == MatchMethod.HASH_CONFIRMED }
+            // Hash-confirmed matches and the user's verdicts are the only state preserved across runs.
+            val hashConfirmed = matchDao.getAll().filter { Evidence.fromJson(it.evidence)?.method == MatchMethod.HASH_CONFIRMED }
+            val (userConfirmed, rejected) = applyDecisions(cloud, device, hashConfirmed)
+            val confirmed = hashConfirmed + userConfirmed
             val confirmedCloud = confirmed.map { it.cloudItemId }.toSet()
             val confirmedDevice = confirmed.map { it.deviceItemId }.toSet()
 
             val proposals = MatchingEngine.match(
                 cloud.filter { it.id !in confirmedCloud },
                 device.filter { it.id !in confirmedDevice },
+                rejected,
             )
             matchDao.replaceAll(confirmed + proposals.map { MatchEntity(it.cloudItemId, it.deviceItemId, it.confidence, it.evidence.toJson()) })
 
@@ -61,6 +68,42 @@ internal class ReconciliationRepositoryImpl(
                 groups = groups,
                 durationMillis = clock() - started,
             )
+        }
+    }
+
+    /** The user's "same" verdicts as EXACT matches, and their "different" verdicts as pairs to exclude. */
+    private suspend fun applyDecisions(cloud: List<CloudItemEntity>, device: List<DeviceItemEntity>, already: List<MatchEntity>): Pair<List<MatchEntity>, Set<Pair<Long, Long>>> {
+        val verdicts = decisions.all()
+        if (verdicts.isEmpty()) return emptyList<MatchEntity>() to emptySet()
+        val cloudIds = cloud.associate { it.pickerMediaItemId to it.id }
+        val deviceIds = device.associate { (it.volume to it.mediaStoreId) to it.id }
+        val takenCloud = already.map { it.cloudItemId }.toMutableSet()
+        val takenDevice = already.map { it.deviceItemId }.toMutableSet()
+        val same = ArrayList<MatchEntity>()
+        val rejected = HashSet<Pair<Long, Long>>()
+        for (d in verdicts) {
+            val c = cloudIds[d.pickerMediaItemId] ?: continue
+            val v = deviceIds[d.volume to d.mediaStoreId] ?: continue
+            if (!d.same) {
+                rejected += c to v
+            } else if (takenCloud.add(c) && takenDevice.add(v)) {
+                same += MatchEntity(c, v, MatchConfidence.EXACT, USER_EVIDENCE.toJson())
+            }
+        }
+        return same to rejected
+    }
+
+    override suspend fun decide(cloudItemId: Long, deviceItemId: Long, same: Boolean) = lock.withLock {
+        withContext(ioDispatcher) {
+            val cloud = cloudItemDao.getById(cloudItemId) ?: return@withContext
+            val device = deviceItemDao.getById(deviceItemId) ?: return@withContext
+            decisions.record(MatchDecision(cloud.pickerMediaItemId, device.volume, device.mediaStoreId, same))
+            val existing = matchDao.getForCloudItem(cloudItemId).filter { it.deviceItemId == deviceItemId }
+            existing.forEach { matchDao.delete(it) }
+            if (same) {
+                val evidence = existing.firstNotNullOfOrNull { Evidence.fromJson(it.evidence) }?.copy(method = MatchMethod.USER_CONFIRMED) ?: USER_EVIDENCE
+                matchDao.insert(MatchEntity(cloudItemId, deviceItemId, MatchConfidence.EXACT, evidence.toJson()))
+            }
         }
     }
 
@@ -109,6 +152,7 @@ internal class ReconciliationRepositoryImpl(
         val match = matchDao.getForCloudItem(cloudItemId).firstOrNull() ?: return null
         val device = deviceItemDao.getById(match.deviceItemId) ?: return null
         val deviceHash = device.sha256 ?: return match.confidence // Device side not hashed yet; nothing to compare.
+        if (Evidence.fromJson(match.evidence)?.method == MatchMethod.USER_CONFIRMED) return match.confidence // the user's word stands
         val evidence = Evidence.fromJson(match.evidence) ?: Evidence(MatchMethod.PRIMARY, false, null, TimestampAgreement.UNKNOWN, false)
         return if (deviceHash.equals(cloudSha256, ignoreCase = true)) {
             matchDao.insert(match.copy(confidence = MatchConfidence.EXACT, evidence = evidence.copy(method = MatchMethod.HASH_CONFIRMED, hashMatched = true).toJson()))
@@ -117,6 +161,10 @@ internal class ReconciliationRepositoryImpl(
             matchDao.delete(match)
             null
         }
+    }
+
+    private companion object {
+        val USER_EVIDENCE = Evidence(MatchMethod.USER_CONFIRMED, filenameMatched = false, timestampDeltaMs = null, timestamp = TimestampAgreement.UNKNOWN, dimensionsMatched = false, note = "confirmed by you")
     }
 
     private data class DeviceKey(val id: Long)

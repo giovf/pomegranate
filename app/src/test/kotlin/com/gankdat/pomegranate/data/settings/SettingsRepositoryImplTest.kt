@@ -1,5 +1,6 @@
 package com.gankdat.pomegranate.data.settings
 
+import com.gankdat.pomegranate.data.model.MatchDecision
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
@@ -70,6 +71,20 @@ class SettingsRepositoryImplTest {
         assertEquals(mapOf("a-1_x" to 0, "b&=2" to 286), settings.roundOverlaps.first())
         settings.clearRoundOverlaps()
         assertEquals(emptyMap<String, Int>(), settings.roundOverlaps.first())
+    }
+
+    @Test
+    fun `match decisions replace earlier ones for the same pair and clear`() = runBlocking {
+        assertEquals(emptyList<MatchDecision>(), settings.matchDecisions.first())
+        settings.recordMatchDecision(MatchDecision("AF1Q\tweird/id=", "external_primary", 7, same = true))
+        settings.recordMatchDecision(MatchDecision("other", "1234-ABCD", 8, same = false))
+        settings.recordMatchDecision(MatchDecision("AF1Q\tweird/id=", "external_primary", 7, same = false))
+        assertEquals(
+            listOf(MatchDecision("other", "1234-ABCD", 8, same = false), MatchDecision("AF1Q\tweird/id=", "external_primary", 7, same = false)),
+            settings.matchDecisions.first(),
+        )
+        settings.clearMatchDecisions()
+        assertEquals(emptyList<MatchDecision>(), settings.matchDecisions.first())
     }
 
     @Test

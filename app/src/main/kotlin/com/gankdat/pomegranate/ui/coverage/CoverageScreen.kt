@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -55,6 +56,7 @@ internal class CoverageViewModel(deviceDao: DeviceItemDao, cloudDao: CloudItemDa
 /** Month-by-month comparison of the phone with the cloud index, to see which months still need a picker round. */
 @Composable
 internal fun CoverageScreen(
+    onReviewMatches: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CoverageViewModel = viewModel(
         factory = appViewModelFactory { CoverageViewModel(it.database.deviceItemDao(), it.database.cloudItemDao(), it.database.matchDao(), it.reconciliation) },
@@ -72,7 +74,7 @@ internal fun CoverageScreen(
                 }
             }
         }
-        diagnostics?.let { d -> item(key = "diagnostics") { DiagnosticsCard(d) } }
+        diagnostics?.let { d -> item(key = "diagnostics") { DiagnosticsCard(d, onReviewMatches) } }
         items(list, key = { it.month?.toString() ?: "unknown" }) { row ->
             MonthRow(row)
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -82,7 +84,7 @@ internal fun CoverageScreen(
 
 /** Why Google items were not found on the phone, and where phone-only items live. Counts only. */
 @Composable
-private fun DiagnosticsCard(d: MatchDiagnostics) {
+private fun DiagnosticsCard(d: MatchDiagnostics, onReviewMatches: () -> Unit) {
     Card(modifier = Modifier
         .fillMaxWidth()
         .padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -94,6 +96,11 @@ private fun DiagnosticsCard(d: MatchDiagnostics) {
             DiagLine(R.string.diag_renamed, d.renamedCandidates)
             DiagLine(R.string.diag_none, d.noCandidate)
             DiagLine(R.string.diag_uncertain, d.uncertain)
+            if (d.uncertain > 0) {
+                FilledTonalButton(onClick = onReviewMatches, modifier = Modifier.padding(top = 8.dp)) {
+                    Text(pluralStringResource(R.plurals.review_open, d.uncertain, d.uncertain))
+                }
+            }
             if (d.cloudOnlyTypes.isNotEmpty()) {
                 Text(stringResource(R.string.diag_types, d.cloudOnlyTypes.joinToString { "${it.first} ${it.second}" }), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             }

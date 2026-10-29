@@ -24,6 +24,7 @@ import com.gankdat.pomegranate.ui.manifest.ProofOfCopyScreen
 import com.gankdat.pomegranate.ui.onboarding.OnboardingScreen
 import com.gankdat.pomegranate.ui.permissions.MediaPermissionGate
 import com.gankdat.pomegranate.ui.pull.PullScreen
+import com.gankdat.pomegranate.ui.review.ReviewMatchesScreen
 import com.gankdat.pomegranate.data.model.PullScope
 
 /**
@@ -127,7 +128,19 @@ internal fun PomegranateNavHost(
         }
         composable(Screen.Coverage.route) {
             PomegranateScaffold(navController, stringResource(R.string.title_coverage)) { padding ->
-                CoverageScreen(modifier = Modifier.padding(padding))
+                CoverageScreen(
+                    onReviewMatches = { navController.navigate(Screen.ReviewMatches.route) { launchSingleTop = true } },
+                    modifier = Modifier.padding(padding),
+                )
+            }
+        }
+        composable(Screen.ReviewMatches.route) {
+            PomegranateScaffold(navController, stringResource(R.string.title_review_matches)) { padding ->
+                ReviewMatchesScreen(
+                    onOpenDeviceItem = navController::navigateToItemDetail,
+                    onOpenCloudItem = navController::navigateToCloudItemDetail,
+                    modifier = Modifier.padding(padding),
+                )
             }
         }
         composable(Screen.ManifestViewer.route) {

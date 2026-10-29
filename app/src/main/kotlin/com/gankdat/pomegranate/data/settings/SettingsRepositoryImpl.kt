@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.gankdat.pomegranate.data.model.FolderStrategy
+import com.gankdat.pomegranate.data.model.MatchDecision
 import com.gankdat.pomegranate.data.settings.SettingsRepository.Companion.DEFAULT_AUTO_DISCONNECT
 import com.gankdat.pomegranate.data.settings.SettingsRepository.Companion.DEFAULT_CONCURRENCY
 import com.gankdat.pomegranate.data.settings.SettingsRepository.Companion.DEFAULT_FOLDER_STRATEGY
@@ -55,6 +56,8 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
     override val fidelityNoticeAcknowledged: Flow<Boolean> = select { it[FIDELITY_NOTICE_ACKNOWLEDGED] ?: false }
 
     override val roundOverlaps: Flow<Map<String, Int>> = select { decodeOverlaps(it[ROUND_OVERLAPS]) }
+
+    override val matchDecisions: Flow<List<MatchDecision>> = select { decodeDecisions(it[MATCH_DECISIONS]) }
 
     override val censusFormatVersion: Flow<Int> = select { it[CENSUS_FORMAT_VERSION] ?: 0 }
 
@@ -106,6 +109,19 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
         dataStore.edit { it.remove(ROUND_OVERLAPS) }
     }
 
+    override suspend fun recordMatchDecision(decision: MatchDecision) {
+        dataStore.edit { prefs ->
+            val others = decodeDecisions(prefs[MATCH_DECISIONS]).filterNot {
+                it.pickerMediaItemId == decision.pickerMediaItemId && it.volume == decision.volume && it.mediaStoreId == decision.mediaStoreId
+            }
+            prefs[MATCH_DECISIONS] = encodeDecisions(others + decision)
+        }
+    }
+
+    override suspend fun clearMatchDecisions() {
+        dataStore.edit { it.remove(MATCH_DECISIONS) }
+    }
+
     override suspend fun setCensusFormatVersion(version: Int) {
         dataStore.edit { it[CENSUS_FORMAT_VERSION] = version }
     }
@@ -135,6 +151,24 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
                 java.net.URLDecoder.decode(pair.substringBefore('='), "UTF-8") to n
             }.toMap()
 
+        /** One decision per line: URL-encoded media item id, URL-encoded volume, MediaStore id, `S` or `D`; tab-separated. */
+        fun encodeDecisions(list: List<MatchDecision>): String = list.joinToString("\n") { d ->
+            listOf(java.net.URLEncoder.encode(d.pickerMediaItemId, "UTF-8"), java.net.URLEncoder.encode(d.volume, "UTF-8"), d.mediaStoreId.toString(), if (d.same) "S" else "D")
+                .joinToString("\t")
+        }
+
+        fun decodeDecisions(text: String?): List<MatchDecision> = text.orEmpty().lineSequence().mapNotNull { line ->
+            val parts = line.split('\t')
+            if (parts.size != 4) return@mapNotNull null
+            val id = parts[2].toLongOrNull() ?: return@mapNotNull null
+            val same = when (parts[3]) {
+                "S" -> true
+                "D" -> false
+                else -> return@mapNotNull null
+            }
+            MatchDecision(java.net.URLDecoder.decode(parts[0], "UTF-8"), java.net.URLDecoder.decode(parts[1], "UTF-8"), id, same)
+        }.toList()
+
         val DESTINATION_ROOT_URI = stringPreferencesKey("destination_root_uri")
         val FOLDER_STRATEGY = stringPreferencesKey("folder_strategy")
         val DOWNLOAD_CONCURRENCY = intPreferencesKey("download_concurrency")
@@ -147,6 +181,7 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
         val LAST_DEVICE_SCAN_TIME = longPreferencesKey("last_device_scan_time_millis")
         val CENSUS_FORMAT_VERSION = intPreferencesKey("census_format_version")
         val ROUND_OVERLAPS = stringPreferencesKey("round_overlaps")
+        val MATCH_DECISIONS = stringPreferencesKey("match_decisions")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val FIDELITY_NOTICE_ACKNOWLEDGED = booleanPreferencesKey("fidelity_notice_acknowledged")
     }

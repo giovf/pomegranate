@@ -27,7 +27,8 @@ internal object MatchingEngine {
     private const val MAX_ZONE_SHIFT_MS = 14 * 60 * 60_000L
     private const val ONE_DAY_MS = 24 * 60 * 60_000L
 
-    fun match(cloudItems: List<CloudItemEntity>, deviceItems: List<DeviceItemEntity>): List<MatchProposal> {
+    /** [rejected] holds (cloud id, device id) pairs the user said are different; they are never proposed. */
+    fun match(cloudItems: List<CloudItemEntity>, deviceItems: List<DeviceItemEntity>, rejected: Set<Pair<Long, Long>> = emptySet()): List<MatchProposal> {
         val byName = deviceItems.groupBy { it.displayName.lowercase(Locale.ROOT) }
         val byBase = deviceItems.groupBy { baseKey(it.displayName, it.mime) }
         val byDimensions = deviceItems.filter { it.width > 0 && it.height > 0 }.groupBy { it.width to it.height }
@@ -37,12 +38,13 @@ internal object MatchingEngine {
         // Primary pass first for every cloud item so exact pairs claim their device rows before looser rules run.
         val unmatched = ArrayList<CloudItemEntity>()
         for (cloud in cloudItems) {
-            val sameName = byName[cloud.filename.lowercase(Locale.ROOT)].orEmpty().filter { it.id !in claimed }
+            fun open(device: DeviceItemEntity) = device.id !in claimed && (cloud.id to device.id) !in rejected
+            val sameName = byName[cloud.filename.lowercase(Locale.ROOT)].orEmpty().filter(::open)
             val proposal = if (sameName.isNotEmpty()) {
                 primary(cloud, sameName, formatChanged = false)
             } else {
                 // Same name in another format of the same kind (HEIC on one side, JPG on the other).
-                primary(cloud, byBase[baseKey(cloud.filename, cloud.mime)].orEmpty().filter { it.id !in claimed }, formatChanged = true)
+                primary(cloud, byBase[baseKey(cloud.filename, cloud.mime)].orEmpty().filter(::open), formatChanged = true)
             }
             if (proposal != null) {
                 proposals += proposal
@@ -53,7 +55,8 @@ internal object MatchingEngine {
         }
         for (cloud in unmatched) {
             val kind = cloud.mime.substringBefore('/')
-            val candidates = byDimensions[cloud.width to cloud.height].orEmpty().filter { it.id !in claimed && it.mime.substringBefore('/') == kind }
+            val candidates = byDimensions[cloud.width to cloud.height].orEmpty()
+                .filter { it.id !in claimed && (cloud.id to it.id) !in rejected && it.mime.substringBefore('/') == kind }
             val proposal = secondary(cloud, candidates) ?: continue
             proposals += proposal
             claimed += proposal.deviceItemId

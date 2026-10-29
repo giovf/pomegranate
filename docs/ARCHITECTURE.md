@@ -36,7 +36,10 @@ compileSdk 37. Dependency policy: platform + AndroidX only (JUnit 4 for tests).
   RAW+JPEG, live/motion photo halves, original+edited), `match` (with
   confidence + evidence), `transfer_job` (with fidelity + verification),
   `picker_round`, `origin_rule`. DataStore: destination root URI, layout,
-  concurrency, Wi-Fi-only, auto-disconnect.
+  concurrency, Wi-Fi-only, auto-disconnect, and the user's verdicts on
+  uncertain matches (keyed by Google media id + MediaStore volume/id, wiped
+  on Disconnect). Hash confirmation cannot settle Picker matches (GPS
+  stripped, video transcoded), so the user compares uncertain pairs.
 - Device census from `MediaStore` across all volumes; fingerprint = filename +
   size + date-taken + dimensions; SHA-256 only for ambiguous matches and every
   pulled file.
