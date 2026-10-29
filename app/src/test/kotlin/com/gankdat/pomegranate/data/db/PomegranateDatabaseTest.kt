@@ -6,6 +6,7 @@ import androidx.room.RoomDatabase
 import androidx.room.useReaderConnection
 import androidx.sqlite.SQLiteException
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import com.gankdat.pomegranate.data.db.dao.GroupPlan
 import com.gankdat.pomegranate.data.db.entity.CloudItemEntity
 import com.gankdat.pomegranate.data.db.entity.CloudItemGroupCrossRef
 import com.gankdat.pomegranate.data.db.entity.DeviceItemEntity
@@ -326,6 +327,26 @@ class PomegranateDatabaseTest {
         dao.delete(expectRow(dao.getById(groupId)))
         assertEquals(0, dao.count())
         assertThrows<SQLiteException> { dao.addDeviceItem(DeviceItemGroupCrossRef(itemId, groupId)) }
+    }
+
+    @Test
+    fun `replacing all groups is atomic`() = runBlocking {
+        val stillId = db.deviceItemDao().insert(deviceItem(mediaStoreId = 1, displayName = "PXL_0001.jpg"))
+        val clipId = db.deviceItemDao().insert(deviceItem(mediaStoreId = 2, displayName = "PXL_0001.mp4"))
+        val dao = db.mediaGroupDao()
+        dao.replaceAll(listOf(GroupPlan(MediaGroupKind.MOTION_PHOTO, listOf(stillId, clipId), emptyList())))
+        assertEquals(1, dao.count())
+
+        // A plan naming a missing item fails on its foreign key; the earlier groups must survive untouched.
+        assertThrows<SQLiteException> {
+            dao.replaceAll(listOf(GroupPlan(MediaGroupKind.RAW_PAIR, listOf(stillId), emptyList()), GroupPlan(MediaGroupKind.RAW_PAIR, listOf(999L), emptyList())))
+        }
+        val kept = dao.getAllWithItems().single()
+        assertEquals(MediaGroupKind.MOTION_PHOTO, kept.group.kind)
+        assertEquals(listOf(stillId, clipId), kept.deviceItems.map { it.id }.sorted())
+
+        dao.replaceAll(emptyList())
+        assertEquals(0, dao.count())
     }
 
     // endregion

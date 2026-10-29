@@ -2,13 +2,11 @@ package com.gankdat.pomegranate.reconcile
 
 import com.gankdat.pomegranate.data.db.dao.CloudItemDao
 import com.gankdat.pomegranate.data.db.dao.DeviceItemDao
+import com.gankdat.pomegranate.data.db.dao.GroupPlan
 import com.gankdat.pomegranate.data.db.dao.MatchDao
 import com.gankdat.pomegranate.data.db.dao.MediaGroupDao
-import com.gankdat.pomegranate.data.db.entity.CloudItemGroupCrossRef
-import com.gankdat.pomegranate.data.db.entity.DeviceItemGroupCrossRef
 import com.gankdat.pomegranate.data.db.entity.MatchConfidence
 import com.gankdat.pomegranate.data.db.entity.MatchEntity
-import com.gankdat.pomegranate.data.db.entity.MediaGroupEntity
 import com.gankdat.pomegranate.data.model.MediaState
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -72,24 +70,18 @@ internal class ReconciliationRepositoryImpl(
      * items without a device twin are grouped among themselves.
      */
     private suspend fun rebuildGroups(deviceFiles: List<SiblingFile>, cloudFiles: List<SiblingFile>, deviceToCloud: Map<Long, Long>): Int {
-        groupDao.deleteAll()
         val matchedCloud = deviceToCloud.values.toSet()
-        var count = 0
-        for (group in SiblingGrouper.group(deviceFiles)) {
-            val groupId = groupDao.insert(MediaGroupEntity(kind = group.kind))
-            for (member in group.members) {
-                val deviceId = (member.key as DeviceKey).id
-                groupDao.addDeviceItem(DeviceItemGroupCrossRef(deviceId, groupId))
-                deviceToCloud[deviceId]?.let { groupDao.addCloudItem(CloudItemGroupCrossRef(it, groupId)) }
+        val plans = buildList {
+            for (group in SiblingGrouper.group(deviceFiles)) {
+                val deviceIds = group.members.map { (it.key as DeviceKey).id }
+                add(GroupPlan(group.kind, deviceIds, deviceIds.mapNotNull { deviceToCloud[it] }))
             }
-            count++
+            for (group in SiblingGrouper.group(cloudFiles.filter { (it.key as CloudKey).id !in matchedCloud })) {
+                add(GroupPlan(group.kind, emptyList(), group.members.map { (it.key as CloudKey).id }))
+            }
         }
-        for (group in SiblingGrouper.group(cloudFiles.filter { (it.key as CloudKey).id !in matchedCloud })) {
-            val groupId = groupDao.insert(MediaGroupEntity(kind = group.kind))
-            for (member in group.members) groupDao.addCloudItem(CloudItemGroupCrossRef((member.key as CloudKey).id, groupId))
-            count++
-        }
-        return count
+        groupDao.replaceAll(plans)
+        return plans.size
     }
 
     override fun observeStates(): Flow<StateIndex> =

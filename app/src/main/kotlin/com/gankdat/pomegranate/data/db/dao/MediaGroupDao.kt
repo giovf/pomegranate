@@ -9,6 +9,7 @@ import androidx.room.Transaction
 import com.gankdat.pomegranate.data.db.entity.CloudItemGroupCrossRef
 import com.gankdat.pomegranate.data.db.entity.DeviceItemGroupCrossRef
 import com.gankdat.pomegranate.data.db.entity.MediaGroupEntity
+import com.gankdat.pomegranate.data.db.entity.MediaGroupKind
 import com.gankdat.pomegranate.data.db.entity.MediaGroupWithItems
 
 @Dao
@@ -64,4 +65,18 @@ internal interface MediaGroupDao {
     /** Membership rows go with the groups through the cascading foreign keys. */
     @Query("DELETE FROM media_group")
     suspend fun deleteAll()
+
+    /** Replaces every group in one transaction so readers never see the set half rebuilt. */
+    @Transaction
+    suspend fun replaceAll(groups: List<GroupPlan>) {
+        deleteAll()
+        for (group in groups) {
+            val groupId = insert(MediaGroupEntity(kind = group.kind))
+            for (id in group.deviceItemIds) addDeviceItem(DeviceItemGroupCrossRef(id, groupId))
+            for (id in group.cloudItemIds) addCloudItem(CloudItemGroupCrossRef(id, groupId))
+        }
+    }
 }
+
+/** One group to write: its kind and the device and cloud items in it. */
+internal data class GroupPlan(val kind: MediaGroupKind, val deviceItemIds: List<Long>, val cloudItemIds: List<Long>)
