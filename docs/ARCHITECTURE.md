@@ -89,5 +89,6 @@ compileSdk 37. Dependency policy: platform + AndroidX only (JUnit 4 for tests).
 - Other providers (iCloud, OneDrive, Dropbox) and other data types.
 - Deleting or modifying anything in Google Photos (impossible via API anyway)
   or deleting device files.
-- Play Store release work (OAuth verification, store assets) until the app
-  proves itself as a sideloaded personal tool.
+- Publishing itself: the owner approved *preparing* a Play Store release
+  (2026-11-13; see `docs/PLAY_STORE.md`), but submitting to Play or to Google's
+  OAuth verification is done by the owner from their own accounts.

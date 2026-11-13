@@ -2509,12 +2509,13 @@
         "description": "Use the Coverage breakdown card counts (same name/different details, other format, renamed candidates, nothing similar) from the owner's phone to add or relax matching rules, keeping false matches out.",
         "details": "Needs the owner's screenshot of the card (counts, folder names, file types only). Each new rule gets unit tests with synthetic fixtures; no real filenames committed.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "26"
         ],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-11-13T10:50:39.332Z"
       },
       {
         "id": "34",
@@ -2522,13 +2523,14 @@
         "description": "Bump versionCode/versionName once the motion photo and review features land, bundling the accumulated UI fixes (storage bars, folder grouping, atomic updates), and follow docs/RELEASE.md.",
         "details": "Owner asked not to cut versions for small non-functional tweaks; this is the first functional release after them. No store submission.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "review",
         "dependencies": [
           "30",
           "31"
         ],
         "priority": "low",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-11-13T10:54:33.373Z"
       },
       {
         "id": "35",
@@ -2536,19 +2538,20 @@
         "description": "Get everything ready for the owner to publish: privacy policy page (GitHub Pages), OAuth consent screen moved out of Testing (check whether the Picker scope needs Google verification), release signing via Play App Signing with an upload key kept out of git, Data safety answers, dataSync foreground service justification, store listing text that follows Google's trademark rules, and a closed-test plan (12 testers, 14 days for new personal accounts).",
         "details": "Owner does the actual publishing from their own accounts (CLAUDE.md: ask before publishing). Licence is PolyForm Noncommercial 1.0.0; the owner as copyright holder may publish. No outside contributions accepted. Revisit ARCHITECTURE.md 'out of scope' list (Play Store release work) with the owner before starting.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           "34"
         ],
         "priority": "low",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-11-13T10:54:35.521Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-10-29T17:49:20.059Z",
+      "lastModified": "2026-11-13T10:54:35.522Z",
       "taskCount": 35,
-      "completedCount": 31,
+      "completedCount": 32,
       "tags": [
         "master"
       ]
