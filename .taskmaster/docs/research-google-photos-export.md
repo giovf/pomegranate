@@ -120,3 +120,17 @@ before relying on any of this, Google changes these surfaces without notice.
    transcoded video. Only suitable for small incremental top-ups.
 4. **Data Portability API.** Not viable (no Photos scope, EEA/UK-only, CASA).
 5. **Web scraping (gphotos-cdp / gphotosdl).** Avoid for a product.
+
+## Device findings, 2026-11-13 (owner's phone, task 26)
+
+- Picker sessions close: weeks-old rounds could be neither previewed nor
+  downloaded. Google documents `expireTime` as when access to the session and
+  its picked items ends; the app treats a session past it (or answering 4xx
+  with a valid token) as closed. How long a finished session lasts was not
+  measured.
+- `=d` on a motion photo returned the complete Motion Photo JPEG with its clip
+  embedded (one sample), so no rebuild was needed; the rebuild path from
+  `=d` + `=dv` remains for when it is not.
+- Photo, video and motion photo pulls verified end to end: SAF layout,
+  manifest entry, library counts updating after the pull.
+

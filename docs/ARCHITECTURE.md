@@ -60,10 +60,15 @@ compileSdk 37. Dependency policy: platform + AndroidX only (JUnit 4 for tests).
   user's library since the Library API scopes were removed (2025-03-31).
   Limits that shape the design: user-driven selection, ≤2,000 items per
   session, base URLs valid 60 min, photos lose GPS, videos are transcoded.
-  Every pulled item carries a fidelity badge (Original / Location stripped /
-  Transcoded video / Rebuilt motion photo / Motion photo saved as still).
-  Motion photos (detected by name or XMP, so ordinary photos cost one
-  request) are rebuilt as one Motion Photo JPEG from `=d` + `=dv`. The client sits behind an interface so a Takeout-indexed
+  Sessions expire (`expireTime`): after that their items can be neither
+  previewed nor downloaded until picked again, so the flow is pick a round,
+  pull it, then pick the next; the index is kept and re-picks update it in
+  place. Every pulled item carries a fidelity badge (Original / Location
+  stripped / Transcoded video / Motion photo kept / Rebuilt motion photo /
+  Motion photo saved as still). Motion photos (detected by name or XMP, so
+  ordinary photos cost one request) are saved as served when `=d` already
+  contains the clip (seen on the owner's phone, 2026-11-13), otherwise
+  rebuilt as one Motion Photo JPEG from `=d` + `=dv`. The client sits behind an interface so a Takeout-indexed
   source can be added later without touching reconcile/transfer.
 - No API can delete from Google Photos; the app only guides manual clean-up
   after copies are verified.

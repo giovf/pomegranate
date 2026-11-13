@@ -2418,10 +2418,11 @@
         "description": "Confirm the bearer-token fix: Google-only previews load, a small pull (3-5 items incl. one video and one motion photo) downloads, verifies with SHA-256, lands in the SAF layout and appears in the manifest. Confirm whether earlier picker rounds can still be re-listed after the 60-minute baseUrl lifetime.",
         "details": "Owner-run checklist with a fresh debug APK. Record: preview success, per-item fidelity badge, destination path, manifest entry, behaviour when a round's session is gone (round marked expired, items re-pick prompt). Capture what Google returns for =d and =dv on a motion photo and =dv on an ordinary photo (status code + content type only, nothing identifying). Findings feed tasks for motion photo support.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-11-13T14:04:22.190Z"
       },
       {
         "id": "27",
@@ -2549,9 +2550,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-11-13T10:54:35.522Z",
+      "lastModified": "2026-11-13T14:04:22.190Z",
       "taskCount": 35,
-      "completedCount": 32,
+      "completedCount": 33,
       "tags": [
         "master"
       ]
