@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,6 +52,7 @@ import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.data.model.MediaState
 import com.gankdat.pomegranate.ui.appViewModelFactory
 import com.gankdat.pomegranate.ui.components.ConnectionStatusBar
+import com.gankdat.pomegranate.ui.components.FastScroller
 import com.gankdat.pomegranate.ui.components.iconRes
 import com.gankdat.pomegranate.ui.components.labelRes
 import com.gankdat.pomegranate.ui.format.Formatters
@@ -158,7 +160,21 @@ private fun LibraryList(
     // Bars scale against the largest group, so they stay meaningful with several storage volumes.
     val largestGroup = (state.groups.maxOfOrNull { it.totalSizeBytes } ?: 0L).coerceAtLeast(1L).toFloat()
     val volumes = state.groups.flatMap { g -> g.sizeByVolume.map { it.first } }.distinct()
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 8.dp)) {
+    val listState = rememberLazyListState()
+    // One label per list row, in the order the rows are emitted below, for the fast scroller's bubble.
+    val labels = remember(state.groups, expandedKeys, volumes.isEmpty()) {
+        buildList<String?> {
+            repeat(if (volumes.isEmpty()) 2 else 3) { add(null) }
+            state.groups.forEach { group ->
+                add(group.name)
+                if (group.key in expandedKeys) {
+                    group.days.forEach { day -> repeat(1 + (day.items.size + GRID_COLUMNS - 1) / GRID_COLUMNS) { add(day.label) } }
+                }
+            }
+        }
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 8.dp)) {
         item(key = "filters") { StateFilters(state, onFilter) }
         if (volumes.isNotEmpty()) item(key = "legend") { StorageLegend(volumes) }
         item(key = "summary") {
@@ -234,6 +250,8 @@ private fun LibraryList(
                 )
             }
         }
+    }
+    FastScroller(listState = listState, labelFor = { labels.getOrNull(it) }, modifier = Modifier.align(Alignment.CenterEnd))
     }
 }
 
