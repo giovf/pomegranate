@@ -51,8 +51,14 @@ import com.gankdat.pomegranate.ui.format.Formatters
 internal fun ConnectionScreen(
     onDisconnect: () -> Unit,
     onOpenCoverage: () -> Unit,
+    /** Opens the pull screen; the round to pull has already been made the selection. */
+    onPull: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ConnectionViewModel = viewModel(factory = appViewModelFactory { ConnectionViewModel(it.auth, it.cloudScanner, it.reconciliation, it.origins, it.settings) }),
+    viewModel: ConnectionViewModel = viewModel(
+        factory = appViewModelFactory {
+            ConnectionViewModel(it.auth, it.cloudScanner, it.reconciliation, it.origins, it.settings, it.database.cloudItemDao(), it.database.transferJobDao(), it.pullSelection)
+        },
+    ),
 ) {
     val auth by viewModel.authState.collectAsStateWithLifecycle()
     val round by viewModel.roundState.collectAsStateWithLifecycle()
@@ -81,10 +87,14 @@ internal fun ConnectionScreen(
         if (auth == AuthState.SignedIn) {
             tokenStatus?.let { TokenStatusSection(it, refreshing, viewModel::refreshAccess) }
             HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
-            PickerSection(round, coverage, viewModel, activity, onOpenCoverage)
+            val pullRound = { sessionId: String ->
+                viewModel.selectRoundForPull(sessionId)
+                onPull()
+            }
+            PickerSection(round, coverage, viewModel, activity, onOpenCoverage, pullRound)
             if (rounds.isNotEmpty()) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
-                RoundsHistory(rounds)
+                RoundsHistory(rounds, pullRound)
             }
         }
     }
@@ -156,7 +166,7 @@ private fun TokenStatusSection(status: TokenStatus, refreshing: Boolean, onRefre
 private const val TESTING_MODE_WARN_DAYS = 6
 
 @Composable
-private fun RoundsHistory(rounds: List<RoundSummary>) {
+private fun RoundsHistory(rounds: List<RoundSummary>, onPullRound: (String) -> Unit) {
     Text(stringResource(R.string.rounds_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
     Spacer(Modifier.height(8.dp))
     rounds.forEach { summary ->
@@ -175,21 +185,55 @@ private fun RoundsHistory(rounds: List<RoundSummary>) {
                         listOfNotNull(listOfNotNull(selected, overlap).joinToString(", "), span).joinToString(" · ")
                     }
                     PickerRoundState.ACTIVE -> stringResource(R.string.round_active)
-                    PickerRoundState.EXPIRED -> {
-                        // A round that was indexed and later closed by Google still has items pointing at it.
-                        val stranded = summary.range?.itemCount ?: 0
-                        if (stranded > 0) pluralStringResource(R.plurals.round_closed_with_items, stranded, stranded) else stringResource(R.string.round_expired)
-                    }
+                    // A round that was indexed and later closed by Google still has items pointing at it.
+                    PickerRoundState.EXPIRED -> stringResource(if ((summary.range?.itemCount ?: 0) > 0) R.string.round_closed else R.string.round_expired)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            val pending = summary.pending
+            when {
+                round.state == PickerRoundState.INDEXED && pending != null -> {
+                    Text(pluralStringResource(R.plurals.round_pending, pending.count, pending.count), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    TextButton(onClick = { onPullRound(round.sessionId) }) { Text(stringResource(R.string.round_pull_now)) }
+                }
+                round.state == PickerRoundState.EXPIRED && pending != null -> RepickGuidance(pending)
+                round.state == PickerRoundState.EXPIRED && (summary.range?.itemCount ?: 0) > 0 ->
+                    Text(stringResource(R.string.round_closed_nothing_lost), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
 
+/** For a round Google closed: how many items still need downloading and which dates to pick again. */
 @Composable
-private fun PickerSection(round: RoundState, coverage: CoverageUi, viewModel: ConnectionViewModel, activity: Activity?, onOpenCoverage: () -> Unit) {
+private fun RepickGuidance(pending: RoundPending) {
+    Card(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(pluralStringResource(R.plurals.repick_title, pending.count, pending.count), style = MaterialTheme.typography.titleSmall)
+            if (pending.oldest != null && pending.newest != null) {
+                Text(stringResource(R.string.repick_range, Formatters.date(pending.oldest), Formatters.date(pending.newest)), style = MaterialTheme.typography.bodyMedium)
+                val shown = pending.months.take(REPICK_MONTHS_SHOWN)
+                val months = shown.joinToString { (month, count) ->
+                    "${Formatters.monthYear(month.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())} ($count)"
+                }
+                val more = pending.months.size - shown.size
+                Text(
+                    if (more > 0) pluralStringResource(R.plurals.repick_months_more, more, months, more) else stringResource(R.string.repick_months, months),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } else {
+                Text(stringResource(R.string.repick_no_dates), style = MaterialTheme.typography.bodyMedium)
+            }
+            Text(stringResource(R.string.repick_how), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+private const val REPICK_MONTHS_SHOWN = 8
+
+@Composable
+private fun PickerSection(round: RoundState, coverage: CoverageUi, viewModel: ConnectionViewModel, activity: Activity?, onOpenCoverage: () -> Unit, onPullRound: (String) -> Unit) {
     var showQr by rememberSaveable { mutableStateOf(false) }
     val startOnPhone = { activity?.let { a -> viewModel.startRound { url -> CustomTabLauncher.open(a, url) } } }
     val startElsewhere = { viewModel.startRound { showQr = true } }
@@ -266,6 +310,9 @@ private fun PickerSection(round: RoundState, coverage: CoverageUi, viewModel: Co
                     }
                     Text(text, style = MaterialTheme.typography.bodyLarge)
                     Text(stringResource(R.string.picker_round_done_next), style = MaterialTheme.typography.bodySmall)
+                    Button(onClick = { onPullRound(round.sessionId) }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                        Text(stringResource(R.string.round_pull_now))
+                    }
                 }
             }
             Spacer(Modifier.height(12.dp))

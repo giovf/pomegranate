@@ -75,6 +75,28 @@ internal class CloudScannerRepositoryImpl(
         }
     }
 
+    override suspend fun checkIndexedRounds(): Int {
+        var closed = 0
+        for (round in roundDao.getByState(PickerRoundState.INDEXED)) {
+            try {
+                // The same request a download needs; one page is enough to know.
+                api.listMediaItems(round.sessionId, null)
+            } catch (e: PickerApiException) {
+                if (e.isGone) {
+                    roundDao.setState(round.sessionId, PickerRoundState.EXPIRED, itemCount = round.itemCount)
+                    closed++
+                } else if (e.isAuthFailure) {
+                    return closed
+                }
+            } catch (_: PickerAuthException) {
+                return closed
+            } catch (_: IOException) {
+                return closed
+            }
+        }
+        return closed
+    }
+
     override suspend fun deleteSession(sessionId: String) {
         try {
             api.deleteSession(sessionId)

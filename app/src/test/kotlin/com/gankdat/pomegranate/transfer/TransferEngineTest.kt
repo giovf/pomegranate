@@ -47,6 +47,7 @@ private class FakeCloudScanner(private val onRefresh: suspend (String) -> Unit) 
     override suspend fun indexSession(sessionId: String): Int = error("unused")
     override suspend fun refreshExpiringBaseUrls(sessionId: String, marginMillis: Long) = onRefresh(sessionId)
     override suspend fun refreshBaseUrls(sessionId: String) = onRefresh(sessionId)
+    override suspend fun checkIndexedRounds(): Int = 0
     override suspend fun deleteSession(sessionId: String) = Unit
     override suspend fun openRound(): PickerSession? = null
     override fun sessionRanges() = flowOf(emptyList<com.gankdat.pomegranate.data.db.entity.SessionRange>())

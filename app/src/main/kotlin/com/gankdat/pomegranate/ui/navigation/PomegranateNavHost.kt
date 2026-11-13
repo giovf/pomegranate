@@ -96,6 +96,7 @@ internal fun PomegranateNavHost(
                 ConnectionScreen(
                     onDisconnect = navController::navigateToDisconnect,
                     onOpenCoverage = { navController.navigate(Screen.Coverage.route) { launchSingleTop = true } },
+                    onPull = { navController.navigateToPull(PullScope.SELECTED) },
                     modifier = Modifier.padding(padding),
                 )
             }

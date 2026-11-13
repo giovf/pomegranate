@@ -13,7 +13,12 @@ import com.gankdat.pomegranate.census.cloud.PickerSession
 import com.gankdat.pomegranate.census.cloud.RoundAccounting
 import com.gankdat.pomegranate.data.settings.SettingsRepository
 import com.gankdat.pomegranate.census.cloud.SessionState
+import com.gankdat.pomegranate.data.db.dao.CloudItemDao
+import com.gankdat.pomegranate.data.db.dao.TransferJobDao
 import com.gankdat.pomegranate.data.db.entity.PickerRoundEntity
+import com.gankdat.pomegranate.data.db.entity.TransferState
+import com.gankdat.pomegranate.data.model.MediaState
+import com.gankdat.pomegranate.ui.library.PullSelection
 import com.gankdat.pomegranate.data.db.entity.PickerRoundState
 import com.gankdat.pomegranate.data.db.entity.SessionRange
 import com.gankdat.pomegranate.reconcile.ReconciliationRepository
@@ -40,7 +45,7 @@ internal sealed interface RoundState {
     data object Indexing : RoundState
 
     /** Just finished; shown above the "start next round" choice. */
-    data class Done(val itemCount: Int, val oldest: Long?, val newest: Long?) : RoundState
+    data class Done(val itemCount: Int, val oldest: Long?, val newest: Long?, val sessionId: String) : RoundState
 
     data class Failed(val message: String) : RoundState
 }
@@ -50,7 +55,14 @@ internal sealed interface RoundState {
  * many items the round listed; [alreadyIndexed] how many of them an earlier
  * round had already indexed (null when it cannot be worked out).
  */
-internal data class RoundSummary(val round: PickerRoundEntity, val range: SessionRange?, val selected: Int, val alreadyIndexed: Int?)
+internal data class RoundSummary(
+    val round: PickerRoundEntity,
+    val range: SessionRange?,
+    val selected: Int,
+    val alreadyIndexed: Int?,
+    /** Items of this round still to download; null when there are none. */
+    val pending: RoundPending? = null,
+)
 
 internal data class CoverageUi(
     val itemCount: Int = 0,
@@ -67,13 +79,24 @@ internal class ConnectionViewModel(
     private val reconciliation: ReconciliationRepository,
     private val origins: OriginRepository,
     settings: SettingsRepository,
+    cloudDao: CloudItemDao,
+    jobDao: TransferJobDao,
+    private val pullSelection: PullSelection,
 ) : ViewModel() {
     val authState = auth.authState
 
     val tokenStatus: StateFlow<TokenStatus?> = auth.tokenStatus.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Newest first, each with its photos' date span. */
-    val rounds: StateFlow<List<RoundSummary>> = combine(cloud.pickerRounds(), cloud.sessionRanges(), settings.roundOverlaps) { rounds, ranges, recorded ->
+    private val pending = combine(cloudDao.observeAll(), reconciliation.observeStates(), jobDao.observeAll()) { items, states, jobs ->
+        RoundPending.bySession(
+            items = items,
+            onPhone = states.cloudStates.filterValues { it == MediaState.BOTH }.keys,
+            pulled = jobs.filter { it.state == TransferState.DONE }.map { it.sourceId }.toSet(),
+        )
+    }
+
+    val rounds: StateFlow<List<RoundSummary>> = combine(cloud.pickerRounds(), cloud.sessionRanges(), settings.roundOverlaps, pending) { rounds, ranges, recorded, pendingBySession ->
         val bySession = ranges.associateBy { it.sessionId }
         val indexedOldestFirst = rounds.filter { it.state == PickerRoundState.INDEXED }.sortedBy { it.createdAt }
         val overlaps = RoundAccounting.alreadyIndexed(
@@ -81,7 +104,7 @@ internal class ConnectionViewModel(
             recorded,
             totalIndexed = ranges.sumOf { it.itemCount },
         )
-        rounds.map { RoundSummary(it, bySession[it.sessionId], selected = it.itemCount, alreadyIndexed = overlaps[it.sessionId]) }
+        rounds.map { RoundSummary(it, bySession[it.sessionId], selected = it.itemCount, alreadyIndexed = overlaps[it.sessionId], pending = pendingBySession[it.sessionId]) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val coverage: StateFlow<CoverageUi> = combine(cloud.coverage(), rounds) { coverage, summaries ->
@@ -118,6 +141,15 @@ internal class ConnectionViewModel(
                 pollAndIndex(open.id)
             }
         }
+        // Find out now which earlier rounds Google has closed, rather than when a download fails.
+        viewModelScope.launch {
+            if (auth.authState.first { it != AuthState.SigningIn } == AuthState.SignedIn) cloud.checkIndexedRounds()
+        }
+    }
+
+    /** Makes the round's outstanding items the selection the pull screen opens with. */
+    fun selectRoundForPull(sessionId: String) {
+        pullSelection.set(rounds.value.firstOrNull { it.round.sessionId == sessionId }?.pending?.cloudItemIds.orEmpty())
     }
 
     fun refreshAccess() {
@@ -206,7 +238,7 @@ internal class ConnectionViewModel(
                         reconciliation.reconcile()
                         origins.refresh()
                         val range = cloud.sessionRanges().first().firstOrNull { it.sessionId == sessionId }
-                        _roundState.value = RoundState.Done(count, range?.oldest, range?.newest)
+                        _roundState.value = RoundState.Done(count, range?.oldest, range?.newest, sessionId)
                     } catch (e: PickerApiException) {
                         _roundState.value = RoundState.Failed("Google Photos returned ${e.httpStatus} while listing your selection")
                     } catch (_: PickerAuthException) {

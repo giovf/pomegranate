@@ -109,6 +109,25 @@ class CloudScannerRepositoryImplTest {
     }
 
     @Test
+    fun `checking indexed rounds marks only the ones Google has closed and keeps their counts`() = runBlocking {
+        val kept = repo.startPickerRound()
+        api.items[kept.id] = mutableListOf(picked("m1"))
+        repo.indexSession(kept.id)
+        val closed = repo.startPickerRound()
+        api.items[closed.id] = mutableListOf(picked("m2"), picked("m3"))
+        repo.indexSession(closed.id)
+        api.sessions.remove(closed.id)
+
+        assertEquals(1, repo.checkIndexedRounds())
+
+        assertEquals(PickerRoundState.INDEXED, db.pickerRoundDao().getBySessionId(kept.id)?.state)
+        val round = db.pickerRoundDao().getBySessionId(closed.id)!!
+        assertEquals(PickerRoundState.EXPIRED, round.state)
+        assertEquals(2, round.itemCount)
+        assertEquals(2, db.cloudItemDao().getAll().count { it.sessionId == closed.id }) // the index is untouched
+    }
+
+    @Test
     fun `a session Google no longer has marks the round expired`() = runBlocking {
         val session = repo.startPickerRound()
         api.items[session.id] = mutableListOf(picked("m1"))

@@ -61,10 +61,25 @@
     <string name="preview_action_sign_in">Sign in again</string>
     <string name="preview_action_pick_again">Pick it again</string>
     <string name="preview_action_retry">Try again</string>
-    <plurals name="round_closed_with_items">
-        <item quantity="one">Closed by Google. %1$d item from it is still listed; to preview or download it, pick it again in a new round.</item>
-        <item quantity="other">Closed by Google. %1$d items from it are still listed; to preview or download them, pick them again in a new round.</item>
+    <string name="round_closed">Closed by Google</string>
+    <string name="round_closed_nothing_lost">Nothing to do: everything from this round is already on this phone.</string>
+    <plurals name="round_pending">
+        <item quantity="one">%1$d item still to pull</item>
+        <item quantity="other">%1$d items still to pull</item>
     </plurals>
+    <string name="round_pull_now">Pull these now</string>
+    <plurals name="repick_title">
+        <item quantity="one">%1$d item must be picked again before it can be downloaded</item>
+        <item quantity="other">%1$d items must be picked again before they can be downloaded</item>
+    </plurals>
+    <string name="repick_range">In a new round, pick the photos and videos dated %1$s to %2$s.</string>
+    <string name="repick_months">By month, newest first as Google lists them: %1$s</string>
+    <plurals name="repick_months_more">
+        <item quantity="one">By month, newest first as Google lists them: %1$s, and %2$d more month</item>
+        <item quantity="other">By month, newest first as Google lists them: %1$s, and %2$d more months</item>
+    </plurals>
+    <string name="repick_no_dates">These items have no date. In a new round, pick the same items again.</string>
+    <string name="repick_how">Picking more than needed is harmless: items already on this phone are recognised and not downloaded twice. Then pull straight away, before Google closes that round too.</string>
     <string name="preview_failed_device">This file could not be opened. It may have been moved or deleted.</string>
     <string name="preview_photo">Photo preview</string>
     <string name="preview_video">Video preview</string>
@@ -212,7 +227,7 @@
     <string name="connection_sign_in_again">Sign in again</string>
     <string name="connection_try_again">Try again</string>
     <string name="picker_title">Index your Google Photos</string>
-    <string name="picker_body">Google only shares the photos and videos you select yourself. Each round, you select up to 2,000 items in Google\'s picker and press Done; Pomegranate then adds them to its index. Repeat rounds until your whole library is indexed. Selecting an item twice is harmless.</string>
+    <string name="picker_body">Google only shares the photos and videos you select yourself. Each round, you select up to 2,000 items in Google\'s picker and press Done; Pomegranate then adds them to its index. Pull each round before you start the next: Google closes a round after a while, and its items can then no longer be previewed or downloaded until you pick them again. Selecting an item twice is harmless.</string>
     <string name="picker_nothing_yet">Nothing indexed yet.</string>
     <string name="picker_overall_span">Indexed photos are dated %1$s to %2$s.</string>
     <string name="picker_left_off">Your last round covered %1$s to %2$s. Google lists newest first, so carry on from photos older than %1$s.</string>
@@ -223,7 +238,7 @@
     <string name="picker_continue_computer">Continue on a computer</string>
     <string name="picker_continue_phone">Continue on this phone</string>
     <string name="picker_cancel_round">Cancel this round</string>
-    <string name="picker_round_done_next">To add more, start the next round below. Each round uses a new link.</string>
+    <string name="picker_round_done_next">Pull these now, while Google still keeps this round open. Then start the next round below; each round uses a new link.</string>
     <string name="round_started">Started %1$s</string>
     <plurals name="round_selected">
         <item quantity="one">%1$d selected</item>
@@ -269,7 +284,7 @@
         <item quantity="one">%1$d selected</item>
         <item quantity="other">%1$d selected</item>
     </plurals>
-    <string name="pull_scope_selected">The items you selected in the library</string>
+    <string name="pull_scope_selected">The items you selected</string>
     <string name="evidence_pulled">downloaded and verified by Pomegranate</string>
     <string name="fast_scroll_handle">Scroll handle: drag up or down to move quickly through the list</string>
     <string name="diag_title">Why some items were not found on this phone</string>

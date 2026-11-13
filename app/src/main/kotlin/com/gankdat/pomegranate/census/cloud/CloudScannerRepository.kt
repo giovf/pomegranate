@@ -32,6 +32,13 @@ internal interface CloudScannerRepository {
     /** Re-lists the session unconditionally (a link was rejected before its nominal expiry). */
     suspend fun refreshBaseUrls(sessionId: String)
 
+    /**
+     * Asks Google whether each indexed round can still be listed, and marks
+     * the ones it has closed as expired. Network and sign-in problems leave
+     * everything as it was. Returns how many rounds were found closed.
+     */
+    suspend fun checkIndexedRounds(): Int
+
     /** Tells Google to discard the session; local items stay. */
     suspend fun deleteSession(sessionId: String)
 
