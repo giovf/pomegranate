@@ -194,7 +194,11 @@ internal class TransferEngine(
                     else -> {
                         sink.write(still)
                         sink.flush()
-                        val fidelity = if (plan == MotionPlan.FETCH_CLIP || plan == MotionPlan.STILL_ONLY) Fidelity.MOTION_STILL_ONLY else Fidelity.GPS_STRIPPED
+                        val fidelity = when (plan) {
+                            MotionPlan.FETCH_CLIP, MotionPlan.STILL_ONLY -> Fidelity.MOTION_STILL_ONLY
+                            MotionPlan.ALREADY_MOTION -> Fidelity.MOTION_KEPT
+                            MotionPlan.NOT_MOTION -> Fidelity.GPS_STRIPPED
+                        }
                         still.size.toLong() to fidelity
                     }
                 }

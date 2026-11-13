@@ -54,6 +54,8 @@ import com.gankdat.pomegranate.ui.format.Formatters
 import com.gankdat.pomegranate.ui.format.MimeLabels
 import com.gankdat.pomegranate.ui.navigation.PomegranateScaffold
 import com.gankdat.pomegranate.ui.navigation.Screen
+import com.gankdat.pomegranate.reconcile.PulledCopies
+import com.gankdat.pomegranate.ui.manifest.fidelityLabel
 import com.gankdat.pomegranate.ui.navigation.navigateToCloudItemDetail
 
 private val PREVIEW_SIZE = Size(1_600, 1_600)
@@ -74,6 +76,9 @@ internal fun itemDetailViewModel(itemId: Long? = null): ItemDetailViewModel = vi
             matchDao = app.database.matchDao(),
             groupDao = app.database.mediaGroupDao(),
             opener = ContentOpener { uri -> app.contentResolver.openInputStream(uri) },
+            pulledFidelity = { device ->
+                app.database.transferJobDao().getDone().lastOrNull { PulledCopies.isAt(it.relativePath, device) }?.fidelity
+            },
         )
     },
 )
@@ -146,6 +151,7 @@ private fun ItemDetailContent(state: ItemDetailUiState.Success, onComputeHash: (
                 leadingIcon = { Icon(painter = painterResource(R.drawable.ic_folder), contentDescription = null, modifier = Modifier.size(18.dp)) },
             )
             Spacer(Modifier.height(8.dp))
+            state.pulledFidelity?.let { MetadataRow(stringResource(R.string.meta_pulled_as), fidelityLabel(it)) }
             MetadataRow(stringResource(R.string.meta_path), "${item.volume}/${item.relativePath}${item.displayName}")
             MetadataRow(stringResource(R.string.meta_type), MimeLabels.label(item.mime))
             MetadataRow(stringResource(R.string.meta_size), Formatters.fileSize(item.size))

@@ -156,6 +156,10 @@
         <item quantity="one">%1$d item failed: open to retry</item>
         <item quantity="other">%1$d items failed: open to retry</item>
     </plurals>
+    <string name="fidelity_label_motion_kept">Motion photo with its motion, as Google stores it: location stripped</string>
+    <string name="pull_done_fidelity">What was saved</string>
+    <string name="meta_pulled_as">Pulled from Google Photos as</string>
+    <string name="meta_pulled_to">Saved to</string>
     <string name="fidelity_notice_title">What you get from Google</string>
     <string name="fidelity_notice_body">Google\'s picker hands out photos without their location data and videos as re-encoded copies, not the originals you uploaded. Motion photos are rebuilt from Google\'s still and its re-encoded clip where possible. Every pulled file is labelled accordingly. Full-fidelity export via Google Takeout is planned for a later version.</string>
     <string name="fidelity_notice_dont_show">Don\'t show this again</string>

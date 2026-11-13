@@ -29,6 +29,14 @@ internal object PulledCopies {
      * matches when its path ends with the download's whole relative path
      * (`Pomegranate/2024/2024-03/Camera/IMG_1.jpg`), on a folder boundary.
      */
+    /** Whether [device] is the file a download wrote at [relativePath] (relative to the destination root). */
+    fun isAt(relativePath: String, device: DeviceItemEntity): Boolean {
+        val wanted = relativePath.trim('/').lowercase(Locale.ROOT)
+        if (wanted.isEmpty()) return false
+        val path = (device.relativePath.trim('/') + "/" + device.displayName).trim('/').lowercase(Locale.ROOT)
+        return path == wanted || path.endsWith("/$wanted")
+    }
+
     fun match(pulled: List<PulledFile>, cloud: List<CloudItemEntity>, device: List<DeviceItemEntity>): List<MatchEntity> {
         if (pulled.isEmpty()) return emptyList()
         val cloudIds = cloud.associate { it.pickerMediaItemId to it.id }
@@ -40,11 +48,7 @@ internal object PulledCopies {
             val cloudId = cloudIds[file.sourceId] ?: continue
             if (cloudId in takenCloud) continue
             val wanted = file.relativePath.trim('/').lowercase(Locale.ROOT)
-            val candidate = byName[wanted.substringAfterLast('/')].orEmpty().firstOrNull { d ->
-                if (d.id in takenDevice) return@firstOrNull false
-                val path = (d.relativePath.trim('/') + "/" + d.displayName).trim('/').lowercase(Locale.ROOT)
-                path == wanted || path.endsWith("/$wanted")
-            } ?: continue
+            val candidate = byName[wanted.substringAfterLast('/')].orEmpty().firstOrNull { d -> d.id !in takenDevice && isAt(file.relativePath, d) } ?: continue
             takenDevice += candidate.id
             takenCloud += cloudId
             matches += MatchEntity(cloudId, candidate.id, MatchConfidence.EXACT, EVIDENCE.toJson())

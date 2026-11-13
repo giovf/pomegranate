@@ -51,6 +51,7 @@ import com.gankdat.pomegranate.data.db.entity.TransferState
 import com.gankdat.pomegranate.ui.appViewModelFactory
 import com.gankdat.pomegranate.data.db.entity.PickerRoundState
 import com.gankdat.pomegranate.ui.format.Formatters
+import com.gankdat.pomegranate.ui.manifest.fidelityLabel
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
 
@@ -310,6 +311,12 @@ private fun CompletionContent(viewModel: PullViewModel, onDone: () -> Unit, onVi
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(pluralStringResource(R.plurals.pull_done_summary, summary.done, summary.done, Formatters.fileSize(summary.bytesWritten)), style = MaterialTheme.typography.titleMedium)
                 Text(stringResource(R.string.pull_done_verified), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (progress.fidelityCounts.isNotEmpty()) {
+                    Text(stringResource(R.string.pull_done_fidelity), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 12.dp))
+                    progress.fidelityCounts.forEach { (fidelity, count) ->
+                        Text("$count × ${fidelityLabel(fidelity)}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         }
         if (progress.failed.isNotEmpty()) {

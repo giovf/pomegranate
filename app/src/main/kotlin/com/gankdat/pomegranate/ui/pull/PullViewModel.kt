@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gankdat.pomegranate.data.db.dao.CloudItemDao
 import com.gankdat.pomegranate.data.db.dao.TransferJobDao
+import com.gankdat.pomegranate.data.db.entity.Fidelity
 import com.gankdat.pomegranate.data.db.entity.TransferJobEntity
 import com.gankdat.pomegranate.data.db.entity.TransferState
 import com.gankdat.pomegranate.data.model.MediaState
@@ -52,6 +53,8 @@ internal data class PullProgress(
     val etaSeconds: Long? = null,
     /** The pull these numbers describe; null when none is running or being looked at. */
     val batchId: Long? = null,
+    /** How many verified files of this pull carry each fidelity badge. */
+    val fidelityCounts: List<Pair<Fidelity, Int>> = emptyList(),
 ) {
     val completed: Int get() = summary.done
     val total: Int get() = summary.total
@@ -135,6 +138,7 @@ internal class PullViewModel(
                 bytesPerSecond = speedAndEta.first,
                 etaSeconds = speedAndEta.second,
                 batchId = batch,
+                fidelityCounts = mine.filter { it.state == TransferState.DONE }.groupingBy { it.fidelity }.eachCount().entries.sortedBy { it.key.ordinal }.map { it.key to it.value },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), PullProgress())
 

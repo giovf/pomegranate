@@ -11,6 +11,7 @@ import com.gankdat.pomegranate.data.db.dao.MatchDao
 import com.gankdat.pomegranate.data.db.dao.MediaGroupDao
 import com.gankdat.pomegranate.data.db.entity.CloudItemEntity
 import com.gankdat.pomegranate.data.db.entity.DeviceItemEntity
+import com.gankdat.pomegranate.data.db.entity.Fidelity
 import com.gankdat.pomegranate.data.db.entity.MatchConfidence
 import com.gankdat.pomegranate.data.db.entity.MediaGroupKind
 import com.gankdat.pomegranate.data.model.MediaState
@@ -49,6 +50,8 @@ internal sealed interface ItemDetailUiState {
         val state: MediaState,
         val match: MatchInfo?,
         val siblings: List<SiblingInfo>,
+        /** Set when this phone file is a copy the app pulled from Google Photos: what was actually saved. */
+        val pulledFidelity: Fidelity? = null,
         val isComputingHash: Boolean = false,
         val hashFailed: Boolean = false,
     ) : ItemDetailUiState
@@ -66,6 +69,8 @@ internal class ItemDetailViewModel(
     private val matchDao: MatchDao,
     private val groupDao: MediaGroupDao,
     private val opener: ContentOpener,
+    /** The fidelity of the verified download that wrote this file, if it is one. */
+    private val pulledFidelity: suspend (DeviceItemEntity) -> Fidelity? = { null },
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
     private val itemId: Long = checkNotNull(savedStateHandle[Screen.ARG_ITEM_ID]) { "itemId argument missing" }
@@ -85,7 +90,7 @@ internal class ItemDetailViewModel(
             SiblingInfo(g.group.kind, (g.deviceItems.map { it.displayName } + g.cloudItems.map { it.filename }).distinct().filter { it != item.displayName })
         }
         val state = if (match != null && match.confidence in ReconciliationRepository.CONFIRMED) MediaState.BOTH else MediaState.DEVICE_ONLY
-        return ItemDetailUiState.Success(item, state, match, siblings)
+        return ItemDetailUiState.Success(item, state, match, siblings, pulledFidelity(item))
     }
 
     /** Hashes the file on disk and stores the result; ambiguous matches use it later. */

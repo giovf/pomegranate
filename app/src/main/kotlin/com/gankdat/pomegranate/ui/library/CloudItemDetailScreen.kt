@@ -39,6 +39,7 @@ import com.gankdat.pomegranate.data.db.entity.CloudItemEntity
 import com.gankdat.pomegranate.ui.appViewModelFactory
 import com.gankdat.pomegranate.ui.format.Formatters
 import com.gankdat.pomegranate.ui.format.MimeLabels
+import com.gankdat.pomegranate.ui.manifest.fidelityLabel
 import com.gankdat.pomegranate.ui.navigation.PomegranateScaffold
 import com.gankdat.pomegranate.ui.navigation.Screen
 import com.gankdat.pomegranate.ui.navigation.navigateToConnection
@@ -118,7 +119,13 @@ private fun CloudItemDetailContent(
                 MetadataRow(stringResource(R.string.meta_dimensions), stringResource(R.string.meta_dimensions_value, item.width, item.height))
             }
             listOfNotNull(item.cameraMake, item.cameraModel).takeIf { it.isNotEmpty() }?.let { MetadataRow(stringResource(R.string.meta_camera), it.joinToString(" ")) }
-            MetadataRow(stringResource(R.string.meta_fidelity), stringResource(if (isVideo) R.string.fidelity_transcoded else R.string.fidelity_gps_stripped))
+            val pulledFidelity = state.pulledFidelity
+            if (pulledFidelity != null) {
+                MetadataRow(stringResource(R.string.meta_pulled_as), fidelityLabel(pulledFidelity))
+                state.pulledPath?.let { MetadataRow(stringResource(R.string.meta_pulled_to), it) }
+            } else {
+                MetadataRow(stringResource(R.string.meta_fidelity), stringResource(if (isVideo) R.string.fidelity_transcoded else R.string.fidelity_gps_stripped))
+            }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             OriginSection(item, onEdit = { editingOrigin = true }, onReset = { onSetOrigin(null) })

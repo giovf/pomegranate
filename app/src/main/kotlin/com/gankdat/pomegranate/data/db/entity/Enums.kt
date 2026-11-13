@@ -63,6 +63,9 @@ internal enum class Fidelity {
 
     /** Motion photo saved as its still only (GPS removed): Google served no usable clip, or the still is not a JPEG. */
     MOTION_STILL_ONLY,
+
+    /** Motion photo that Google served complete, clip included; saved as received (GPS removed). */
+    MOTION_KEPT,
 }
 
 /** Where an [OriginRuleEntity] came from. */
