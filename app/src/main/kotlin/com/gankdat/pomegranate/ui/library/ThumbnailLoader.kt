@@ -35,7 +35,8 @@ internal enum class PreviewFailure {
 internal sealed interface PreviewResult {
     data class Ok(val bitmap: Bitmap) : PreviewResult
 
-    data class Failed(val reason: PreviewFailure) : PreviewResult
+    /** [httpStatus] is what Google answered, when that is all there is to go on. */
+    data class Failed(val reason: PreviewFailure, val httpStatus: Int? = null) : PreviewResult
 }
 
 internal sealed interface RefreshOutcome {
@@ -62,6 +63,8 @@ internal class ThumbnailLoader(
     private val refresher: BaseUrlRefresher,
     /** Google requires the user's bearer token on picked items' base URLs. */
     private val accessToken: suspend () -> String?,
+    /** Whether Google has closed the round (session) an item came from; null when unknown. */
+    private val roundClosed: suspend (sessionId: String) -> Boolean? = { null },
 ) {
     private val cache = object : LruCache<String, Bitmap>((Runtime.getRuntime().maxMemory() / 8).toInt().coerceAtLeast(MIN_CACHE_BYTES)) {
         override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
@@ -96,24 +99,33 @@ internal class ThumbnailLoader(
         val token = accessToken() ?: return PreviewResult.Failed(PreviewFailure.SIGNED_OUT)
         return when (val first = fetch(remoteUrl(source.baseUrl, size), token)) {
             is Fetch.Ok -> PreviewResult.Ok(first.bitmap)
-            Fetch.Rejected -> when (val refreshed = refresher.refresh(source.sessionId, source.cloudItemId)) {
-                is RefreshOutcome.Failed -> PreviewResult.Failed(refreshed.reason)
-                is RefreshOutcome.Fresh -> {
-                    val retryToken = accessToken() ?: return PreviewResult.Failed(PreviewFailure.SIGNED_OUT)
-                    (fetch(remoteUrl(refreshed.baseUrl, size), retryToken) as? Fetch.Ok)?.let { PreviewResult.Ok(it.bitmap) } ?: PreviewResult.Failed(PreviewFailure.OTHER)
+            is Fetch.Rejected -> {
+                // A closed round is the usual reason, and re-listing it cannot help: say so instead of trying.
+                if (roundClosed(source.sessionId) == true) return PreviewResult.Failed(PreviewFailure.ROUND_CLOSED)
+                when (val refreshed = refresher.refresh(source.sessionId, source.cloudItemId)) {
+                    is RefreshOutcome.Failed -> PreviewResult.Failed(refreshed.reason, first.status)
+                    is RefreshOutcome.Fresh -> {
+                        val retryToken = accessToken() ?: return PreviewResult.Failed(PreviewFailure.SIGNED_OUT)
+                        when (val second = fetch(remoteUrl(refreshed.baseUrl, size), retryToken)) {
+                            is Fetch.Ok -> PreviewResult.Ok(second.bitmap)
+                            is Fetch.Rejected -> PreviewResult.Failed(PreviewFailure.OTHER, second.status)
+                            is Fetch.Failed -> PreviewResult.Failed(PreviewFailure.OTHER, second.status)
+                        }
+                    }
                 }
             }
-            Fetch.Failed -> PreviewResult.Failed(PreviewFailure.OTHER)
+            is Fetch.Failed -> PreviewResult.Failed(PreviewFailure.OTHER, first.status)
         }
     }
 
     private sealed interface Fetch {
         data class Ok(val bitmap: Bitmap) : Fetch
 
-        /** 401/403/404: the signed link is no longer valid. */
-        data object Rejected : Fetch
+        /** Any 4xx: Google will not serve this link (any more). */
+        data class Rejected(val status: Int) : Fetch
 
-        data object Failed : Fetch
+        /** A server error, or a body that is not an image; [status] is null for the latter. */
+        data class Failed(val status: Int?) : Fetch
     }
 
     private fun fetch(url: String, token: String): Fetch {
@@ -123,9 +135,9 @@ internal class ThumbnailLoader(
             connection.connectTimeout = TIMEOUT_MILLIS
             connection.readTimeout = TIMEOUT_MILLIS
             return when (val status = connection.responseCode) {
-                HttpURLConnection.HTTP_OK -> connection.inputStream.use { BitmapFactory.decodeStream(it) }?.let { Fetch.Ok(it) } ?: Fetch.Failed
-                HttpURLConnection.HTTP_UNAUTHORIZED, HttpURLConnection.HTTP_FORBIDDEN, HttpURLConnection.HTTP_NOT_FOUND -> Fetch.Rejected
-                else -> Fetch.Failed
+                HttpURLConnection.HTTP_OK -> connection.inputStream.use { BitmapFactory.decodeStream(it) }?.let { Fetch.Ok(it) } ?: Fetch.Failed(null)
+                in CLIENT_ERRORS -> Fetch.Rejected(status)
+                else -> Fetch.Failed(status)
             }
         } finally {
             connection.disconnect()
@@ -140,6 +152,7 @@ internal class ThumbnailLoader(
         val DEFAULT_SIZE: Size = Size(256, 256)
         private const val MIN_CACHE_BYTES = 4 * 1024 * 1024
         private const val TIMEOUT_MILLIS = 15_000
+        private val CLIENT_ERRORS = 400..499
 
         /** Picker base URLs take `=w{w}-h{h}-c` for a server-side cropped thumbnail. */
         fun remoteUrl(baseUrl: String, size: Size): String = "$baseUrl=w${size.width}-h${size.height}-c"
@@ -176,6 +189,7 @@ internal class ThumbnailLoader(
                         }
                     },
                     accessToken = { app.auth.getAccessToken() },
+                    roundClosed = { sessionId -> if (app.cloudScanner.isRoundKnownClosed(sessionId)) true else app.cloudScanner.isRoundClosed(sessionId) },
                 ).also { shared = it }
             }
     }

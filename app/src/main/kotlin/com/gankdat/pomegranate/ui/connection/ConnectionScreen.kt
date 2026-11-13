@@ -69,7 +69,10 @@ internal fun ConnectionScreen(
     val activity = LocalActivity.current
 
     // Returning from the Picker tab: resume polling the open round, if any.
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.resumeRoundIfPicking() }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.resumeRoundIfPicking()
+        viewModel.checkRounds()
+    }
 
     Column(
         modifier = modifier

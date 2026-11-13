@@ -31,7 +31,7 @@ internal data class MediaItemsPage(val items: List<PickedMediaItem>, val nextPag
 /** HTTP-level failure from the Picker API. */
 internal class PickerApiException(val httpStatus: Int, message: String) : Exception("Picker API $httpStatus: $message") {
     val isAuthFailure: Boolean get() = httpStatus == 401 || httpStatus == 403
-    val isGone: Boolean get() = httpStatus == 404 || httpStatus == 400
+    val isGone: Boolean get() = httpStatus == 404 || httpStatus == 400 || httpStatus == 410
 }
 
 /** The user is not signed in, or the session could not be refreshed. */

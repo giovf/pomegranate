@@ -15,6 +15,7 @@ import com.gankdat.pomegranate.transfer.TransferScheduler
 import com.gankdat.pomegranate.transfer.TransferSummary
 import com.gankdat.pomegranate.ui.library.PullSelection
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -72,6 +73,8 @@ internal class PullViewModel(
     private val scheduler: TransferScheduler,
     private val settings: SettingsRepository,
     private val pullSelection: PullSelection,
+    /** Sessions of rounds Google has closed; their items cannot be downloaded until picked again. */
+    closedSessions: Flow<Set<String>>,
 ) : ViewModel() {
     private val _selected = MutableStateFlow<ScopeChoice>(if (pullSelection.ids.value.isEmpty()) ScopeChoice.CloudOnly else ScopeChoice.Selected)
     val selected: StateFlow<ScopeChoice> = _selected.asStateFlow()
@@ -83,10 +86,17 @@ internal class PullViewModel(
     private val speedState = MutableStateFlow<Pair<Double?, Long?>>(null to null)
 
     /** Cloud items not yet pulled (no DONE job), keyed by id, with their reconciled state. */
-    private val candidates = combine(cloudDao.observeAll(), reconciliation.observeStates(), jobDao.observeAll()) { items, states, jobs ->
+    private val notPulled = combine(cloudDao.observeAll(), reconciliation.observeStates(), jobDao.observeAll()) { items, states, jobs ->
         val pulled = jobs.filter { it.state == TransferState.DONE }.map { it.cloudItemId }.toSet()
         items.filter { it.id !in pulled }.map { it to (states.cloudStates[it.id] ?: MediaState.CLOUD_ONLY) }
     }
+
+    private val candidates = combine(notPulled, closedSessions) { list, closed -> list.filter { it.first.sessionId !in closed } }
+
+    /** Items only in Google Photos that cannot be pulled because their round is closed. */
+    val closedCount: StateFlow<Int> = combine(notPulled, closedSessions) { list, closed ->
+        list.count { it.first.sessionId in closed && it.second == MediaState.CLOUD_ONLY }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), 0)
 
     val scopeOptions: StateFlow<List<ScopeOption>> = combine(candidates, pullSelection.ids) { list, ticked ->
         val cloudOnly = list.filter { it.second == MediaState.CLOUD_ONLY }

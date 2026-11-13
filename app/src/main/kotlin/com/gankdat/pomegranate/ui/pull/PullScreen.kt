@@ -46,7 +46,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.data.db.entity.TransferState
 import com.gankdat.pomegranate.ui.appViewModelFactory
+import com.gankdat.pomegranate.data.db.entity.PickerRoundState
 import com.gankdat.pomegranate.ui.format.Formatters
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
 
 /** Scope choice, live progress and completion summary for a pull, in one route. */
@@ -58,7 +60,9 @@ internal fun PullScreen(
     modifier: Modifier = Modifier,
     viewModel: PullViewModel = viewModel(
         factory = appViewModelFactory {
-            PullViewModel(it.database.cloudItemDao(), it.database.transferJobDao(), it.reconciliation, it.transferQueue, it.transferEngine, it.transferScheduler, it.settings, it.pullSelection)
+            PullViewModel(it.database.cloudItemDao(), it.database.transferJobDao(), it.reconciliation, it.transferQueue, it.transferEngine, it.transferScheduler, it.settings, it.pullSelection,
+                it.cloudScanner.pickerRounds().map { rounds -> rounds.filter { r -> r.state == PickerRoundState.EXPIRED }.map { r -> r.sessionId }.toSet() },
+            )
         },
     ),
 ) {
@@ -119,6 +123,15 @@ private fun ScopeContent(viewModel: PullViewModel, modifier: Modifier) {
                     }
                 }
             }
+        }
+        val closedCount by viewModel.closedCount.collectAsStateWithLifecycle()
+        if (closedCount > 0) {
+            Text(
+                pluralStringResource(R.plurals.pull_closed_rounds, closedCount, closedCount),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
         }
         Text(stringResource(R.string.pull_size_unknown), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp))
         Button(

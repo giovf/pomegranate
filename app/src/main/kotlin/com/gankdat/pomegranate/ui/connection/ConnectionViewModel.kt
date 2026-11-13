@@ -141,8 +141,14 @@ internal class ConnectionViewModel(
                 pollAndIndex(open.id)
             }
         }
-        // Find out now which earlier rounds Google has closed, rather than when a download fails.
-        viewModelScope.launch {
+    }
+
+    private var roundCheck: Job? = null
+
+    /** Finds out now which earlier rounds Google has closed, rather than when a download fails. */
+    fun checkRounds() {
+        if (roundCheck?.isActive == true) return
+        roundCheck = viewModelScope.launch {
             if (auth.authState.first { it != AuthState.SigningIn } == AuthState.SignedIn) cloud.checkIndexedRounds()
         }
     }

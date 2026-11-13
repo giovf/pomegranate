@@ -128,6 +128,44 @@ class CloudScannerRepositoryImplTest {
     }
 
     @Test
+    fun `a round past its expiry time is closed even though Google still describes it`() = runBlocking {
+        val session = repo.startPickerRound()
+        api.items[session.id] = mutableListOf(picked("m1"))
+        repo.indexSession(session.id)
+        api.sessions[session.id] = api.sessions.getValue(session.id).copy(expireTimeMillis = now + 60_000)
+
+        assertEquals(false, repo.isRoundClosed(session.id))
+        assertEquals(false, repo.isRoundKnownClosed(session.id))
+
+        now += 61_000
+        assertEquals(true, repo.isRoundClosed(session.id))
+        assertEquals(true, repo.isRoundKnownClosed(session.id))
+        assertEquals(1, db.pickerRoundDao().getBySessionId(session.id)?.itemCount)
+
+        // Refreshing links for a closed round fails at once, without asking Google again.
+        val calls = api.listCalls
+        try {
+            repo.refreshBaseUrls(session.id)
+            org.junit.Assert.fail("expected the refresh to be refused")
+        } catch (e: PickerApiException) {
+            assertTrue(e.isGone)
+        }
+        assertEquals(calls, api.listCalls)
+    }
+
+    @Test
+    fun `an unreachable Google leaves the round as it was`() = runBlocking {
+        val session = repo.startPickerRound()
+        api.items[session.id] = mutableListOf(picked("m1"))
+        repo.indexSession(session.id)
+        api.getSessionHook = { throw java.io.IOException("offline") }
+
+        assertEquals(null, repo.isRoundClosed(session.id))
+        assertEquals(PickerRoundState.INDEXED, db.pickerRoundDao().getBySessionId(session.id)?.state)
+        api.getSessionHook = null
+    }
+
+    @Test
     fun `a session Google no longer has marks the round expired`() = runBlocking {
         val session = repo.startPickerRound()
         api.items[session.id] = mutableListOf(picked("m1"))

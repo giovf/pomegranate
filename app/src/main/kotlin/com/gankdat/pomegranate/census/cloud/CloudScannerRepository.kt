@@ -33,6 +33,17 @@ internal interface CloudScannerRepository {
     suspend fun refreshBaseUrls(sessionId: String)
 
     /**
+     * Asks Google whether it still serves this round. True when it does not
+     * (the session is gone or past its expiry time, after which Google ends
+     * access to its items); the round is then marked expired locally. False
+     * when it does; null when that could not be found out (offline, signed out).
+     */
+    suspend fun isRoundClosed(sessionId: String): Boolean?
+
+    /** Whether the round is already recorded as closed; no network. */
+    suspend fun isRoundKnownClosed(sessionId: String): Boolean
+
+    /**
      * Asks Google whether each indexed round can still be listed, and marks
      * the ones it has closed as expired. Network and sign-in problems leave
      * everything as it was. Returns how many rounds were found closed.

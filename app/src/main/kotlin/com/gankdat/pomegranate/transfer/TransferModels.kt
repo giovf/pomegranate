@@ -55,7 +55,7 @@ internal sealed class TransferException(message: String, val retryable: Boolean)
 
     class Http(val status: Int) : TransferException("HTTP $status", retryable = status == 429 || status >= 500)
 
-    class SessionGone : TransferException("Picker session expired; index the item again", retryable = false)
+    class SessionGone : TransferException("Google closed the round this item was picked in; pick it again in a new round", retryable = false)
 
     class Storage(message: String) : TransferException(message, retryable = false)
 

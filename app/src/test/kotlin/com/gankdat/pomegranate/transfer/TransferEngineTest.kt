@@ -48,6 +48,8 @@ private class FakeCloudScanner(private val onRefresh: suspend (String) -> Unit) 
     override suspend fun refreshExpiringBaseUrls(sessionId: String, marginMillis: Long) = onRefresh(sessionId)
     override suspend fun refreshBaseUrls(sessionId: String) = onRefresh(sessionId)
     override suspend fun checkIndexedRounds(): Int = 0
+    override suspend fun isRoundClosed(sessionId: String): Boolean? = null
+    override suspend fun isRoundKnownClosed(sessionId: String): Boolean = false
     override suspend fun deleteSession(sessionId: String) = Unit
     override suspend fun openRound(): PickerSession? = null
     override fun sessionRanges() = flowOf(emptyList<com.gankdat.pomegranate.data.db.entity.SessionRange>())
@@ -176,7 +178,7 @@ class TransferEngineTest {
 
         assertEquals(TransferState.FAILED, engine.run(db.transferJobDao().getById(jobId)!!))
         val job = db.transferJobDao().getById(jobId)!!
-        assertTrue(job.lastError!!.contains("expired"))
+        assertTrue(job.lastError!!.contains("pick it again"))
         assertTrue(storage.files.isEmpty())
     }
 

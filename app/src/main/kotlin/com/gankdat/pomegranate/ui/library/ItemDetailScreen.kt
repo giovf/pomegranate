@@ -212,6 +212,7 @@ internal fun FullSizePreview(source: ThumbnailSource, width: Int, height: Int, i
             )
             is PreviewResult.Failed -> PreviewFailureMessage(
                 reason = result.reason,
+                httpStatus = result.httpStatus,
                 isCloud = source is ThumbnailSource.Remote,
                 onRetry = { attempt++ },
                 onOpenConnection = onOpenConnection,
@@ -222,7 +223,7 @@ internal fun FullSizePreview(source: ThumbnailSource, width: Int, height: Int, i
 
 /** Says why there is no preview and offers the one action that fixes it. */
 @Composable
-private fun PreviewFailureMessage(reason: PreviewFailure, isCloud: Boolean, onRetry: () -> Unit, onOpenConnection: (() -> Unit)?) {
+private fun PreviewFailureMessage(reason: PreviewFailure, httpStatus: Int?, isCloud: Boolean, onRetry: () -> Unit, onOpenConnection: (() -> Unit)?) {
     val message = when {
         !isCloud -> R.string.preview_failed_device
         reason == PreviewFailure.SIGNED_OUT -> R.string.preview_failed_signed_out
@@ -232,6 +233,9 @@ private fun PreviewFailureMessage(reason: PreviewFailure, isCloud: Boolean, onRe
     }
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
         Text(stringResource(message), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (isCloud && reason == PreviewFailure.OTHER && httpStatus != null) {
+            Text(stringResource(R.string.preview_failed_status, httpStatus), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         val needsConnection = isCloud && (reason == PreviewFailure.SIGNED_OUT || reason == PreviewFailure.ROUND_CLOSED)
         if (needsConnection && onOpenConnection != null) {
             OutlinedButton(onClick = onOpenConnection, modifier = Modifier.padding(top = 8.dp)) {

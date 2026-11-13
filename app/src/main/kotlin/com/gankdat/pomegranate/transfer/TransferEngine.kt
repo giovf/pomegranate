@@ -114,6 +114,8 @@ internal class TransferEngine(
                 throw TransferException.Storage(e.message ?: "write failed")
             }
         } catch (e: TransferException) {
+            // Find out (and record) whether the whole round is closed, so its other items fail at once instead of one request each.
+            if (e is TransferException.SessionGone) cloudScanner.isRoundClosed(item.sessionId)
             fail(attempt, e)
         } finally {
             _liveProgress.update { it - attempt.id }
@@ -182,6 +184,7 @@ internal class TransferEngine(
     }
 
     private suspend fun refreshedItem(item: CloudItemEntity): CloudItemEntity {
+        if (cloudScanner.isRoundKnownClosed(item.sessionId)) throw TransferException.SessionGone()
         if (item.baseUrlExpiresAt - clock() > REFRESH_MARGIN_MILLIS) return item
         try {
             cloudScanner.refreshExpiringBaseUrls(item.sessionId, marginMillis = REFRESH_MARGIN_MILLIS)
