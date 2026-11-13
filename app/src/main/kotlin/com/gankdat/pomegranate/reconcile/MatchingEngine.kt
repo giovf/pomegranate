@@ -77,13 +77,20 @@ internal object MatchingEngine {
         val (device, s) = best
         val dimsOk = s.dimensions || !dimensionsKnown(cloud, device)
         val distinctive = sameName.size == 1 && isDistinctive(cloud.filename)
+        val timeAgrees = s.timestamp == TimestampAgreement.EXACT || s.timestamp == TimestampAgreement.ZONE_SHIFTED
         val raw = when {
             ties > 1 -> MatchConfidence.AMBIGUOUS
             s.timestamp == TimestampAgreement.EXACT && dimsOk -> if (s.dimensions) MatchConfidence.EXACT else MatchConfidence.LIKELY
             s.timestamp == TimestampAgreement.ZONE_SHIFTED && dimsOk -> MatchConfidence.LIKELY
+            // Same name and capture time but another pixel size: one side is a resized copy. Safe to call it
+            // present only when the phone holds the larger one (Google's storage saver shrinks its copy);
+            // a smaller or cropped phone copy goes to the user, so a better original is never skipped.
+            timeAgrees && s.resize == Resize.PHONE_LARGER -> MatchConfidence.LIKELY
+            timeAgrees -> MatchConfidence.AMBIGUOUS
             // Phone date unknown or only day-precise: a distinctive name plus agreeing size is strong evidence.
             s.timestamp == TimestampAgreement.UNKNOWN && dimsOk && distinctive -> MatchConfidence.LIKELY
             s.timestamp == TimestampAgreement.UNKNOWN && dimsOk -> MatchConfidence.AMBIGUOUS
+            s.timestamp == TimestampAgreement.UNKNOWN && distinctive && s.resize != Resize.OTHER_SHAPE -> MatchConfidence.AMBIGUOUS
             s.timestamp == TimestampAgreement.DIFFERENT && s.dimensions -> MatchConfidence.AMBIGUOUS
             else -> return null // same name but nothing else agrees: a different file with a common name
         }
@@ -99,7 +106,13 @@ internal object MatchingEngine {
                 timestamp = s.timestamp,
                 dimensionsMatched = s.dimensions,
                 candidateCount = sameName.size,
-                note = if (formatChanged) "same name, different file format" else null,
+                note = when {
+                    formatChanged -> "same name, different file format"
+                    dimsOk -> null
+                    s.resize == Resize.PHONE_LARGER -> "same name; the copy on this phone is larger than the one in Google Photos"
+                    s.resize == Resize.PHONE_SMALLER -> "same name; the copy on this phone is smaller than the one in Google Photos"
+                    else -> "same name; the two copies have different shapes (cropped or edited)"
+                },
             ),
         )
     }
@@ -130,7 +143,7 @@ internal object MatchingEngine {
             FilenameDates.extract(device.displayName)?.let { abs(it / ONE_DAY_MS - cloudDay) <= 1 } == true ||
                 FilenameDates.extract(cloud.filename)?.let { abs(it / ONE_DAY_MS - device.dateTaken / ONE_DAY_MS) <= 1 } == true
         }
-        if (byDate.size != 1) return null
+        if (byDate.size != 1) return nearInTime(cloud, sameDimensions)
         val device = byDate.single()
         return MatchProposal(
             cloudItemId = cloud.id,
@@ -148,7 +161,55 @@ internal object MatchingEngine {
         )
     }
 
-    private data class Score(val timestamp: TimestampAgreement, val deltaMs: Long?, val dimensions: Boolean) {
+    /**
+     * Same dimensions and a real capture time within a minute, with nothing else that close:
+     * some apps stamp the end of a recording or the moment of saving. Only ever a suggestion
+     * for the user to check, and never offered when a burst leaves several candidates.
+     */
+    private fun nearInTime(cloud: CloudItemEntity, sameDimensions: List<DeviceItemEntity>): MatchProposal? {
+        if (cloud.createTime <= 0) return null
+        val near = sameDimensions.filter { deviceDateKnown(it) && !isDayPrecise(it.dateTaken) && abs(cloud.createTime - it.dateTaken) <= NEAR_TIME_MS }
+        val device = near.singleOrNull() ?: return null
+        return MatchProposal(
+            cloudItemId = cloud.id,
+            deviceItemId = device.id,
+            confidence = MatchConfidence.AMBIGUOUS,
+            evidence = Evidence(
+                method = MatchMethod.SECONDARY,
+                filenameMatched = false,
+                timestampDeltaMs = abs(cloud.createTime - device.dateTaken),
+                timestamp = TimestampAgreement.DIFFERENT,
+                dimensionsMatched = true,
+                candidateCount = 1,
+                note = "renamed: dimensions agree and taken within a minute",
+            ),
+        )
+    }
+
+    private const val NEAR_TIME_MS = 60_000L
+
+    /** How two known, unequal pixel sizes relate. */
+    private enum class Resize { PHONE_LARGER, PHONE_SMALLER, OTHER_SHAPE }
+
+    /** Null when the sizes are equal (in either orientation) or unknown on a side. Same shape means aspect ratios within 2%. */
+    private fun resize(cloud: CloudItemEntity, device: DeviceItemEntity): Resize? {
+        if (!dimensionsKnown(cloud, device)) return null
+        val cloudLong = maxOf(cloud.width, cloud.height).toLong()
+        val cloudShort = minOf(cloud.width, cloud.height).toLong()
+        val deviceLong = maxOf(device.width, device.height).toLong()
+        val deviceShort = minOf(device.width, device.height).toLong()
+        if (cloudLong == deviceLong && cloudShort == deviceShort) return null
+        val sameShape = abs(cloudLong * deviceShort - deviceLong * cloudShort) * ASPECT_TOLERANCE_INVERSE <= cloudLong * deviceShort
+        return when {
+            !sameShape -> Resize.OTHER_SHAPE
+            deviceLong >= cloudLong && deviceShort >= cloudShort -> Resize.PHONE_LARGER
+            else -> Resize.PHONE_SMALLER
+        }
+    }
+
+    private const val ASPECT_TOLERANCE_INVERSE = 50L // 2%
+
+    private data class Score(val timestamp: TimestampAgreement, val deltaMs: Long?, val dimensions: Boolean, val resize: Resize? = null) {
         val rank: Int
             get() = when (timestamp) {
                 TimestampAgreement.EXACT -> 4
@@ -186,7 +247,7 @@ internal object MatchingEngine {
         }
         val dims = dimensionsKnown(cloud, device) && cloud.width == device.width && cloud.height == device.height ||
             dimensionsKnown(cloud, device) && cloud.width == device.height && cloud.height == device.width // EXIF rotation applied on one side only
-        return Score(agreement, delta, dims)
+        return Score(agreement, delta, dims, resize(cloud, device))
     }
 
     private fun dimensionsKnown(cloud: CloudItemEntity, device: DeviceItemEntity): Boolean =

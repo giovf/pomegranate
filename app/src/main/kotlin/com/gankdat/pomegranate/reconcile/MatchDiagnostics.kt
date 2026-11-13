@@ -16,6 +16,12 @@ internal data class MatchDiagnostics(
     val cloudNotOnPhone: Int,
     /** A phone file has exactly the same name, but its date or size disagrees. */
     val sameNameDifferentDetails: Int,
+    /** Of [sameNameDifferentDetails]: a same-name phone file agrees on capture time but not on pixel size. */
+    val sameNameSizeDiffers: Int,
+    /** Of [sameNameDifferentDetails]: a same-name phone file agrees on pixel size but not on capture time. */
+    val sameNameDateDiffers: Int,
+    /** Of [sameNameDifferentDetails]: no same-name phone file agrees on either. */
+    val sameNameBothDiffer: Int,
     /** Same name in another format (HEIC vs JPG and similar). */
     val sameNameOtherFormat: Int,
     /** No phone file with that name, but one with the same pixel size taken within a minute. */
@@ -33,6 +39,12 @@ internal data class MatchDiagnostics(
         private const val TOP = 6
         private const val MINUTE_MS = 60_000L
 
+        private fun timeAgrees(c: CloudItemEntity, d: DeviceItemEntity): Boolean =
+            MatchingEngine.agreement(c.createTime, d.dateTaken).first.let { it == TimestampAgreement.EXACT || it == TimestampAgreement.ZONE_SHIFTED }
+
+        private fun sizeAgrees(c: CloudItemEntity, d: DeviceItemEntity): Boolean =
+            c.width > 0 && c.height > 0 && (c.width == d.width && c.height == d.height || c.width == d.height && c.height == d.width)
+
         fun analyze(device: List<DeviceItemEntity>, cloud: List<CloudItemEntity>, matches: List<MatchEntity>): MatchDiagnostics {
             val confirmed = matches.filter { it.confidence != MatchConfidence.AMBIGUOUS }
             val matchedCloud = confirmed.map { it.cloudItemId }.toHashSet()
@@ -43,13 +55,26 @@ internal data class MatchDiagnostics(
             val byDims = device.filter { it.width > 0 }.groupBy { it.width to it.height }
 
             var sameName = 0
+            var sizeDiffers = 0
+            var dateDiffers = 0
+            var bothDiffer = 0
             var otherFormat = 0
             var renamed = 0
             var none = 0
             for (c in unmatchedCloud) {
                 val name = c.filename.lowercase(Locale.ROOT)
                 when {
-                    byName.containsKey(name) -> sameName++
+                    byName.containsKey(name) -> {
+                        sameName++
+                        val candidates = byName.getValue(name)
+                        val dateAgrees = candidates.any { timeAgrees(c, it) }
+                        val sizeAgrees = candidates.any { sizeAgrees(c, it) }
+                        when {
+                            dateAgrees && !sizeAgrees -> sizeDiffers++
+                            sizeAgrees && !dateAgrees -> dateDiffers++
+                            !dateAgrees && !sizeAgrees -> bothDiffer++
+                        }
+                    }
                     byBase.containsKey(name.substringBeforeLast('.')) -> otherFormat++
                     byDims[c.width to c.height].orEmpty().any { c.createTime > 0 && abs(it.dateTaken - c.createTime) <= MINUTE_MS } -> renamed++
                     else -> none++
@@ -59,6 +84,9 @@ internal data class MatchDiagnostics(
             return MatchDiagnostics(
                 cloudNotOnPhone = unmatchedCloud.size,
                 sameNameDifferentDetails = sameName,
+                sameNameSizeDiffers = sizeDiffers,
+                sameNameDateDiffers = dateDiffers,
+                sameNameBothDiffer = bothDiffer,
                 sameNameOtherFormat = otherFormat,
                 renamedCandidates = renamed,
                 noCandidate = none,

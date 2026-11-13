@@ -255,6 +255,7 @@
         <item quantity="other">%1$d items in Google Photos were not found on this phone:</item>
     </plurals>
     <string name="diag_same_name">Same name here, but a different date or size: %1$d</string>
+    <string name="diag_same_name_split">Of those: same date but another size %1$d, same size but another date %2$d, both differ %3$d</string>
     <string name="diag_other_format">Same name here in another format, for example HEIC and JPG: %1$d</string>
     <string name="diag_renamed">Look like a renamed file here (same size, taken within a minute): %1$d</string>
     <string name="diag_none">Nothing similar here, so most likely only in Google Photos: %1$d</string>

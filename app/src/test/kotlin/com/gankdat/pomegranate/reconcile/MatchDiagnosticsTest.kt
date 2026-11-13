@@ -30,11 +30,27 @@ class MatchDiagnosticsTest {
 
         assertEquals(5, d.cloudNotOnPhone)
         assertEquals(2, d.sameNameDifferentDetails) // b.jpg and the uncertain x.jpg
+        assertEquals(0, d.sameNameSizeDiffers)
+        assertEquals(1, d.sameNameDateDiffers) // b.jpg; x.jpg agrees on both and is merely uncertain
+        assertEquals(0, d.sameNameBothDiffer)
         assertEquals(1, d.sameNameOtherFormat)
         assertEquals(1, d.renamedCandidates)
         assertEquals(1, d.noCandidate)
         assertEquals(1, d.uncertain)
         assertEquals(listOf("Camera" to 3, "WhatsApp Images" to 2), d.phoneOnlyFolders)
         assertEquals(listOf("JPG" to 3, "HEIC" to 1, "MP4" to 1), d.cloudOnlyTypes)
+    }
+
+    @Test
+    fun `same-name misses are split by what disagrees`() {
+        val devices = listOf(device(1, "a.jpg", w = 1616, h = 1080), device(2, "b.jpg", taken = T0 + 99_000_000), device(3, "c.jpg", taken = T0 + 99_000_000, w = 800, h = 600))
+        val clouds = listOf(cloud(11, "a.jpg", w = 6000, h = 4000), cloud(12, "b.jpg"), cloud(13, "c.jpg"))
+
+        val d = MatchDiagnostics.analyze(devices, clouds, emptyList())
+
+        assertEquals(3, d.sameNameDifferentDetails)
+        assertEquals(1, d.sameNameSizeDiffers)
+        assertEquals(1, d.sameNameDateDiffers)
+        assertEquals(1, d.sameNameBothDiffer)
     }
 }

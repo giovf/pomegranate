@@ -92,6 +92,14 @@ private fun DiagnosticsCard(d: MatchDiagnostics, onReviewMatches: () -> Unit) {
             Text(stringResource(R.string.diag_title), style = MaterialTheme.typography.titleSmall)
             Text(pluralStringResource(R.plurals.diag_cloud_not_on_phone, d.cloudNotOnPhone, d.cloudNotOnPhone), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
             DiagLine(R.string.diag_same_name, d.sameNameDifferentDetails)
+            if (d.sameNameDifferentDetails > 0) {
+                Text(
+                    stringResource(R.string.diag_same_name_split, d.sameNameSizeDiffers, d.sameNameDateDiffers, d.sameNameBothDiffer),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 12.dp),
+                )
+            }
             DiagLine(R.string.diag_other_format, d.sameNameOtherFormat)
             DiagLine(R.string.diag_renamed, d.renamedCandidates)
             DiagLine(R.string.diag_none, d.noCandidate)

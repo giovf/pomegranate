@@ -81,8 +81,8 @@ class MatchingEngineTest {
     }
 
     @Test
-    fun `same name and time but different dimensions is not a match`() {
-        assertNull(single(cloud(1, "a.jpg", w = 1920, h = 1080), device(10, "a.jpg")))
+    fun `same name and time but a differently shaped copy is never counted as present`() {
+        assertEquals(MatchConfidence.AMBIGUOUS, single(cloud(1, "a.jpg", w = 1920, h = 1080), device(10, "a.jpg"))!!.confidence)
     }
 
     @Test
@@ -166,5 +166,56 @@ class MatchingEngineTest {
         assertEquals(e, Evidence.fromJson(e.toJson()))
         assertNull(Evidence.fromJson("{}"))
         assertNull(Evidence.fromJson("nope"))
+    }
+
+    @Test
+    fun `same name and time with a smaller Google copy of the same shape is LIKELY`() {
+        val m = single(cloud(1, "DSC01234.jpg", w = 4618, h = 3464), device(10, "DSC01234.jpg", w = 8000, h = 6000))!!
+        assertEquals(MatchConfidence.LIKELY, m.confidence)
+        assertEquals(false, m.evidence.dimensionsMatched)
+        assertTrue(m.evidence.note!!.contains("larger"))
+    }
+
+    @Test
+    fun `a slightly larger phone frame, as raw files report, still counts as the larger copy`() {
+        val m = single(cloud(1, "DSC01234.ARW", w = 6000, h = 4000), device(10, "DSC01234.ARW", w = 6048, h = 4024))!!
+        assertEquals(MatchConfidence.LIKELY, m.confidence)
+    }
+
+    @Test
+    fun `same name and time but a smaller phone copy is left to the user`() {
+        val m = single(cloud(1, "DSC01234.jpg", created = T0 + HOUR, w = 6000, h = 4000), device(10, "DSC01234.jpg", w = 1616, h = 1077))!!
+        assertEquals(MatchConfidence.AMBIGUOUS, m.confidence)
+        assertTrue(m.evidence.note!!.contains("smaller"))
+    }
+
+    @Test
+    fun `same name and time but another shape is left to the user`() {
+        val m = single(cloud(1, "DSC01234.jpg", w = 3000, h = 3000), device(10, "DSC01234.jpg"))!!
+        assertEquals(MatchConfidence.AMBIGUOUS, m.confidence)
+    }
+
+    @Test
+    fun `resized copy with an unknown phone date is only suggested for a distinctive name`() {
+        val resized = device(10, "DSC01234.jpg", w = 2000, h = 1500, modified = T0)
+        assertEquals(MatchConfidence.AMBIGUOUS, single(cloud(1, "DSC01234.jpg"), resized)!!.confidence)
+        assertNull(single(cloud(1, "image.jpg"), resized.copy(displayName = "image.jpg")))
+        assertNull(single(cloud(1, "DSC01234.jpg", w = 3000, h = 3000), resized))
+    }
+
+    @Test
+    fun `same name with a different time and a different size stays unmatched`() {
+        assertNull(single(cloud(1, "DSC01234.jpg", created = T0 + 7 * 60_000, w = 2000, h = 1500), device(10, "DSC01234.jpg")))
+    }
+
+    @Test
+    fun `renamed file taken within a minute is suggested only when it is the single candidate`() {
+        val m = single(cloud(1, "VID_a.jpg", created = T0 + 20_000), device(10, "renamed.jpg"))!!
+        assertEquals(MatchConfidence.AMBIGUOUS, m.confidence)
+        assertEquals(MatchMethod.SECONDARY, m.evidence.method)
+
+        assertNull(single(cloud(1, "VID_a.jpg", created = T0 + 20_000), device(10, "r1.jpg"), device(11, "r2.jpg", taken = T0 + 5_000)))
+        assertNull(single(cloud(1, "VID_a.jpg", created = T0 + 61_000), device(10, "renamed.jpg")))
+        assertNull(single(cloud(1, "VID_a.jpg", created = T0 + 20_000), device(10, "renamed.jpg", modified = T0)))
     }
 }
