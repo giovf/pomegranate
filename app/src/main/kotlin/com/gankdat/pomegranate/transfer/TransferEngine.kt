@@ -15,6 +15,7 @@ import com.gankdat.pomegranate.trust.Sha256
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -56,14 +57,46 @@ internal class TransferEngine(
     /** Bytes written so far per running job id; cleared when the job finishes either way. */
     val liveProgress: StateFlow<Map<Long, Long>> = _liveProgress.asStateFlow()
 
+    /** Jobs this process is working on right now; anything else found RUNNING or VERIFYING was interrupted. */
+    private val inFlight = ConcurrentHashMap.newKeySet<Long>()
+
+    /**
+     * Puts jobs back in the queue that were left RUNNING or VERIFYING by a
+     * stopped worker or a crash, removing the unverified file each had
+     * started (this app's own, never reported as saved). Returns how many.
+     */
+    suspend fun recoverInterrupted(): Int = withContext(ioDispatcher) {
+        val orphans = (jobs.getByState(TransferState.RUNNING) + jobs.getByState(TransferState.VERIFYING)).filter { it.id !in inFlight }
+        for (job in orphans) {
+            if (job.destinationUri.isNotEmpty()) {
+                try {
+                    storage.deleteOwnFile(job.destinationUri)
+                } catch (_: RuntimeException) {
+                    // The folder may be gone or no longer granted; the job is retried either way.
+                }
+            }
+            jobs.update(job.copy(state = TransferState.QUEUED, destinationUri = "", relativePath = "", bytesWritten = 0, sha256 = null))
+        }
+        orphans.size
+    }
+
     /** Processes [job]; returns its final state for this attempt. */
-    suspend fun run(job: TransferJobEntity): TransferState = withContext(ioDispatcher) {
+    suspend fun run(job: TransferJobEntity): TransferState {
+        inFlight += job.id
+        try {
+            return runAttempt(job)
+        } finally {
+            inFlight -= job.id
+        }
+    }
+
+    private suspend fun runAttempt(job: TransferJobEntity): TransferState = withContext(ioDispatcher) {
         val root = settings.destinationRootUri.first() ?: return@withContext fail(job, TransferException.Storage("No destination folder chosen"))
         val item = cloudItems.getById(job.cloudItemId) ?: run {
             jobs.update(job.copy(state = TransferState.FAILED, lastError = "Cloud item no longer indexed"))
             return@withContext TransferState.FAILED
         }
-        val attempt = job.copy(state = TransferState.RUNNING, attempts = job.attempts + 1, lastError = null, bytesWritten = 0)
+        var attempt = job.copy(state = TransferState.RUNNING, attempts = job.attempts + 1, lastError = null, bytesWritten = 0)
         jobs.update(attempt)
         try {
             val fresh = refreshedItem(item)
@@ -73,6 +106,9 @@ internal class TransferEngine(
             val name = DestinationLayout.uniqueName(fresh.filename.ifBlank { fresh.pickerMediaItemId }) { storage.childExists(folderUri, it) }
             val fileUri = storage.createFile(folderUri, fresh.mime, name)
             val relativePath = "$folderPath/$name"
+            // Recorded at once, so an interrupted attempt can find and remove its partial file.
+            attempt = attempt.copy(destinationUri = fileUri, relativePath = relativePath)
+            jobs.update(attempt)
             var written = 0L
             var fidelity = attempt.fidelity
             try {
@@ -112,6 +148,12 @@ internal class TransferEngine(
             } catch (e: IOException) {
                 storage.deleteOwnFile(fileUri)
                 throw TransferException.Storage(e.message ?: "write failed")
+            } catch (e: CancellationException) {
+                throw e // paused or stopped: recoverInterrupted() cleans up before the next run
+            } catch (e: RuntimeException) {
+                // A storage provider misbehaving must fail this one job with a reason, not leave it "verifying" for ever.
+                storage.deleteOwnFile(fileUri)
+                throw TransferException.Storage("unexpected ${e::class.simpleName}")
             }
         } catch (e: TransferException) {
             // Find out (and record) whether the whole round is closed, so its other items fail at once instead of one request each.

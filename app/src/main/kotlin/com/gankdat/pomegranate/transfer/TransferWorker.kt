@@ -31,6 +31,7 @@ internal class TransferWorker(context: Context, params: WorkerParameters) : Coro
         val engine = app.transferEngine
         val jobs = app.database.transferJobDao()
         val queue = app.transferQueue
+        engine.recoverInterrupted()
         val concurrency = app.settings.downloadConcurrency.first()
         val semaphore = Semaphore(concurrency)
 

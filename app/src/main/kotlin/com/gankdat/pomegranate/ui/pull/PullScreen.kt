@@ -163,7 +163,12 @@ private fun ProgressContent(viewModel: PullViewModel, modifier: Modifier) {
     Column(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.padding(16.dp)) {
             val fraction = if (summary.total == 0) 0f else summary.done.toFloat() / summary.total
-            LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+            // Google reports no sizes up front, so until the first item is done there is no honest fraction: show activity instead.
+            if (summary.done == 0 && summary.isActive) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            } else {
+                LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+            }
             Spacer(Modifier.height(8.dp))
             Text(pluralStringResource(R.plurals.pull_progress_items, summary.total, summary.done, summary.total, Formatters.fileSize(summary.bytesWritten)), style = MaterialTheme.typography.bodyLarge)
             Text(

@@ -75,7 +75,8 @@ internal class ResolverSafStorage(private val resolver: ContentResolver) : SafSt
 
     override fun documentId(uri: String): String {
         val parsed = uri.toUri()
-        return if (DocumentsContract.isDocumentUri(null, parsed) || parsed.pathSegments.contains("document")) {
+        // Decided from the path alone: DocumentsContract.isDocumentUri needs a Context and throws without one.
+        return if (parsed.pathSegments.contains("document")) {
             DocumentsContract.getDocumentId(parsed)
         } else {
             DocumentsContract.getTreeDocumentId(parsed)

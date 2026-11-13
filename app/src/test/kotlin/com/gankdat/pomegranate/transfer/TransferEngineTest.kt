@@ -171,6 +171,24 @@ class TransferEngineTest {
     }
 
     @Test
+    fun `a job left verifying by a stopped worker is re-queued and its unverified file removed`() = runBlocking {
+        val jobId = enqueueOne()
+        assertEquals(TransferState.DONE, engine.run(db.transferJobDao().getById(jobId)!!))
+        val done = db.transferJobDao().getById(jobId)!!
+        // Simulate the interruption: same file on disk, but the job never got past verification.
+        db.transferJobDao().update(done.copy(state = TransferState.VERIFYING, sha256 = null, completedAt = null))
+
+        assertEquals(1, engine.recoverInterrupted())
+
+        val recovered = db.transferJobDao().getById(jobId)!!
+        assertEquals(TransferState.QUEUED, recovered.state)
+        assertEquals("", recovered.destinationUri)
+        assertTrue(storage.files.isEmpty())
+        assertEquals(0, engine.recoverInterrupted())
+        assertEquals(TransferState.DONE, engine.run(recovered))
+    }
+
+    @Test
     fun `a gone session fails the job permanently and leaves no file`() = runBlocking {
         db.cloudItemDao().updateBaseUrl(1, "https://lh3/1", now)
         refreshFailure = PickerApiException(404, "gone")
