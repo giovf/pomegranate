@@ -40,6 +40,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -106,7 +109,29 @@ private fun ScopeContent(viewModel: PullViewModel, modifier: Modifier) {
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
             )
         }
+        val history by viewModel.history.collectAsStateWithLifecycle()
         LazyColumn(modifier = Modifier.weight(1f)) {
+            if (history.isNotEmpty()) {
+                item(key = "history-title") {
+                    Text(
+                        stringResource(R.string.pull_history_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier
+                            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
+                            .semantics { heading() },
+                    )
+                }
+                items(history, key = { "batch:${it.batchId}" }) { batch -> PullBatchCard(batch, onOpen = { viewModel.openSummary(batch.batchId) }) }
+                item(key = "options-title") {
+                    Text(
+                        stringResource(R.string.pull_new_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier
+                            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
+                            .semantics { heading() },
+                    )
+                }
+            }
             items(options, key = { it.choice.toString() }) { option ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -142,6 +167,34 @@ private fun ScopeContent(viewModel: PullViewModel, modifier: Modifier) {
                 .padding(16.dp),
         ) {
             Text(pluralStringResource(R.plurals.pull_start, selectedCount, selectedCount))
+        }
+    }
+}
+
+/** One finished pull: when, how much, and where it stands. Opens that pull's summary. */
+@Composable
+private fun PullBatchCard(batch: PullBatch, onOpen: () -> Unit) {
+    val title = if (batch.batchId > 0) stringResource(R.string.pull_batch_title, Formatters.dateTime(batch.batchId)) else stringResource(R.string.pull_batch_earlier)
+    val status = when {
+        batch.failed > 0 -> pluralStringResource(R.plurals.pull_batch_failed, batch.failed, batch.failed)
+        batch.cleanedUp -> stringResource(R.string.pull_batch_cleaned_up)
+        else -> stringResource(R.string.pull_batch_verified)
+    }
+    Card(
+        onClick = onOpen,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(pluralStringResource(R.plurals.pull_done_summary, batch.done, batch.done, Formatters.fileSize(batch.bytesWritten)), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                status,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (batch.failed > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
     }
 }
@@ -231,9 +284,12 @@ private fun CompletionContent(viewModel: PullViewModel, onDone: () -> Unit, onVi
     val progress by viewModel.progress.collectAsStateWithLifecycle()
     val autoDisconnect by viewModel.autoDisconnect.collectAsStateWithLifecycle()
     val summary = progress.summary
-    var countdown by rememberSaveable { mutableStateOf(if (autoDisconnect) AUTO_DISCONNECT_SECONDS else -1) }
-    LaunchedEffect(autoDisconnect, progress.failed.isEmpty()) {
-        if (!autoDisconnect || progress.failed.isNotEmpty()) {
+    // Only a pull that has just run may start the disconnect countdown; reopening an old summary never does.
+    val justFinished by viewModel.justFinished.collectAsStateWithLifecycle()
+    BackHandler { viewModel.dismissCompletion() }
+    var countdown by rememberSaveable { mutableStateOf(if (autoDisconnect && justFinished) AUTO_DISCONNECT_SECONDS else -1) }
+    LaunchedEffect(autoDisconnect, justFinished, progress.failed.isEmpty()) {
+        if (!autoDisconnect || !justFinished || progress.failed.isNotEmpty()) {
             countdown = -1
             return@LaunchedEffect
         }
@@ -294,6 +350,14 @@ private fun CompletionContent(viewModel: PullViewModel, onDone: () -> Unit, onVi
                 .padding(horizontal = 16.dp),
         ) {
             Text(stringResource(R.string.pull_view_proof))
+        }
+        OutlinedButton(
+            onClick = viewModel::dismissCompletion,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp),
+        ) {
+            Text(stringResource(R.string.pull_more))
         }
         Button(
             onClick = { viewModel.dismissCompletion(); onDone() },

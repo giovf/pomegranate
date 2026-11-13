@@ -50,6 +50,8 @@ internal data class PullProgress(
     val failed: List<PendingJob> = emptyList(),
     val bytesPerSecond: Double? = null,
     val etaSeconds: Long? = null,
+    /** The pull these numbers describe; null when none is running or being looked at. */
+    val batchId: Long? = null,
 ) {
     val completed: Int get() = summary.done
     val total: Int get() = summary.total
@@ -111,32 +113,53 @@ internal class PullViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), emptyList())
 
+    /** The finished pull whose summary is open; null shows the "choose what to pull" page. */
+    private val _summaryBatch = MutableStateFlow<Long?>(null)
+
+    private val _justFinished = MutableStateFlow(false)
+
+    /** True while the open summary is the pull that has just run, as opposed to one reopened from its card. */
+    val justFinished: StateFlow<Boolean> = _justFinished.asStateFlow()
+
+    /** Numbers for one pull only: the one running, else the one whose summary is open. Earlier pulls never leak in. */
     val progress: StateFlow<PullProgress> =
-        combine(queue.observeSummary(), jobDao.observeAll(), cloudDao.observeAll(), engine.liveProgress, speedState) { summary, jobs, items, live, speedAndEta ->
+        combine(_summaryBatch, jobDao.observeAll(), cloudDao.observeAll(), engine.liveProgress, speedState) { shown, jobs, items, live, speedAndEta ->
+            val batch = PullBatches.activeBatch(jobs) ?: shown
+            val mine = if (batch == null) emptyList() else jobs.filter { it.batchId == batch }
             val names = items.associate { it.id to it.filename }
-            fun row(job: TransferJobEntity) = PendingJob(job, names[job.cloudItemId] ?: "#${job.cloudItemId}", live[job.id] ?: job.bytesWritten)
+            fun row(job: TransferJobEntity) = PendingJob(job, names[job.cloudItemId] ?: job.originalFilename.ifBlank { "#${job.cloudItemId}" }, live[job.id] ?: job.bytesWritten)
             PullProgress(
-                summary = summary,
-                pending = jobs.filter { it.state != TransferState.DONE && it.state != TransferState.FAILED }.map(::row),
-                failed = jobs.filter { it.state == TransferState.FAILED }.map(::row),
+                summary = TransferSummary.of(mine.map { it.state to (it.bytesWritten to it.bytesExpected) }),
+                pending = mine.filter { it.state != TransferState.DONE && it.state != TransferState.FAILED }.map(::row),
+                failed = mine.filter { it.state == TransferState.FAILED }.map(::row),
                 bytesPerSecond = speedAndEta.first,
                 etaSeconds = speedAndEta.second,
+                batchId = batch,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), PullProgress())
+
+    /** Finished pulls, newest first, for the cards under the options. */
+    val history: StateFlow<List<PullBatch>> = combine(jobDao.observeAll(), settings.cleanupConfirmedAtMillis) { jobs, confirmedAt ->
+        PullBatches.history(jobs, confirmedAt)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), emptyList())
 
     /** Mirrors the setting so the completion screen can start its countdown. */
     val autoDisconnect: StateFlow<Boolean> = settings.autoDisconnect.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), false)
 
-    private val _started = MutableStateFlow(false)
-    val phase: StateFlow<PullPhase> = combine(progress, _started) { p, started ->
+    /** A summary is shown only for a pull the user just ran or chose to look at; otherwise a new pull can always be started. */
+    val phase: StateFlow<PullPhase> = combine(progress, _summaryBatch) { p, shown ->
         when {
             p.summary.isActive || p.isPaused -> PullPhase.InProgress
-            started || p.summary.done + p.summary.failed > 0 && p.total > 0 && !hasDismissedCompletion -> PullPhase.Completed
+            shown != null -> PullPhase.Completed
             else -> PullPhase.ChooseScope
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT), PullPhase.ChooseScope)
 
-    private var hasDismissedCompletion = false
+    /** Opens the summary of an earlier pull from its card. */
+    fun openSummary(batchId: Long) {
+        _justFinished.value = false
+        _summaryBatch.value = batchId
+    }
 
     init {
         viewModelScope.launch {
@@ -189,11 +212,11 @@ internal class PullViewModel(
             ScopeChoice.Everything -> list.map { it.first.id }
             is ScopeChoice.Origin -> list.filter { it.second == MediaState.CLOUD_ONLY && (it.first.userOverrideOrigin ?: it.first.inferredOrigin) == choice.label }.map { it.first.id }
         }
-        hasDismissedCompletion = false
-        queue.enqueue(ids)
+        if (queue.enqueue(ids) == 0) return
         pullSelection.clear()
+        _justFinished.value = true
+        _summaryBatch.value = jobDao.getAll().maxOfOrNull { it.batchId }
         scheduler.start(wifiOnly = settings.wifiOnly.first(), pauseOnLowBattery = settings.pauseOnLowBattery.first())
-        _started.value = true
     }
 
     fun pause() {
@@ -214,22 +237,23 @@ internal class PullViewModel(
         viewModelScope.launch {
             scheduler.stop()
             queue.cancelAll()
-            _started.value = false
-            hasDismissedCompletion = true
+            dismissCompletion()
         }
     }
 
     fun retryFailed() {
         viewModelScope.launch {
+            val retried = jobDao.getByState(TransferState.FAILED).maxOfOrNull { it.batchId }
             queue.retryFailed()
             scheduler.start(wifiOnly = settings.wifiOnly.first(), pauseOnLowBattery = settings.pauseOnLowBattery.first())
-            _started.value = true
+            if (retried != null) _summaryBatch.value = retried
         }
     }
 
+    /** Closes the open summary; the pull stays listed as a card. */
     fun dismissCompletion() {
-        hasDismissedCompletion = true
-        _started.value = false
+        _justFinished.value = false
+        _summaryBatch.value = null
     }
 
     private companion object {

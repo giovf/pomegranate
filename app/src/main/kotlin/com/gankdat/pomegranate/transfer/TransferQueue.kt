@@ -36,12 +36,14 @@ internal interface TransferQueue {
 internal class TransferQueueImpl(
     private val jobs: TransferJobDao,
     private val cloudItems: CloudItemDao,
+    private val clock: () -> Long = System::currentTimeMillis,
 ) : TransferQueue {
     override suspend fun enqueue(cloudItemIds: List<Long>): Int {
         val existing = jobs.getActiveOrDoneCloudItemIds().toHashSet()
         val fresh = cloudItemIds.filter { it !in existing }.distinct()
         if (fresh.isEmpty()) return 0
         val items = cloudItems.getAll().associateBy { it.id }
+        val batchId = clock() // everything queued by one call is one pull
         val entities = fresh.mapNotNull { id ->
             val item = items[id] ?: return@mapNotNull null
             TransferJobEntity(
@@ -50,6 +52,7 @@ internal class TransferQueueImpl(
                 originalFilename = item.filename,
                 mime = item.mime,
                 fidelity = FidelityClassifier.forPicker(isVideo = item.type == "VIDEO" || item.mime.startsWith("video/")),
+                batchId = batchId,
             )
         }
         jobs.insertAll(entities)

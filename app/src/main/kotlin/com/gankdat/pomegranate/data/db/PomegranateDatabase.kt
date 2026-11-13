@@ -1,6 +1,7 @@
 package com.gankdat.pomegranate.data.db
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -40,8 +41,10 @@ import com.gankdat.pomegranate.data.db.entity.TransferJobEntity
         OriginRuleEntity::class,
         PickerRoundEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
+    // 1 → 2: transfer_job.batchId. Generated from the exported schemas, so existing data (proof of copy included) is kept.
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
 )
 @TypeConverters(Converters::class)
 internal abstract class PomegranateDatabase : RoomDatabase() {

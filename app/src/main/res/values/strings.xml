@@ -145,6 +145,17 @@
     </plurals>
     <string name="pull_retry_failed">Retry failed</string>
     <string name="pull_back_to_library">Back to library</string>
+    <string name="pull_more">Pull more items</string>
+    <string name="pull_history_title">Your pulls so far</string>
+    <string name="pull_new_title">Start another pull</string>
+    <string name="pull_batch_title">Pull of %1$s</string>
+    <string name="pull_batch_earlier">Earlier pulls</string>
+    <string name="pull_batch_verified">Done: every file verified</string>
+    <string name="pull_batch_cleaned_up">Done: verified, and you confirmed cleaning up Google Photos afterwards</string>
+    <plurals name="pull_batch_failed">
+        <item quantity="one">%1$d item failed: open to retry</item>
+        <item quantity="other">%1$d items failed: open to retry</item>
+    </plurals>
     <string name="fidelity_notice_title">What you get from Google</string>
     <string name="fidelity_notice_body">Google\'s picker hands out photos without their location data and videos as re-encoded copies, not the originals you uploaded. Motion photos are rebuilt from Google\'s still and its re-encoded clip where possible. Every pulled file is labelled accordingly. Full-fidelity export via Google Takeout is planned for a later version.</string>
     <string name="fidelity_notice_dont_show">Don\'t show this again</string>

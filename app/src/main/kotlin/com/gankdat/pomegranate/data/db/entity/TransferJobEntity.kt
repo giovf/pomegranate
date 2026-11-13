@@ -1,5 +1,6 @@
 package com.gankdat.pomegranate.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -40,4 +41,6 @@ internal data class TransferJobEntity(
     val lastError: String? = null,
     /** Epoch millis when verification passed; null until DONE. */
     val completedAt: Long? = null,
+    /** Which pull this job was started in: the epoch millis of that start. 0 for jobs from before pulls were told apart. */
+    @ColumnInfo(defaultValue = "0") val batchId: Long = 0,
 )
