@@ -51,4 +51,8 @@ internal object Formatters {
     /** `March 2024` style month label. */
     fun monthYear(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault(), locale: Locale = Locale.getDefault()): String =
         DateTimeFormatter.ofPattern("LLLL yyyy", locale).format(Instant.ofEpochMilli(epochMillis).atZone(zone))
+
+    /** `Fri 13 Nov 2026` style label for the day separators in the library. */
+    fun day(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault(), locale: Locale = Locale.getDefault()): String =
+        DateTimeFormatter.ofPattern("EEE d MMM yyyy", locale).format(Instant.ofEpochMilli(epochMillis).atZone(zone))
 }

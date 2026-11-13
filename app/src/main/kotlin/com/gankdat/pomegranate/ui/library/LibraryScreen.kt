@@ -42,6 +42,8 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -197,24 +199,27 @@ private fun LibraryList(
                 )
             }
             if (isExpanded) {
-                items(group.items.chunked(GRID_COLUMNS), key = { row -> "${group.key}:${row.first().key}" }) { row ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 2.dp),
-                    ) {
-                        row.forEach { entry ->
-                            MediaThumbnail(
-                                source = entry.thumbnail,
-                                state = entry.state,
-                                isVideo = entry.isVideo,
-                                durationMs = entry.durationMs,
-                                onClick = { onOpenItem(entry) },
-                                modifier = Modifier.weight(1f),
-                            )
+                group.days.forEach { day ->
+                    item(key = "${group.key}:day:${day.key}") { DaySeparator(day.label) }
+                    items(day.items.chunked(GRID_COLUMNS), key = { row -> "${group.key}:${row.first().key}" }) { row ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 2.dp),
+                        ) {
+                            row.forEach { entry ->
+                                MediaThumbnail(
+                                    source = entry.thumbnail,
+                                    state = entry.state,
+                                    isVideo = entry.isVideo,
+                                    durationMs = entry.durationMs,
+                                    onClick = { onOpenItem(entry) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            repeat(GRID_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
                         }
-                        repeat(GRID_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }
@@ -230,6 +235,20 @@ private fun LibraryList(
             }
         }
     }
+}
+
+/** Date above a run of thumbnails taken on the same day. */
+@Composable
+private fun DaySeparator(label: String) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)
+            .semantics { heading() },
+    )
 }
 
 /**

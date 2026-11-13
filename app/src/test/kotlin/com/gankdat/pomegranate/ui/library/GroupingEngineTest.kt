@@ -77,4 +77,21 @@ class GroupingEngineTest {
         assertEquals(GroupingEngine.byMonth(items, ZoneOffset.UTC, Locale.UK), GroupingEngine.group(items, GroupingMode.BY_MONTH, ZoneOffset.UTC, Locale.UK))
         assertEquals(emptyList<MediaGroup>(), GroupingEngine.byFolder(emptyList()))
     }
+
+    @Test
+    fun `day sections follow item order and label each calendar day once`() {
+        val day = 86_400_000L
+        val sorted = listOf(entry(1, "Camera", april + 60_000), entry(2, "Camera", april), entry(3, "Camera", april - day), entry(4, "Camera", march), entry(5, "Camera", 0), entry(6, "Camera", 0))
+
+        val sections = GroupingEngine.byDay(sorted, ZoneOffset.UTC, Locale.UK)
+
+        assertEquals(listOf("Thu 4 Apr 2024", "Wed 3 Apr 2024", "Tue 5 Mar 2024", GroupingEngine.UNKNOWN_DATE), sections.map { it.label })
+        assertEquals(listOf(listOf(1L, 2L), listOf(3L), listOf(4L), listOf(5L, 6L)), sections.map { s -> s.items.map { it.deviceItemId } })
+        assertEquals(sections.size, sections.map { it.key }.toSet().size)
+    }
+
+    @Test
+    fun `day sections of an empty group are empty`() {
+        assertEquals(emptyList<DaySection>(), GroupingEngine.byDay(emptyList(), ZoneOffset.UTC, Locale.UK))
+    }
 }

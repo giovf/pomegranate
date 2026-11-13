@@ -86,9 +86,20 @@ internal data class MediaGroup(
         .map { (volume, members) -> volume to members.sumOf { it.sizeBytes ?: 0L } }
         .sortedByDescending { it.second }
 
+    /** The items split by the day they were taken, for the date separators; computed when the group is first expanded. */
+    val days: List<DaySection> by lazy { GroupingEngine.byDay(items) }
+
     /** True when every item is only in Google Photos. */
     val isCloudOnly: Boolean get() = items.isNotEmpty() && items.all { it.deviceItemId == null }
 }
+
+/** Consecutive items of a group taken on the same day. */
+internal data class DaySection(
+    /** Unique within its group: the epoch day, or `unknown`. */
+    val key: String,
+    val label: String,
+    val items: List<LibraryEntry>,
+)
 
 internal data class StateTotals(val count: Int, val sizeBytes: Long)
 

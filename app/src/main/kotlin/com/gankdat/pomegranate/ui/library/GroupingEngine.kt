@@ -54,6 +54,35 @@ internal object GroupingEngine {
         return if (undated.isEmpty()) months else months + MediaGroup(key = "month:unknown", name = UNKNOWN_DATE, items = undated.newestFirst())
     }
 
+    /**
+     * Splits a group's items into runs taken on the same calendar day, keeping
+     * their order, so the grid can show a date separator above each run.
+     * Undated items form one run labelled [UNKNOWN_DATE].
+     */
+    fun byDay(items: List<LibraryEntry>, zone: ZoneId = ZoneId.systemDefault(), locale: Locale = Locale.getDefault()): List<DaySection> {
+        val sections = mutableListOf<DaySection>()
+        var currentDay: Long? = null
+        var run = mutableListOf<LibraryEntry>()
+        fun flush() {
+            val day = currentDay ?: return
+            val label = if (day == UNDATED_DAY) UNKNOWN_DATE else Formatters.day(run.first().dateTaken, zone, locale)
+            sections += DaySection(key = if (day == UNDATED_DAY) "unknown" else day.toString(), label = label, items = run)
+        }
+        for (item in items) {
+            val day = if (item.dateTaken > 0) Instant.ofEpochMilli(item.dateTaken).atZone(zone).toLocalDate().toEpochDay() else UNDATED_DAY
+            if (day != currentDay) {
+                flush()
+                currentDay = day
+                run = mutableListOf()
+            }
+            run += item
+        }
+        flush()
+        return sections
+    }
+
+    private const val UNDATED_DAY = Long.MIN_VALUE
+
     private fun List<LibraryEntry>.newestFirst(): List<LibraryEntry> =
         sortedWith(compareByDescending<LibraryEntry> { it.dateTaken }.thenByDescending { it.key })
 }
