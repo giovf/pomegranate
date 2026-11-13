@@ -23,6 +23,7 @@ import com.gankdat.pomegranate.data.settings.SettingsRepositoryImpl
 import com.gankdat.pomegranate.data.settings.settingsDataStore
 import com.gankdat.pomegranate.data.wipe.CloudDataWiper
 import com.gankdat.pomegranate.reconcile.MatchDecisionStore
+import com.gankdat.pomegranate.reconcile.PulledFile
 import com.gankdat.pomegranate.reconcile.ReconciliationRepository
 import com.gankdat.pomegranate.reconcile.ReconciliationRepositoryImpl
 import com.gankdat.pomegranate.reconcile.origin.OriginRepository
@@ -88,6 +89,9 @@ internal class PomegranateApplication : Application() {
             database.deviceItemDao(),
             database.matchDao(),
             database.mediaGroupDao(),
+            pulledFiles = {
+                database.transferJobDao().getDone().filter { it.relativePath.isNotEmpty() }.map { PulledFile(it.sourceId, it.relativePath) }
+            },
             decisions = object : MatchDecisionStore {
                 override suspend fun all() = settings.matchDecisions.first()
 
@@ -118,6 +122,12 @@ internal class PomegranateApplication : Application() {
     }
 
     val transferScheduler: TransferScheduler by lazy { TransferScheduler(this) }
+
+    /** The run of library items the detail pager swipes through. */
+    val browseSession: com.gankdat.pomegranate.ui.library.BrowseSession = com.gankdat.pomegranate.ui.library.BrowseSession()
+
+    /** Google Photos items ticked in the library for the next pull. */
+    val pullSelection: com.gankdat.pomegranate.ui.library.PullSelection = com.gankdat.pomegranate.ui.library.PullSelection()
 
     val cloudDataWiper: CloudDataWiper by lazy {
         CloudDataWiper(database.cloudItemDao(), database.matchDao(), database.pickerRoundDao(), database.transferJobDao(), clearRoundStats = {

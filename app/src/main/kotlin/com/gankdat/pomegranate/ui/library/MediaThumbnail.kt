@@ -28,6 +28,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.unit.dp
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.data.model.MediaState
@@ -53,6 +55,11 @@ internal fun MediaThumbnail(
     durationMs: Long?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+    /** Null outside selection mode; otherwise whether this item is ticked. */
+    selected: Boolean? = null,
+    /** In selection mode, items that cannot be pulled are dimmed and do not react. */
+    selectable: Boolean = true,
 ) {
     val loader = rememberThumbnailLoader()
     val thumbnail by produceState<ThumbnailState>(ThumbnailState.Loading, source) {
@@ -63,14 +70,21 @@ internal fun MediaThumbnail(
     } else {
         stringResource(R.string.thumbnail_photo)
     }
-    val description = if (state != null) "$kind, ${stringResource(state.labelRes())}" else kind
+    val base = if (state != null) "$kind, ${stringResource(state.labelRes())}" else kind
+    val description = when (selected) {
+        null -> base
+        true -> "$base, ${stringResource(R.string.selection_selected)}"
+        false -> "$base, ${stringResource(R.string.selection_not_selected)}"
+    }
+    val dimmed = selected != null && !selectable
 
     Box(
         modifier = modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick)
+            .alpha(if (dimmed) 0.35f else 1f)
+            .combinedClickable(enabled = !dimmed, onClick = onClick, onLongClick = onLongClick)
             .semantics { contentDescription = description },
     ) {
         when (val current = thumbnail) {
@@ -106,6 +120,20 @@ internal fun MediaThumbnail(
                     tint = MediaStateColors.of(state),
                     modifier = Modifier.size(14.dp),
                 )
+            }
+        }
+        if (selected == true) {
+            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)))
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(painter = painterResource(R.drawable.ic_check), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
             }
         }
         if (isVideo) {

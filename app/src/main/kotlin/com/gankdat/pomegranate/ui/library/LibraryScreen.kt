@@ -19,6 +19,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.Button
+import androidx.compose.material3.Surface
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -70,12 +73,17 @@ private const val GRID_COLUMNS = 4
 @Composable
 internal fun LibraryScreen(
     permission: PermissionState,
-    onOpenItem: (LibraryEntry) -> Unit,
+    /** Opens the swipeable detail view at this index of the list the ViewModel has just prepared. */
+    onOpenItem: (Int) -> Unit,
     onOpenConnection: () -> Unit,
+    onPullSelected: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = viewModel(
         factory = appViewModelFactory {
-            LibraryViewModel(it.database.deviceItemDao(), it.database.cloudItemDao(), it.deviceScanner, it.reconciliation, it.cloudScanner, it.auth, it.origins)
+            LibraryViewModel(
+                it.database.deviceItemDao(), it.database.cloudItemDao(), it.deviceScanner, it.reconciliation, it.cloudScanner, it.auth, it.origins,
+                it.database.transferJobDao(), it.browseSession, it.pullSelection,
+            )
         },
     ),
 ) {
@@ -85,6 +93,8 @@ internal fun LibraryScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isReconciling by viewModel.isReconciling.collectAsStateWithLifecycle()
     val connection by viewModel.connection.collectAsStateWithLifecycle()
+    val selection by viewModel.selection.collectAsStateWithLifecycle()
+    BackHandler(enabled = selection != null) { viewModel.clearSelection() }
     val snackbarHostState = remember { SnackbarHostState() }
     val resources = LocalResources.current
 
@@ -135,13 +145,39 @@ internal fun LibraryScreen(
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = { if (permission.allowsScanning) viewModel.refresh() },
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
             ) {
                 when (val current = state) {
                     LibraryUiState.Loading -> Centered { CircularProgressIndicator() }
                     is LibraryUiState.Empty -> EmptyLibrary(permission, isRefreshing, current.hasScanned)
-                    is LibraryUiState.Success -> LibraryList(current, mode, expanded, viewModel::setFilter, viewModel::toggleExpanded, onOpenItem)
+                    is LibraryUiState.Success -> LibraryList(
+                        state = current,
+                        mode = mode,
+                        expandedKeys = expanded,
+                        selection = selection,
+                        onFilter = viewModel::setFilter,
+                        onToggle = viewModel::toggleExpanded,
+                        onOpenItem = { items, index ->
+                            viewModel.prepareBrowse(items)
+                            onOpenItem(index)
+                        },
+                        onStartSelection = viewModel::startSelection,
+                        onToggleSelected = viewModel::toggleSelected,
+                        onToggleAll = viewModel::toggleAll,
+                    )
                 }
+            }
+            selection?.let { ticked ->
+                SelectionBar(
+                    count = ticked.size,
+                    onCancel = viewModel::clearSelection,
+                    onPull = {
+                        viewModel.commitSelection()
+                        onPullSelected()
+                    },
+                )
             }
         }
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
@@ -153,9 +189,13 @@ private fun LibraryList(
     state: LibraryUiState.Success,
     mode: GroupingMode,
     expandedKeys: Set<String>,
+    selection: Set<Long>?,
     onFilter: (MediaState?) -> Unit,
     onToggle: (String) -> Unit,
-    onOpenItem: (LibraryEntry) -> Unit,
+    onOpenItem: (List<LibraryEntry>, Int) -> Unit,
+    onStartSelection: (LibraryEntry?) -> Unit,
+    onToggleSelected: (LibraryEntry) -> Unit,
+    onToggleAll: (List<LibraryEntry>) -> Unit,
 ) {
     // Bars scale against the largest group, so they stay meaningful with several storage volumes.
     val largestGroup = (state.groups.maxOfOrNull { it.totalSizeBytes } ?: 0L).coerceAtLeast(1L).toFloat()
@@ -192,6 +232,17 @@ private fun LibraryList(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
+            val pullable = state.totals[MediaState.CLOUD_ONLY]?.count ?: 0
+            if (selection == null && pullable > 0) {
+                TextButton(onClick = { onStartSelection(null) }, modifier = Modifier.padding(horizontal = 4.dp)) { Text(stringResource(R.string.selection_start)) }
+            } else if (selection != null) {
+                Text(
+                    text = stringResource(R.string.selection_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
             if (state.filter == MediaState.DEVICE_ONLY) {
                 Text(
                     text = stringResource(R.string.device_only_caveat),
@@ -216,7 +267,9 @@ private fun LibraryList(
             }
             if (isExpanded) {
                 group.days.forEach { day ->
-                    item(key = "${group.key}:day:${day.key}") { DaySeparator(day.label) }
+                    item(key = "${group.key}:day:${day.key}") {
+                        DaySeparator(day.label, onToggleAll = if (selection != null && day.items.any { it.isPullable }) ({ onToggleAll(day.items) }) else null)
+                    }
                     items(day.items.chunked(GRID_COLUMNS), key = { row -> "${group.key}:${row.first().key}" }) { row ->
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -230,7 +283,12 @@ private fun LibraryList(
                                     state = entry.state,
                                     isVideo = entry.isVideo,
                                     durationMs = entry.durationMs,
-                                    onClick = { onOpenItem(entry) },
+                                    onClick = {
+                                        if (selection != null) onToggleSelected(entry) else onOpenItem(group.items, group.items.indexOf(entry))
+                                    },
+                                    onLongClick = { if (selection == null) onStartSelection(entry) else onToggleSelected(entry) },
+                                    selected = selection?.let { ticked -> entry.cloudItemId in ticked && entry.isPullable },
+                                    selectable = entry.isPullable,
                                     modifier = Modifier.weight(1f),
                                 )
                             }
@@ -255,18 +313,45 @@ private fun LibraryList(
     }
 }
 
-/** Date above a run of thumbnails taken on the same day. */
+/** Date above a run of thumbnails taken on the same day; in selection mode it can tick the whole day. */
 @Composable
-private fun DaySeparator(label: String) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun DaySeparator(label: String, onToggleAll: (() -> Unit)? = null) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)
-            .semantics { heading() },
-    )
+            .padding(start = 16.dp, end = 40.dp, top = if (onToggleAll == null) 12.dp else 0.dp, bottom = if (onToggleAll == null) 4.dp else 0.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .weight(1f)
+                .semantics { heading() },
+        )
+        if (onToggleAll != null) {
+            TextButton(onClick = onToggleAll) { Text(stringResource(R.string.selection_day)) }
+        }
+    }
+}
+
+/** Shown while ticking items: how many, and the way out or on to the pull. */
+@Composable
+private fun SelectionBar(count: Int, onCancel: () -> Unit, onPull: () -> Unit) {
+    Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
+            TextButton(onClick = onCancel) { Text(stringResource(android.R.string.cancel)) }
+            Text(
+                text = pluralStringResource(R.plurals.selection_count, count, count),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+            )
+            Button(onClick = onPull, enabled = count > 0) { Text(stringResource(R.string.selection_pull)) }
+        }
+    }
 }
 
 /**

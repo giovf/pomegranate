@@ -17,9 +17,36 @@ import javax.net.ssl.HttpsURLConnection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Re-lists a Picker session and returns the item's fresh base URL, or null if that is impossible (session gone, signed out, offline). */
+/** Why a preview could not be shown; each has its own advice for the user. */
+internal enum class PreviewFailure {
+    /** No valid Google sign-in (never signed in, or the sign-in expired). */
+    SIGNED_OUT,
+
+    /** Google closed the picking session the item came from; it must be picked again. */
+    ROUND_CLOSED,
+
+    /** Google could not be reached. */
+    OFFLINE,
+
+    /** Anything else, including a local file that cannot be read. */
+    OTHER,
+}
+
+internal sealed interface PreviewResult {
+    data class Ok(val bitmap: Bitmap) : PreviewResult
+
+    data class Failed(val reason: PreviewFailure) : PreviewResult
+}
+
+internal sealed interface RefreshOutcome {
+    data class Fresh(val baseUrl: String) : RefreshOutcome
+
+    data class Failed(val reason: PreviewFailure) : RefreshOutcome
+}
+
+/** Re-lists a Picker session and returns the item's fresh base URL, or why that is impossible. */
 internal fun interface BaseUrlRefresher {
-    suspend fun refresh(sessionId: String, cloudItemId: Long): String?
+    suspend fun refresh(sessionId: String, cloudItemId: Long): RefreshOutcome
 }
 
 /**
@@ -40,35 +67,43 @@ internal class ThumbnailLoader(
         override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
     }
 
-    suspend fun load(source: ThumbnailSource, size: Size = DEFAULT_SIZE): Bitmap? {
+    suspend fun load(source: ThumbnailSource, size: Size = DEFAULT_SIZE): Bitmap? = (loadResult(source, size) as? PreviewResult.Ok)?.bitmap
+
+    /** Like [load], but says why nothing could be shown. */
+    suspend fun loadResult(source: ThumbnailSource, size: Size = DEFAULT_SIZE): PreviewResult {
         val key = cacheKey(source, size)
-        cache.get(key)?.let { return it }
-        val bitmap = withContext(Dispatchers.IO) {
+        cache.get(key)?.let { return PreviewResult.Ok(it) }
+        val result = withContext(Dispatchers.IO) {
             try {
                 when (source) {
-                    is ThumbnailSource.Local -> resolver.loadThumbnail(DeviceScanner.contentUri(source.volume, source.mediaStoreId), size, null)
+                    is ThumbnailSource.Local ->
+                        PreviewResult.Ok(resolver.loadThumbnail(DeviceScanner.contentUri(source.volume, source.mediaStoreId), size, null))
                     is ThumbnailSource.Remote -> loadRemote(source, size)
                 }
             } catch (_: IOException) {
-                null
+                PreviewResult.Failed(if (source is ThumbnailSource.Remote) PreviewFailure.OFFLINE else PreviewFailure.OTHER)
             } catch (_: SecurityException) {
-                null
+                PreviewResult.Failed(PreviewFailure.OTHER)
             } catch (_: IllegalArgumentException) {
-                null
+                PreviewResult.Failed(PreviewFailure.OTHER)
             }
         }
-        return bitmap?.also { cache.put(key, it) }
+        if (result is PreviewResult.Ok) cache.put(key, result.bitmap)
+        return result
     }
 
-    private suspend fun loadRemote(source: ThumbnailSource.Remote, size: Size): Bitmap? {
-        val token = accessToken() ?: return null
+    private suspend fun loadRemote(source: ThumbnailSource.Remote, size: Size): PreviewResult {
+        val token = accessToken() ?: return PreviewResult.Failed(PreviewFailure.SIGNED_OUT)
         return when (val first = fetch(remoteUrl(source.baseUrl, size), token)) {
-            is Fetch.Ok -> first.bitmap
-            Fetch.Rejected -> {
-                val fresh = refresher.refresh(source.sessionId, source.cloudItemId) ?: return null
-                (fetch(remoteUrl(fresh, size), accessToken() ?: return null) as? Fetch.Ok)?.bitmap
+            is Fetch.Ok -> PreviewResult.Ok(first.bitmap)
+            Fetch.Rejected -> when (val refreshed = refresher.refresh(source.sessionId, source.cloudItemId)) {
+                is RefreshOutcome.Failed -> PreviewResult.Failed(refreshed.reason)
+                is RefreshOutcome.Fresh -> {
+                    val retryToken = accessToken() ?: return PreviewResult.Failed(PreviewFailure.SIGNED_OUT)
+                    (fetch(remoteUrl(refreshed.baseUrl, size), retryToken) as? Fetch.Ok)?.let { PreviewResult.Ok(it.bitmap) } ?: PreviewResult.Failed(PreviewFailure.OTHER)
+                }
             }
-            Fetch.Failed -> null
+            Fetch.Failed -> PreviewResult.Failed(PreviewFailure.OTHER)
         }
     }
 
@@ -131,13 +166,13 @@ internal class ThumbnailLoader(
                     refresher = { sessionId, cloudItemId ->
                         try {
                             app.cloudScanner.refreshBaseUrls(sessionId)
-                            app.database.cloudItemDao().getById(cloudItemId)?.baseUrl
+                            app.database.cloudItemDao().getById(cloudItemId)?.baseUrl?.let { RefreshOutcome.Fresh(it) } ?: RefreshOutcome.Failed(PreviewFailure.OTHER)
                         } catch (_: IOException) {
-                            null
-                        } catch (_: com.gankdat.pomegranate.census.cloud.PickerApiException) {
-                            null
+                            RefreshOutcome.Failed(PreviewFailure.OFFLINE)
+                        } catch (e: com.gankdat.pomegranate.census.cloud.PickerApiException) {
+                            RefreshOutcome.Failed(if (e.isGone) PreviewFailure.ROUND_CLOSED else if (e.isAuthFailure) PreviewFailure.SIGNED_OUT else PreviewFailure.OTHER)
                         } catch (_: com.gankdat.pomegranate.census.cloud.PickerAuthException) {
-                            null
+                            RefreshOutcome.Failed(PreviewFailure.SIGNED_OUT)
                         }
                     },
                     accessToken = { app.auth.getAccessToken() },

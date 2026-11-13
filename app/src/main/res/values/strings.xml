@@ -54,7 +54,17 @@
     <string name="hash_computing">Hashing file…</string>
     <string name="hash_failed">The file could not be read.</string>
     <string name="section_siblings">Related files</string>
-    <string name="preview_failed_cloud">Google Photos did not provide a preview. Check your connection, or that this item\'s round is still available on the Google Photos screen.</string>
+    <string name="preview_failed_cloud">Google Photos did not provide a preview for this item.</string>
+    <string name="preview_failed_signed_out">Your Google sign-in has expired, so Google Photos items cannot be previewed or downloaded. Sign in again; nothing you indexed is lost.</string>
+    <string name="preview_failed_round_closed">Google has closed the picking round this item came from, so it can no longer be previewed or downloaded. Start a new round and pick it again: it replaces this entry, it is not added twice.</string>
+    <string name="preview_failed_offline">Could not reach Google Photos. Check your internet connection.</string>
+    <string name="preview_action_sign_in">Sign in again</string>
+    <string name="preview_action_pick_again">Pick it again</string>
+    <string name="preview_action_retry">Try again</string>
+    <plurals name="round_closed_with_items">
+        <item quantity="one">Closed by Google. %1$d item from it is still listed; to preview or download it, pick it again in a new round.</item>
+        <item quantity="other">Closed by Google. %1$d items from it are still listed; to preview or download them, pick them again in a new round.</item>
+    </plurals>
     <string name="preview_failed_device">This file could not be opened. It may have been moved or deleted.</string>
     <string name="preview_photo">Photo preview</string>
     <string name="preview_video">Video preview</string>
@@ -249,6 +259,18 @@
     <string name="title_coverage">Coverage by month</string>
     <string name="coverage_open">Coverage by month</string>
     <string name="coverage_intro">Google never says how big your library is, so this compares each month on this phone with what you have indexed from Google Photos. Orange months are worth a look: either they were never picked, or the phone has items that were never backed up, such as files saved from the internet.\n\nEach side uses its own date. If a photo\'s date was lost when moving phones, its copy here and its copy in Google Photos can sit in different months.</string>
+    <string name="selection_start">Select items to pull</string>
+    <string name="selection_hint">Tap items that are only in Google Photos to tick them. Everything else is dimmed: it is already on this phone.</string>
+    <string name="selection_day">Select day</string>
+    <string name="selection_pull">Pull selected</string>
+    <string name="selection_selected">selected</string>
+    <string name="selection_not_selected">not selected</string>
+    <plurals name="selection_count">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <string name="pull_scope_selected">The items you selected in the library</string>
+    <string name="evidence_pulled">downloaded and verified by Pomegranate</string>
     <string name="fast_scroll_handle">Scroll handle: drag up or down to move quickly through the list</string>
     <string name="diag_title">Why some items were not found on this phone</string>
     <plurals name="diag_cloud_not_on_phone">

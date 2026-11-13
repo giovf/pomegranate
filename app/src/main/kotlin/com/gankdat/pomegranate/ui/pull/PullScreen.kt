@@ -58,7 +58,7 @@ internal fun PullScreen(
     modifier: Modifier = Modifier,
     viewModel: PullViewModel = viewModel(
         factory = appViewModelFactory {
-            PullViewModel(it.database.cloudItemDao(), it.database.transferJobDao(), it.reconciliation, it.transferQueue, it.transferEngine, it.transferScheduler, it.settings)
+            PullViewModel(it.database.cloudItemDao(), it.database.transferJobDao(), it.reconciliation, it.transferQueue, it.transferEngine, it.transferScheduler, it.settings, it.pullSelection)
         },
     ),
 ) {
@@ -135,6 +135,7 @@ private fun ScopeContent(viewModel: PullViewModel, modifier: Modifier) {
 
 @Composable
 private fun scopeLabel(choice: ScopeChoice): String = when (choice) {
+    ScopeChoice.Selected -> stringResource(R.string.pull_scope_selected)
     ScopeChoice.CloudOnly -> stringResource(R.string.pull_scope_cloud_only)
     ScopeChoice.Everything -> stringResource(R.string.pull_scope_everything)
     is ScopeChoice.Origin -> stringResource(R.string.pull_scope_origin, choice.label)

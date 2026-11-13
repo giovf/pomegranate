@@ -26,6 +26,13 @@ internal sealed class Screen(val route: String) {
         fun createRoute(cloudItemId: Long): String = "cloud/$cloudItemId"
     }
 
+    /** Swipeable detail over the list held in the app's browse session, opened at [ARG_INDEX]. */
+    data object Browse : Screen("browse/{$ARG_INDEX}") {
+        val arguments = listOf(navArgument(ARG_INDEX) { type = NavType.IntType })
+
+        fun createRoute(index: Int): String = "browse/$index"
+    }
+
     data object Pull : Screen("pull/{$ARG_SCOPE}") {
         val arguments = listOf(navArgument(ARG_SCOPE) { type = NavType.StringType })
 
@@ -55,6 +62,7 @@ internal sealed class Screen(val route: String) {
         const val ARG_ITEM_ID: String = "itemId"
         const val ARG_CLOUD_ITEM_ID: String = "cloudItemId"
         const val ARG_SCOPE: String = "scope"
+        const val ARG_INDEX: String = "index"
 
         /**
          * Destinations that are entry points and show no back arrow. Lazy

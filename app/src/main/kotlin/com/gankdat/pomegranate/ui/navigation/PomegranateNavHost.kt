@@ -19,6 +19,7 @@ import com.gankdat.pomegranate.ui.settings.SettingsScreen
 import com.gankdat.pomegranate.ui.library.CloudItemDetailRoute
 import com.gankdat.pomegranate.ui.library.ItemDetailRoute
 import com.gankdat.pomegranate.ui.library.LibraryScreen
+import com.gankdat.pomegranate.ui.library.MediaPagerRoute
 import com.gankdat.pomegranate.ui.manifest.ManifestViewerScreen
 import com.gankdat.pomegranate.ui.manifest.ProofOfCopyScreen
 import com.gankdat.pomegranate.ui.onboarding.OnboardingScreen
@@ -64,10 +65,8 @@ internal fun PomegranateNavHost(
                 MediaPermissionGate(modifier = Modifier.padding(padding)) { permission ->
                     LibraryScreen(
                         permission = permission,
-                        onOpenItem = { entry ->
-                            entry.deviceItemId?.let(navController::navigateToItemDetail)
-                                ?: entry.cloudItemId?.let(navController::navigateToCloudItemDetail)
-                        },
+                        onOpenItem = navController::navigateToBrowse,
+                        onPullSelected = { navController.navigateToPull(PullScope.SELECTED) },
                         onOpenConnection = navController::navigateToConnection,
                     )
                 }
@@ -75,6 +74,9 @@ internal fun PomegranateNavHost(
         }
         composable(Screen.ItemDetail.route, arguments = Screen.ItemDetail.arguments) {
             ItemDetailRoute(navController)
+        }
+        composable(Screen.Browse.route, arguments = Screen.Browse.arguments) { entry ->
+            MediaPagerRoute(navController, startIndex = entry.arguments?.getInt(Screen.ARG_INDEX) ?: 0)
         }
         composable(Screen.CloudItemDetail.route, arguments = Screen.CloudItemDetail.arguments) {
             CloudItemDetailRoute(navController)

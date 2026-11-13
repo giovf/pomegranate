@@ -14,6 +14,9 @@ internal enum class MatchMethod {
 
     /** The user compared both sides and said they are the same. */
     USER_CONFIRMED,
+
+    /** The phone file is the verified copy this app downloaded for the cloud item. */
+    PULLED,
 }
 
 /** How the device and Google timestamps relate. */

@@ -13,6 +13,7 @@ import com.gankdat.pomegranate.transfer.TransferEngine
 import com.gankdat.pomegranate.transfer.TransferQueue
 import com.gankdat.pomegranate.transfer.TransferScheduler
 import com.gankdat.pomegranate.transfer.TransferSummary
+import com.gankdat.pomegranate.ui.library.PullSelection
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,6 +28,9 @@ import kotlinx.coroutines.launch
 
 /** What the user can choose to pull. */
 internal sealed interface ScopeChoice {
+    /** The items ticked in the library. */
+    data object Selected : ScopeChoice
+
     data object CloudOnly : ScopeChoice
 
     data object Everything : ScopeChoice
@@ -67,8 +71,9 @@ internal class PullViewModel(
     engine: TransferEngine,
     private val scheduler: TransferScheduler,
     private val settings: SettingsRepository,
+    private val pullSelection: PullSelection,
 ) : ViewModel() {
-    private val _selected = MutableStateFlow<ScopeChoice>(ScopeChoice.CloudOnly)
+    private val _selected = MutableStateFlow<ScopeChoice>(if (pullSelection.ids.value.isEmpty()) ScopeChoice.CloudOnly else ScopeChoice.Selected)
     val selected: StateFlow<ScopeChoice> = _selected.asStateFlow()
 
     private val _showFidelityNotice = MutableStateFlow(false)
@@ -83,9 +88,10 @@ internal class PullViewModel(
         items.filter { it.id !in pulled }.map { it to (states.cloudStates[it.id] ?: MediaState.CLOUD_ONLY) }
     }
 
-    val scopeOptions: StateFlow<List<ScopeOption>> = candidates.map { list ->
+    val scopeOptions: StateFlow<List<ScopeOption>> = combine(candidates, pullSelection.ids) { list, ticked ->
         val cloudOnly = list.filter { it.second == MediaState.CLOUD_ONLY }
         buildList {
+            if (ticked.isNotEmpty()) add(ScopeOption(ScopeChoice.Selected, list.count { it.first.id in ticked }))
             add(ScopeOption(ScopeChoice.CloudOnly, cloudOnly.size))
             add(ScopeOption(ScopeChoice.Everything, list.size))
             cloudOnly.groupBy { it.first.userOverrideOrigin ?: it.first.inferredOrigin }
@@ -166,13 +172,16 @@ internal class PullViewModel(
 
     private suspend fun start() {
         val list = candidates.first()
+        val ticked = pullSelection.ids.value
         val ids = when (val choice = _selected.value) {
+            ScopeChoice.Selected -> list.filter { it.first.id in ticked }.map { it.first.id }
             ScopeChoice.CloudOnly -> list.filter { it.second == MediaState.CLOUD_ONLY }.map { it.first.id }
             ScopeChoice.Everything -> list.map { it.first.id }
             is ScopeChoice.Origin -> list.filter { it.second == MediaState.CLOUD_ONLY && (it.first.userOverrideOrigin ?: it.first.inferredOrigin) == choice.label }.map { it.first.id }
         }
         hasDismissedCompletion = false
         queue.enqueue(ids)
+        pullSelection.clear()
         scheduler.start(wifiOnly = settings.wifiOnly.first(), pauseOnLowBattery = settings.pauseOnLowBattery.first())
         _started.value = true
     }

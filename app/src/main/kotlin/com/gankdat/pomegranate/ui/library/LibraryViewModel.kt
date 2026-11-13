@@ -8,6 +8,8 @@ import com.gankdat.pomegranate.census.device.DeviceScannerRepository
 import com.gankdat.pomegranate.census.device.ScanResult
 import com.gankdat.pomegranate.data.db.dao.CloudItemDao
 import com.gankdat.pomegranate.data.db.dao.DeviceItemDao
+import com.gankdat.pomegranate.data.db.dao.TransferJobDao
+import com.gankdat.pomegranate.data.db.entity.TransferState
 import com.gankdat.pomegranate.data.db.entity.CloudItemEntity
 import com.gankdat.pomegranate.data.db.entity.DeviceItemEntity
 import com.gankdat.pomegranate.data.model.MediaState
@@ -21,7 +23,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -45,6 +51,9 @@ internal class LibraryViewModel(
     cloudScanner: CloudScannerRepository,
     auth: AuthRepository,
     private val origins: OriginRepository,
+    jobDao: TransferJobDao,
+    private val browseSession: BrowseSession,
+    private val pullSelection: PullSelection,
 ) : ViewModel() {
     private val _groupingMode = MutableStateFlow(GroupingMode.BY_FOLDER)
     val groupingMode: StateFlow<GroupingMode> = _groupingMode.asStateFlow()
@@ -69,8 +78,64 @@ internal class LibraryViewModel(
             ConnectionSummary(connected, coverage.itemCount, coverage.roundCount)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), ConnectionSummary(false, 0, 0))
 
+    /** Google media ids with a verified download. */
+    private val pulled: Flow<Set<String>> =
+        jobDao.observeAll().map { jobs -> jobs.filter { it.state == TransferState.DONE }.map { it.sourceId }.toSet() }.distinctUntilChanged()
+
     private val entries: Flow<List<LibraryEntry>> =
-        combine(deviceDao.observeAll(), cloudDao.observeAll(), reconciliation.observeStates(), ::buildEntries)
+        combine(deviceDao.observeAll(), cloudDao.observeAll(), reconciliation.observeStates(), pulled, ::buildEntries)
+
+    private val _selection = MutableStateFlow<Set<Long>?>(null)
+
+    /** Cloud item ids ticked for pulling; null when the library is not in selection mode. */
+    val selection: StateFlow<Set<Long>?> = _selection.asStateFlow()
+
+    init {
+        // New verified downloads: rescan (after the media store has had a moment to see the files)
+        // so they pair with their phone files and the totals follow without a manual refresh.
+        viewModelScope.launch {
+            var known: Int? = null
+            pulled.collectLatest { ids ->
+                val before = known
+                known = ids.size
+                if (before != null && ids.size > before) {
+                    delay(RESCAN_AFTER_PULL_MILLIS)
+                    runScan(full = false, announce = false)
+                }
+            }
+        }
+    }
+
+    /** Remembers the list the user is browsing so the detail view can swipe through it. */
+    fun prepareBrowse(items: List<LibraryEntry>) {
+        browseSession.entries = items.map(BrowseRef::of)
+    }
+
+    fun startSelection(first: LibraryEntry? = null) {
+        _selection.update { current -> (current ?: emptySet()) + listOfNotNull(first?.takeIf { it.isPullable }?.cloudItemId) }
+    }
+
+    fun toggleSelected(entry: LibraryEntry) {
+        val id = entry.cloudItemId?.takeIf { entry.isPullable } ?: return
+        _selection.update { current -> current?.let { if (id in it) it - id else it + id } }
+    }
+
+    /** Ticks every pullable entry of [entries], or unticks them all if they already are. */
+    fun toggleAll(entries: List<LibraryEntry>) {
+        val ids = entries.filter { it.isPullable }.mapNotNull { it.cloudItemId }.toSet()
+        if (ids.isEmpty()) return
+        _selection.update { current -> current?.let { if (it.containsAll(ids)) it - ids else it + ids } }
+    }
+
+    fun clearSelection() {
+        _selection.value = null
+    }
+
+    /** Hands the ticked items to the pull screen and leaves selection mode. */
+    fun commitSelection() {
+        pullSelection.set(_selection.value.orEmpty())
+        _selection.value = null
+    }
 
     val libraryState: StateFlow<LibraryUiState> =
         combine(entries, _groupingMode, _filter, scanner.lastScanTime()) { all, mode, filter, lastScan ->
@@ -116,14 +181,14 @@ internal class LibraryViewModel(
         viewModelScope.launch { runReconcile(announce = true) }
     }
 
-    private suspend fun runScan(full: Boolean) {
+    private suspend fun runScan(full: Boolean, announce: Boolean = true) {
         if (!_isRefreshing.compareAndSet(expect = false, update = true)) return
         try {
             val result = if (full) scanner.scanAll() else scanner.scanIncremental()
-            messages.send(LibraryMessage.ScanFinished(result))
+            if (announce) messages.send(LibraryMessage.ScanFinished(result))
             runReconcile(announce = false)
         } catch (e: IllegalStateException) {
-            messages.send(LibraryMessage.ScanFailed)
+            if (announce) messages.send(LibraryMessage.ScanFailed)
         } finally {
             _isRefreshing.value = false
         }
@@ -142,11 +207,17 @@ internal class LibraryViewModel(
 
     companion object {
         private const val STOP_TIMEOUT_MILLIS = 5_000L
+        private const val RESCAN_AFTER_PULL_MILLIS = 3_000L
 
-        /** Device rows carry their reconciled state; cloud rows appear only when nothing on the device matches them. */
-        fun buildEntries(device: List<DeviceItemEntity>, cloud: List<CloudItemEntity>, states: StateIndex): List<LibraryEntry> {
+        /**
+         * Device rows carry their reconciled state; cloud rows appear only when nothing on the device matches them.
+         * A cloud row whose download is verified ([pulled], by Google media id) already counts as "on both": its
+         * copy exists even if the census has not seen it yet, or never will (a USB drive is outside the media store).
+         */
+        fun buildEntries(device: List<DeviceItemEntity>, cloud: List<CloudItemEntity>, states: StateIndex, pulled: Set<String> = emptySet()): List<LibraryEntry> {
             val deviceEntries = device.map { LibraryEntry.fromDevice(it, states.deviceStates[it.id] ?: MediaState.DEVICE_ONLY) }
-            val cloudEntries = cloud.filter { (states.cloudStates[it.id] ?: MediaState.CLOUD_ONLY) == MediaState.CLOUD_ONLY }.map { LibraryEntry.fromCloud(it) }
+            val cloudEntries = cloud.filter { (states.cloudStates[it.id] ?: MediaState.CLOUD_ONLY) == MediaState.CLOUD_ONLY }
+                .map { LibraryEntry.fromCloud(it, if (it.pickerMediaItemId in pulled) MediaState.BOTH else MediaState.CLOUD_ONLY) }
             return deviceEntries + cloudEntries
         }
 

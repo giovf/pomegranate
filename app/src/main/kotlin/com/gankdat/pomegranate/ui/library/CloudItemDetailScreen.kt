@@ -40,37 +40,55 @@ import com.gankdat.pomegranate.ui.appViewModelFactory
 import com.gankdat.pomegranate.ui.format.Formatters
 import com.gankdat.pomegranate.ui.format.MimeLabels
 import com.gankdat.pomegranate.ui.navigation.PomegranateScaffold
+import com.gankdat.pomegranate.ui.navigation.Screen
+import com.gankdat.pomegranate.ui.navigation.navigateToConnection
 import com.gankdat.pomegranate.ui.navigation.navigateToItemDetail
 
 /** Detail for an item that lives (at least) in Google Photos. */
 @Composable
-internal fun CloudItemDetailRoute(
-    navController: NavHostController,
-    viewModel: CloudItemDetailViewModel = viewModel(
-        factory = appViewModelFactory { app ->
-            CloudItemDetailViewModel(createSavedStateHandle(), app.database.cloudItemDao(), app.database.deviceItemDao(), app.database.matchDao(), app.database.mediaGroupDao(), app.origins)
-        },
-    ),
-) {
+internal fun CloudItemDetailRoute(navController: NavHostController, viewModel: CloudItemDetailViewModel = cloudItemDetailViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val knownOrigins by viewModel.knownOrigins.collectAsStateWithLifecycle()
     val item = (state as? CloudItemDetailUiState.Success)?.item
 
     PomegranateScaffold(navController = navController, title = item?.filename ?: stringResource(R.string.title_item_detail)) { padding ->
-        Box(modifier = Modifier.padding(padding)) {
-            when (val current = state) {
-                CloudItemDetailUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                CloudItemDetailUiState.NotFound -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(R.string.cloud_item_not_found), style = MaterialTheme.typography.bodyLarge)
-                }
-                is CloudItemDetailUiState.Success -> CloudItemDetailContent(
-                    state = current,
-                    onOpenDeviceItem = current.match?.deviceItem?.let { device -> { navController.navigateToItemDetail(device.id) } },
-                    onSetOrigin = viewModel::setOriginOverride,
-                    knownOrigins = knownOrigins,
-                )
-            }
+        Box(modifier = Modifier.padding(padding)) { CloudItemDetailBody(viewModel, navController) }
+    }
+}
+
+/** With [cloudItemId] the ViewModel is keyed by it (one per pager page); without, the id comes from the navigation arguments. */
+@Composable
+internal fun cloudItemDetailViewModel(cloudItemId: Long? = null): CloudItemDetailViewModel = viewModel(
+    key = cloudItemId?.let { "cloud:$it" },
+    factory = appViewModelFactory { app ->
+        CloudItemDetailViewModel(
+            createSavedStateHandle().also { handle -> if (cloudItemId != null) handle[Screen.ARG_CLOUD_ITEM_ID] = cloudItemId },
+            app.database.cloudItemDao(),
+            app.database.deviceItemDao(),
+            app.database.matchDao(),
+            app.database.mediaGroupDao(),
+            app.origins,
+            app.database.transferJobDao(),
+        )
+    },
+)
+
+/** Everything below the top bar for one Google Photos item. */
+@Composable
+internal fun CloudItemDetailBody(viewModel: CloudItemDetailViewModel, navController: NavHostController) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val knownOrigins by viewModel.knownOrigins.collectAsStateWithLifecycle()
+    when (val current = state) {
+        CloudItemDetailUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        CloudItemDetailUiState.NotFound -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(stringResource(R.string.cloud_item_not_found), style = MaterialTheme.typography.bodyLarge)
         }
+        is CloudItemDetailUiState.Success -> CloudItemDetailContent(
+            state = current,
+            onOpenDeviceItem = current.match?.deviceItem?.let { device -> { navController.navigateToItemDetail(device.id) } },
+            onSetOrigin = viewModel::setOriginOverride,
+            knownOrigins = knownOrigins,
+            onOpenConnection = navController::navigateToConnection,
+        )
     }
 }
 
@@ -80,6 +98,7 @@ private fun CloudItemDetailContent(
     onOpenDeviceItem: (() -> Unit)?,
     onSetOrigin: (String?) -> Unit,
     knownOrigins: List<String>,
+    onOpenConnection: () -> Unit,
 ) {
     val item = state.item
     val isVideo = item.type == "VIDEO" || item.mime.startsWith("video/")
@@ -89,7 +108,7 @@ private fun CloudItemDetailContent(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
-        FullSizePreview(ThumbnailSource.Remote(item.baseUrl, item.id, item.sessionId), item.width, item.height, isVideo)
+        FullSizePreview(ThumbnailSource.Remote(item.baseUrl, item.id, item.sessionId), item.width, item.height, isVideo, onOpenConnection)
         Column(modifier = Modifier.padding(16.dp)) {
             StatusSection(state.state)
             Spacer(Modifier.height(12.dp))

@@ -35,4 +35,17 @@ class LibraryEntriesTest {
         val entries = LibraryViewModel.buildEntries(listOf(device(1, "a.jpg")), listOf(cloud(10, "a.jpg")), StateIndex.EMPTY)
         assertEquals(listOf(MediaState.DEVICE_ONLY, MediaState.CLOUD_ONLY), entries.map { it.state })
     }
+
+    @Test
+    fun `a verified download counts as on both at once and moves the totals`() {
+        val clouds = listOf(cloud(10, "a.jpg"), cloud(11, "b.jpg"))
+
+        val entries = LibraryViewModel.buildEntries(emptyList(), clouds, StateIndex.EMPTY, pulled = setOf("g10"))
+
+        assertEquals(listOf("c:10" to MediaState.BOTH, "c:11" to MediaState.CLOUD_ONLY), entries.map { it.key to it.state })
+        assertEquals(listOf(false, true), entries.map { it.isPullable })
+        val totals = LibraryViewModel.totals(entries)
+        assertEquals(1, totals[MediaState.BOTH]?.count)
+        assertEquals(1, totals[MediaState.CLOUD_ONLY]?.count)
+    }
 }

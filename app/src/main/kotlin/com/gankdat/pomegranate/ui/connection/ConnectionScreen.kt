@@ -175,7 +175,11 @@ private fun RoundsHistory(rounds: List<RoundSummary>) {
                         listOfNotNull(listOfNotNull(selected, overlap).joinToString(", "), span).joinToString(" · ")
                     }
                     PickerRoundState.ACTIVE -> stringResource(R.string.round_active)
-                    PickerRoundState.EXPIRED -> stringResource(R.string.round_expired)
+                    PickerRoundState.EXPIRED -> {
+                        // A round that was indexed and later closed by Google still has items pointing at it.
+                        val stranded = summary.range?.itemCount ?: 0
+                        if (stranded > 0) pluralStringResource(R.plurals.round_closed_with_items, stranded, stranded) else stringResource(R.string.round_expired)
+                    }
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

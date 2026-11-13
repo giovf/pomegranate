@@ -28,6 +28,8 @@ internal class ReconciliationRepositoryImpl(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = System::currentTimeMillis,
     private val decisions: MatchDecisionStore = MatchDecisionStore.NONE,
+    /** Verified downloads, so each can be paired with the phone file it became. */
+    private val pulledFiles: suspend () -> List<PulledFile> = { emptyList() },
 ) : ReconciliationRepository {
     private val lock = Mutex()
 
@@ -40,15 +42,25 @@ internal class ReconciliationRepositoryImpl(
             // Hash-confirmed matches and the user's verdicts are the only state preserved across runs.
             val hashConfirmed = matchDao.getAll().filter { Evidence.fromJson(it.evidence)?.method == MatchMethod.HASH_CONFIRMED }
             val (userConfirmed, rejected) = applyDecisions(cloud, device, hashConfirmed)
-            val confirmed = hashConfirmed + userConfirmed
-            val confirmedCloud = confirmed.map { it.cloudItemId }.toSet()
-            val confirmedDevice = confirmed.map { it.deviceItemId }.toSet()
+            val kept = hashConfirmed + userConfirmed
+            val confirmedCloud = kept.map { it.cloudItemId }.toSet()
+            val confirmedDevice = kept.map { it.deviceItemId }.toSet()
 
-            val proposals = MatchingEngine.match(
+            val proposed = MatchingEngine.match(
                 cloud.filter { it.id !in confirmedCloud },
                 device.filter { it.id !in confirmedDevice },
                 rejected,
             )
+            // A downloaded copy settles an item the rules left open; it never displaces a match the rules are sure of,
+            // so a phone original stays paired when the user pulled a second copy anyway.
+            val sure = proposed.filter { it.confidence in ReconciliationRepository.CONFIRMED }
+            val settledCloud = confirmedCloud + sure.map { it.cloudItemId }
+            val settledDevice = confirmedDevice + sure.map { it.deviceItemId }
+            val pulled = PulledCopies.match(pulledFiles(), cloud.filter { it.id !in settledCloud }, device.filter { it.id !in settledDevice })
+            val pulledCloud = pulled.map { it.cloudItemId }.toSet()
+            val pulledDevice = pulled.map { it.deviceItemId }.toSet()
+            val proposals = proposed.filter { it.cloudItemId !in pulledCloud && it.deviceItemId !in pulledDevice }
+            val confirmed = kept + pulled
             matchDao.replaceAll(confirmed + proposals.map { MatchEntity(it.cloudItemId, it.deviceItemId, it.confidence, it.evidence.toJson()) })
 
             val groups = rebuildGroups(

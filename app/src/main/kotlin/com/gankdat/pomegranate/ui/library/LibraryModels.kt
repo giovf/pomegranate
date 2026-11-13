@@ -37,6 +37,9 @@ internal data class LibraryEntry(
 ) {
     val isVideo: Boolean get() = mime.startsWith("video/")
 
+    /** Only in Google Photos and not yet downloaded: the only kind of entry a pull can act on. */
+    val isPullable: Boolean get() = cloudItemId != null && deviceItemId == null && state == MediaState.CLOUD_ONLY
+
     companion object {
         fun fromDevice(item: DeviceItemEntity, state: MediaState) = LibraryEntry(
             key = "d:${item.id}",
@@ -53,9 +56,10 @@ internal data class LibraryEntry(
             volume = item.volume,
         )
 
-        fun fromCloud(item: CloudItemEntity) = LibraryEntry(
+        /** [state] is BOTH for an item whose verified download has not been paired with a phone file yet. */
+        fun fromCloud(item: CloudItemEntity, state: MediaState = MediaState.CLOUD_ONLY) = LibraryEntry(
             key = "c:${item.id}",
-            state = MediaState.CLOUD_ONLY,
+            state = state,
             deviceItemId = null,
             cloudItemId = item.id,
             displayName = item.filename,

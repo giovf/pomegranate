@@ -32,8 +32,9 @@ class ReconciliationRepositoryImplTest {
         }
     }
     private val repo by lazy {
-        ReconciliationRepositoryImpl(db.cloudItemDao(), db.deviceItemDao(), db.matchDao(), db.mediaGroupDao(), Dispatchers.Unconfined, decisions = store)
+        ReconciliationRepositoryImpl(db.cloudItemDao(), db.deviceItemDao(), db.matchDao(), db.mediaGroupDao(), Dispatchers.Unconfined, decisions = store, pulledFiles = { pulled })
     }
+    private var pulled: List<PulledFile> = emptyList()
 
     @Before
     fun setUp() = runBlocking {
@@ -47,6 +48,27 @@ class ReconciliationRepositoryImplTest {
 
     @After
     fun tearDown() = db.close()
+
+    @Test
+    fun `a downloaded copy settles an open item but never displaces a sure match`() = runBlocking {
+        db.deviceItemDao().insertAll(
+            listOf(
+                device(1, "IMG_0001.jpg"), // the phone original of cloud 1
+                device(2, "IMG_0001.jpg", taken = T0 + 99_000_000).copy(relativePath = "Pictures/Pomegranate/2024/2024-03/"), // its pulled duplicate
+                device(3, "old.jpg", taken = T0 + 99_000_000, w = 800, h = 600).copy(relativePath = "Pictures/Pomegranate/2024/2024-03/"), // pulled copy of cloud 2, nothing else agrees
+            ),
+        )
+        db.cloudItemDao().insertAll(listOf(cloud(1, "IMG_0001.jpg"), cloud(2, "old.jpg")))
+        pulled = listOf(PulledFile("g1", "Pomegranate/2024/2024-03/IMG_0001.jpg"), PulledFile("g2", "Pomegranate/2024/2024-03/old.jpg"))
+
+        repo.reconcile()
+
+        val matches = db.matchDao().getAll().associate { it.cloudItemId to it.deviceItemId }
+        assertEquals(mapOf(1L to 1L, 2L to 3L), matches)
+        val states = repo.observeStates().first()
+        assertEquals(MediaState.BOTH, states.cloudStates[2])
+        assertEquals(MediaState.BOTH, states.deviceStates[3])
+    }
 
     @Test
     fun `reconcile writes matches, groups and states`() = runBlocking {

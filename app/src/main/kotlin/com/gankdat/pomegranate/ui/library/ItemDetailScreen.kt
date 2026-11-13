@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -52,55 +53,68 @@ import com.gankdat.pomegranate.ui.appViewModelFactory
 import com.gankdat.pomegranate.ui.format.Formatters
 import com.gankdat.pomegranate.ui.format.MimeLabels
 import com.gankdat.pomegranate.ui.navigation.PomegranateScaffold
+import com.gankdat.pomegranate.ui.navigation.Screen
 import com.gankdat.pomegranate.ui.navigation.navigateToCloudItemDetail
 
 private val PREVIEW_SIZE = Size(1_600, 1_600)
 
+/**
+ * The ViewModel for one device item. With [itemId] it is keyed by that id (the
+ * swipeable pager holds one per page); without, the id comes from the
+ * navigation arguments.
+ */
+@Composable
+internal fun itemDetailViewModel(itemId: Long? = null): ItemDetailViewModel = viewModel(
+    key = itemId?.let { "device:$it" },
+    factory = appViewModelFactory { app ->
+        ItemDetailViewModel(
+            savedStateHandle = createSavedStateHandle().also { handle -> if (itemId != null) handle[Screen.ARG_ITEM_ID] = itemId },
+            dao = app.database.deviceItemDao(),
+            cloudDao = app.database.cloudItemDao(),
+            matchDao = app.database.matchDao(),
+            groupDao = app.database.mediaGroupDao(),
+            opener = ContentOpener { uri -> app.contentResolver.openInputStream(uri) },
+        )
+    },
+)
+
 /** Scaffold plus content for one device item; hosts the ViewModel so the share action can see the item. */
 @Composable
-internal fun ItemDetailRoute(
-    navController: NavHostController,
-    viewModel: ItemDetailViewModel = viewModel(
-        factory = appViewModelFactory { app ->
-            ItemDetailViewModel(
-                savedStateHandle = createSavedStateHandle(),
-                dao = app.database.deviceItemDao(),
-                cloudDao = app.database.cloudItemDao(),
-                matchDao = app.database.matchDao(),
-                groupDao = app.database.mediaGroupDao(),
-                opener = ContentOpener { uri -> app.contentResolver.openInputStream(uri) },
-            )
-        },
-    ),
-) {
+internal fun ItemDetailRoute(navController: NavHostController, viewModel: ItemDetailViewModel = itemDetailViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     val item = (state as? ItemDetailUiState.Success)?.item
 
     PomegranateScaffold(
         navController = navController,
         title = item?.displayName ?: stringResource(R.string.title_item_detail),
-        actions = {
-            if (item != null) {
-                IconButton(onClick = { context.startActivity(shareIntent(item)) }) {
-                    Icon(painter = painterResource(R.drawable.ic_share), contentDescription = stringResource(R.string.action_share))
-                }
-            }
-        },
+        actions = { if (item != null) ShareAction(item) },
     ) { padding ->
-        Box(modifier = Modifier.padding(padding)) {
-            when (val current = state) {
-                ItemDetailUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                ItemDetailUiState.NotFound -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(R.string.item_not_found), style = MaterialTheme.typography.bodyLarge)
-                }
-                is ItemDetailUiState.Success -> ItemDetailContent(
-                    state = current,
-                    onComputeHash = viewModel::computeSha256,
-                    onOpenCloudItem = current.match?.cloudItem?.let { cloud -> { navController.navigateToCloudItemDetail(cloud.id) } },
-                )
-            }
+        Box(modifier = Modifier.padding(padding)) { ItemDetailBody(viewModel, navController) }
+    }
+}
+
+@Composable
+internal fun ShareAction(item: DeviceItemEntity) {
+    val context = LocalContext.current
+    IconButton(onClick = { context.startActivity(shareIntent(item)) }) {
+        Icon(painter = painterResource(R.drawable.ic_share), contentDescription = stringResource(R.string.action_share))
+    }
+}
+
+/** Everything below the top bar for one device item. */
+@Composable
+internal fun ItemDetailBody(viewModel: ItemDetailViewModel, navController: NavHostController) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    when (val current = state) {
+        ItemDetailUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        ItemDetailUiState.NotFound -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(stringResource(R.string.item_not_found), style = MaterialTheme.typography.bodyLarge)
         }
+        is ItemDetailUiState.Success -> ItemDetailContent(
+            state = current,
+            onComputeHash = viewModel::computeSha256,
+            onOpenCloudItem = current.match?.cloudItem?.let { cloud -> { navController.navigateToCloudItemDetail(cloud.id) } },
+        )
     }
 }
 
@@ -172,11 +186,13 @@ private fun ItemDetailContent(state: ItemDetailUiState.Success, onComputeHash: (
 }
 
 @Composable
-internal fun FullSizePreview(source: ThumbnailSource, width: Int, height: Int, isVideo: Boolean) {
+internal fun FullSizePreview(source: ThumbnailSource, width: Int, height: Int, isVideo: Boolean, onOpenConnection: (() -> Unit)? = null) {
     val loader = rememberThumbnailLoader()
-    // null = loading; Result failure = could not load (shown as a message, never an endless spinner).
-    val bitmap by produceState<Result<Bitmap>?>(null, source) {
-        value = loader.load(source, PREVIEW_SIZE)?.let { Result.success(it) } ?: Result.failure(IllegalStateException())
+    var attempt by rememberSaveable { mutableIntStateOf(0) }
+    // null = loading; a failure is shown as a message with what to do next, never an endless spinner.
+    val preview by produceState<PreviewResult?>(null, source, attempt) {
+        value = null
+        value = loader.loadResult(source, PREVIEW_SIZE)
     }
     val ratio = if (width > 0 && height > 0) width.toFloat() / height else 4f / 3f
     Box(
@@ -186,24 +202,43 @@ internal fun FullSizePreview(source: ThumbnailSource, width: Int, height: Int, i
             .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {
-        val result = bitmap
-        val loaded = result?.getOrNull()
-        if (result == null) {
-            CircularProgressIndicator()
-        } else if (loaded != null) {
-            Image(
-                bitmap = loaded.asImageBitmap(),
+        when (val result = preview) {
+            null -> CircularProgressIndicator()
+            is PreviewResult.Ok -> Image(
+                bitmap = result.bitmap.asImageBitmap(),
                 contentDescription = stringResource(if (isVideo) R.string.preview_video else R.string.preview_photo),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
             )
-        } else {
-            Text(
-                stringResource(if (source is ThumbnailSource.Remote) R.string.preview_failed_cloud else R.string.preview_failed_device),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(24.dp),
+            is PreviewResult.Failed -> PreviewFailureMessage(
+                reason = result.reason,
+                isCloud = source is ThumbnailSource.Remote,
+                onRetry = { attempt++ },
+                onOpenConnection = onOpenConnection,
             )
+        }
+    }
+}
+
+/** Says why there is no preview and offers the one action that fixes it. */
+@Composable
+private fun PreviewFailureMessage(reason: PreviewFailure, isCloud: Boolean, onRetry: () -> Unit, onOpenConnection: (() -> Unit)?) {
+    val message = when {
+        !isCloud -> R.string.preview_failed_device
+        reason == PreviewFailure.SIGNED_OUT -> R.string.preview_failed_signed_out
+        reason == PreviewFailure.ROUND_CLOSED -> R.string.preview_failed_round_closed
+        reason == PreviewFailure.OFFLINE -> R.string.preview_failed_offline
+        else -> R.string.preview_failed_cloud
+    }
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
+        Text(stringResource(message), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val needsConnection = isCloud && (reason == PreviewFailure.SIGNED_OUT || reason == PreviewFailure.ROUND_CLOSED)
+        if (needsConnection && onOpenConnection != null) {
+            OutlinedButton(onClick = onOpenConnection, modifier = Modifier.padding(top = 8.dp)) {
+                Text(stringResource(if (reason == PreviewFailure.SIGNED_OUT) R.string.preview_action_sign_in else R.string.preview_action_pick_again))
+            }
+        } else if (isCloud) {
+            OutlinedButton(onClick = onRetry, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(R.string.preview_action_retry)) }
         }
     }
 }

@@ -7,6 +7,8 @@ import com.gankdat.pomegranate.data.db.dao.CloudItemDao
 import com.gankdat.pomegranate.data.db.dao.DeviceItemDao
 import com.gankdat.pomegranate.data.db.dao.MatchDao
 import com.gankdat.pomegranate.data.db.dao.MediaGroupDao
+import com.gankdat.pomegranate.data.db.dao.TransferJobDao
+import com.gankdat.pomegranate.data.db.entity.TransferState
 import com.gankdat.pomegranate.data.db.entity.CloudItemEntity
 import com.gankdat.pomegranate.data.model.MediaState
 import com.gankdat.pomegranate.reconcile.Evidence
@@ -41,6 +43,7 @@ internal class CloudItemDetailViewModel(
     private val matchDao: MatchDao,
     private val groupDao: MediaGroupDao,
     private val origins: OriginRepository,
+    private val jobDao: TransferJobDao,
 ) : ViewModel() {
     private val itemId: Long = checkNotNull(savedStateHandle[Screen.ARG_CLOUD_ITEM_ID]) { "cloudItemId argument missing" }
     private val _state = MutableStateFlow<CloudItemDetailUiState>(CloudItemDetailUiState.Loading)
@@ -64,7 +67,9 @@ internal class CloudItemDetailViewModel(
         val siblings = groupDao.getGroupsForCloudItem(itemId).map { g ->
             SiblingInfo(g.group.kind, (g.deviceItems.map { it.displayName } + g.cloudItems.map { it.filename }).distinct().filter { it != item.filename })
         }
-        val state = if (match != null && match.confidence in ReconciliationRepository.CONFIRMED) MediaState.BOTH else MediaState.CLOUD_ONLY
+        // A verified pulled copy counts as "on both" even before the next scan pairs it with its phone file.
+        val pulled = jobDao.getForCloudItem(itemId).any { it.state == TransferState.DONE && it.sourceId == item.pickerMediaItemId }
+        val state = if (pulled || match != null && match.confidence in ReconciliationRepository.CONFIRMED) MediaState.BOTH else MediaState.CLOUD_ONLY
         return CloudItemDetailUiState.Success(item, state, match, siblings)
     }
 

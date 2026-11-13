@@ -72,6 +72,7 @@ internal fun MatchSection(match: MatchInfo, onOpenCounterpart: (() -> Unit)?) {
             }
             if (e.dimensionsMatched) add(stringResource(R.string.evidence_dimensions))
             if (e.hashMatched == true || e.method == MatchMethod.HASH_CONFIRMED) add(stringResource(R.string.evidence_hash))
+            if (e.method == MatchMethod.PULLED) add(stringResource(R.string.evidence_pulled))
             if (e.candidateCount > 1) add(pluralStringResource(R.plurals.evidence_candidates, e.candidateCount, e.candidateCount))
         }
         Text(reasons.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
