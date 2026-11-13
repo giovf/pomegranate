@@ -27,7 +27,14 @@ internal interface CloudItemDao {
     @Transaction
     suspend fun upsert(item: CloudItemEntity): Long {
         val existing = getByPickerMediaItemId(item.pickerMediaItemId) ?: return insert(item)
-        update(item.copy(id = existing.id))
+        // A fresh listing knows nothing about origins; the folder the user chose (or the app inferred) must survive a re-pick.
+        update(
+            item.copy(
+                id = existing.id,
+                inferredOrigin = item.inferredOrigin ?: existing.inferredOrigin,
+                userOverrideOrigin = item.userOverrideOrigin ?: existing.userOverrideOrigin,
+            ),
+        )
         return existing.id
     }
 

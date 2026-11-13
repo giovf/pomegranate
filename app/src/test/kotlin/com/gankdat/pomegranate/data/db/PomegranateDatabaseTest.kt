@@ -167,6 +167,21 @@ class PomegranateDatabaseTest {
     }
 
     @Test
+    fun `re-picking an item keeps its row and the origin chosen for it`() = runBlocking {
+        insertRound("s-1")
+        insertRound("s-2")
+        val dao = db.cloudItemDao()
+        val id = dao.insert(cloudItem("g-1", sessionId = "s-1").copy(inferredOrigin = "Camera", userOverrideOrigin = "Holiday"))
+
+        assertEquals(id, dao.upsert(cloudItem("g-1", sessionId = "s-2")))
+
+        val row = expectRow(dao.getById(id))
+        assertEquals("s-2", row.sessionId)
+        assertEquals("Camera", row.inferredOrigin)
+        assertEquals("Holiday", row.userOverrideOrigin)
+    }
+
+    @Test
     fun `cloud item upsert keys on the Picker media item id`() = runBlocking {
         insertRound("s-1")
         insertRound("s-2")
