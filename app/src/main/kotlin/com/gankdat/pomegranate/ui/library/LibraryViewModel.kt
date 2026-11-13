@@ -9,6 +9,7 @@ import com.gankdat.pomegranate.census.device.ScanResult
 import com.gankdat.pomegranate.data.db.dao.CloudItemDao
 import com.gankdat.pomegranate.data.db.dao.DeviceItemDao
 import com.gankdat.pomegranate.data.db.dao.TransferJobDao
+import com.gankdat.pomegranate.data.db.entity.PickerRoundState
 import com.gankdat.pomegranate.data.db.entity.TransferState
 import com.gankdat.pomegranate.data.db.entity.CloudItemEntity
 import com.gankdat.pomegranate.data.db.entity.DeviceItemEntity
@@ -82,8 +83,17 @@ internal class LibraryViewModel(
     private val pulled: Flow<Set<String>> =
         jobDao.observeAll().map { jobs -> jobs.filter { it.state == TransferState.DONE }.map { it.sourceId }.toSet() }.distinctUntilChanged()
 
-    private val entries: Flow<List<LibraryEntry>> =
-        combine(deviceDao.observeAll(), cloudDao.observeAll(), reconciliation.observeStates(), pulled, ::buildEntries)
+    /** Sessions of rounds Google has closed. */
+    private val closedSessions: Flow<Set<String>> = cloudScanner.pickerRounds()
+        .map { rounds -> rounds.filter { it.state == PickerRoundState.EXPIRED }.map { it.sessionId }.toSet() }
+        .distinctUntilChanged()
+
+    /** The visible entries, and how many Google-only items are held back because their round is closed. */
+    private val entries: Flow<Pair<List<LibraryEntry>, Int>> =
+        combine(deviceDao.observeAll(), cloudDao.observeAll(), reconciliation.observeStates(), pulled, closedSessions) { device, cloud, states, pulledIds, closed ->
+            val stranded = strandedIds(cloud, states, pulledIds, closed)
+            buildEntries(device, cloud.filter { it.id !in stranded }, states, pulledIds) to stranded.size
+        }
 
     private val _selection = MutableStateFlow<Set<Long>?>(null)
 
@@ -138,8 +148,8 @@ internal class LibraryViewModel(
     }
 
     val libraryState: StateFlow<LibraryUiState> =
-        combine(entries, _groupingMode, _filter, scanner.lastScanTime()) { all, mode, filter, lastScan ->
-            if (all.isEmpty()) {
+        combine(entries, _groupingMode, _filter, scanner.lastScanTime()) { (all, stranded), mode, filter, lastScan ->
+            if (all.isEmpty() && stranded == 0) {
                 LibraryUiState.Empty(hasScanned = lastScan > 0)
             } else {
                 val visible = if (filter == null) all else all.filter { it.state == filter }
@@ -148,6 +158,7 @@ internal class LibraryViewModel(
                     totals = totals(all),
                     filter = filter,
                     lastScanTime = lastScan.takeIf { it > 0 },
+                    strandedCount = stranded,
                 )
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), LibraryUiState.Loading)
@@ -220,6 +231,19 @@ internal class LibraryViewModel(
                 .map { LibraryEntry.fromCloud(it, if (it.pickerMediaItemId in pulled) MediaState.BOTH else MediaState.CLOUD_ONLY) }
             return deviceEntries + cloudEntries
         }
+
+        /**
+         * Google-only items that can be neither previewed nor downloaded because Google closed their round.
+         * They stay in the index (it is what tells the user which dates to pick again) but out of the grid.
+         * Items matched to a phone file or already downloaded are not stranded: nothing more is needed from Google.
+         */
+        fun strandedIds(cloud: List<CloudItemEntity>, states: StateIndex, pulled: Set<String>, closedSessions: Set<String>): Set<Long> =
+            if (closedSessions.isEmpty()) {
+                emptySet()
+            } else {
+                cloud.filter { it.sessionId in closedSessions && it.pickerMediaItemId !in pulled && (states.cloudStates[it.id] ?: MediaState.CLOUD_ONLY) == MediaState.CLOUD_ONLY }
+                    .map { it.id }.toSet()
+            }
 
         fun totals(entries: List<LibraryEntry>): Map<MediaState, StateTotals> =
             MediaState.entries.associateWith { state ->

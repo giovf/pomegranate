@@ -279,6 +279,11 @@
     <string name="title_coverage">Coverage by month</string>
     <string name="coverage_open">Coverage by month</string>
     <string name="coverage_intro">Google never says how big your library is, so this compares each month on this phone with what you have indexed from Google Photos. Orange months are worth a look: either they were never picked, or the phone has items that were never backed up, such as files saved from the internet.\n\nEach side uses its own date. If a photo\'s date was lost when moving phones, its copy here and its copy in Google Photos can sit in different months.</string>
+    <plurals name="library_stranded">
+        <item quantity="one">%1$d more item is in Google Photos but not listed here: Google closed the round it was picked in, so it cannot be shown or downloaded until you pick it again.</item>
+        <item quantity="other">%1$d more items are in Google Photos but not listed here: Google closed the rounds they were picked in, so they cannot be shown or downloaded until you pick them again.</item>
+    </plurals>
+    <string name="library_stranded_action">See which dates to pick again</string>
     <string name="selection_start">Select items to pull</string>
     <string name="selection_hint">Tap items that are only in Google Photos to tick them. Everything else is dimmed: it is already on this phone.</string>
     <string name="selection_day">Select day</string>

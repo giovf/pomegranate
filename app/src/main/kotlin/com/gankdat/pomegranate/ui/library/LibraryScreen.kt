@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
@@ -157,6 +158,7 @@ internal fun LibraryScreen(
                         mode = mode,
                         expandedKeys = expanded,
                         selection = selection,
+                        onOpenConnection = onOpenConnection,
                         onFilter = viewModel::setFilter,
                         onToggle = viewModel::toggleExpanded,
                         onOpenItem = { items, index ->
@@ -190,6 +192,7 @@ private fun LibraryList(
     mode: GroupingMode,
     expandedKeys: Set<String>,
     selection: Set<Long>?,
+    onOpenConnection: () -> Unit,
     onFilter: (MediaState?) -> Unit,
     onToggle: (String) -> Unit,
     onOpenItem: (List<LibraryEntry>, Int) -> Unit,
@@ -202,9 +205,9 @@ private fun LibraryList(
     val volumes = state.groups.flatMap { g -> g.sizeByVolume.map { it.first } }.distinct()
     val listState = rememberLazyListState()
     // One label per list row, in the order the rows are emitted below, for the fast scroller's bubble.
-    val labels = remember(state.groups, expandedKeys, volumes.isEmpty()) {
+    val labels = remember(state.groups, expandedKeys, volumes.isEmpty(), state.strandedCount > 0) {
         buildList<String?> {
-            repeat(if (volumes.isEmpty()) 2 else 3) { add(null) }
+            repeat((if (volumes.isEmpty()) 2 else 3) + (if (state.strandedCount > 0) 1 else 0)) { add(null) }
             state.groups.forEach { group ->
                 add(group.name)
                 if (group.key in expandedKeys) {
@@ -251,6 +254,9 @@ private fun LibraryList(
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
+        }
+        if (state.strandedCount > 0) {
+            item(key = "stranded") { StrandedNotice(state.strandedCount, onOpenConnection) }
         }
         state.groups.forEach { group ->
             val isExpanded = group.key in expandedKeys
@@ -332,6 +338,17 @@ private fun DaySeparator(label: String, onToggleAll: (() -> Unit)? = null) {
         )
         if (onToggleAll != null) {
             TextButton(onClick = onToggleAll) { Text(stringResource(R.string.selection_day)) }
+        }
+    }
+}
+
+/** Google-only items whose round is closed are not listed; this says so and leads to the dates to pick again. */
+@Composable
+private fun StrandedNotice(count: Int, onOpenConnection: () -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(pluralStringResource(R.plurals.library_stranded, count, count), style = MaterialTheme.typography.bodyMedium)
+            TextButton(onClick = onOpenConnection) { Text(stringResource(R.string.library_stranded_action)) }
         }
     }
 }

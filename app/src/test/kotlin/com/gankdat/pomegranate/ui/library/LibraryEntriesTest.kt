@@ -48,4 +48,18 @@ class LibraryEntriesTest {
         assertEquals(1, totals[MediaState.BOTH]?.count)
         assertEquals(1, totals[MediaState.CLOUD_ONLY]?.count)
     }
+
+    @Test
+    fun `only Google-only items of closed rounds that still need Google are stranded`() {
+        val clouds = listOf(
+            cloud(10, "needs-repick.jpg").copy(sessionId = "closed"),
+            cloud(11, "on-phone.jpg").copy(sessionId = "closed"),
+            cloud(12, "pulled.jpg").copy(sessionId = "closed"),
+            cloud(13, "open-round.jpg"),
+        )
+        val states = StateIndex(cloudStates = mapOf(10L to MediaState.CLOUD_ONLY, 11L to MediaState.BOTH, 12L to MediaState.CLOUD_ONLY, 13L to MediaState.CLOUD_ONLY), deviceStates = emptyMap())
+
+        assertEquals(setOf(10L), LibraryViewModel.strandedIds(clouds, states, pulled = setOf("g12"), closedSessions = setOf("closed")))
+        assertEquals(emptySet<Long>(), LibraryViewModel.strandedIds(clouds, states, pulled = emptySet(), closedSessions = emptySet()))
+    }
 }

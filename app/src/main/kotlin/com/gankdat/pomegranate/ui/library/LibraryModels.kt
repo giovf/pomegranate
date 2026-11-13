@@ -122,6 +122,8 @@ internal sealed interface LibraryUiState {
         val filter: MediaState?,
         /** Epoch millis of the last completed scan, null if none. */
         val lastScanTime: Long?,
+        /** Google-only items kept out of the list because their round is closed; they need picking again. */
+        val strandedCount: Int = 0,
     ) : LibraryUiState {
         val totalCount: Int get() = totals.values.sumOf { it.count }
         val totalSizeBytes: Long get() = totals.values.sumOf { it.sizeBytes }
