@@ -35,6 +35,25 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import com.gankdat.pomegranate.data.model.MediaState
+import com.gankdat.pomegranate.ui.components.PrimaryButton
+import com.gankdat.pomegranate.ui.theme.MediaStateColors
+import java.text.NumberFormat
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.data.db.entity.Fidelity
 import com.gankdat.pomegranate.trust.ExportResult
@@ -66,40 +85,74 @@ internal fun ProofOfCopyScreen(
         }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier
-            .weight(1f)
-            .padding(16.dp)) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(painter = painterResource(R.drawable.ic_state_both), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-                        Spacer(Modifier.size(12.dp))
-                        Text(stringResource(R.string.proof_title), style = MaterialTheme.typography.titleLarge)
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            val hasCopies = summary.verifiedCount > 0
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        val green = MediaStateColors.of(MediaState.DEVICE_ONLY)
+                        Box(modifier = Modifier.size(52.dp).clip(CircleShape).background(green.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
+                            Icon(painter = painterResource(R.drawable.ic_check), contentDescription = null, tint = green, modifier = Modifier.size(28.dp))
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                pluralStringResource(R.plurals.proof_big, summary.verifiedCount, NumberFormat.getIntegerInstance().format(summary.verifiedCount)),
+                                style = MaterialTheme.typography.headlineMedium,
+                                modifier = Modifier.semantics { heading() },
+                            )
+                            Text(stringResource(R.string.proof_sub, Formatters.fileSize(summary.totalSizeBytes)), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
-                    Spacer(Modifier.height(12.dp))
-                    Text(pluralStringResource(R.plurals.proof_count, summary.verifiedCount, summary.verifiedCount), style = MaterialTheme.typography.bodyLarge)
-                    Text(stringResource(R.string.proof_size, Formatters.fileSize(summary.totalSizeBytes)), style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.proof_explain), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     summary.lastPulledAtMillis?.let {
-                        Text(stringResource(R.string.proof_last, Formatters.dateTime(it)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.proof_last, Formatters.dateTime(it)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
-            Spacer(Modifier.height(12.dp))
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
+            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.tertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiaryContainer) {
                 Text(stringResource(R.string.proof_warning), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp))
             }
-            Spacer(Modifier.height(24.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(onClick = { viewModel.export(ManifestFormat.CSV) }, enabled = !exporting && summary.verifiedCount > 0) { Text(stringResource(R.string.manifest_export_csv)) }
-                FilledTonalButton(onClick = { viewModel.export(ManifestFormat.JSON) }, enabled = !exporting && summary.verifiedCount > 0) { Text(stringResource(R.string.manifest_export_json)) }
+            Column {
+                ProofRow(stringResource(R.string.manifest_view), enabled = hasCopies, onClick = onViewManifest)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                ProofRow(stringResource(R.string.title_cleanup_guidance), enabled = true, onClick = onCleanupGuidance)
             }
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = onViewManifest, enabled = summary.verifiedCount > 0) { Text(stringResource(R.string.manifest_view)) }
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = onCleanupGuidance) { Text(stringResource(R.string.title_cleanup_guidance)) }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                PrimaryButton(stringResource(R.string.manifest_export_csv), onClick = { viewModel.export(ManifestFormat.CSV) }, enabled = !exporting && hasCopies)
+                TextButton(onClick = { viewModel.export(ManifestFormat.JSON) }, enabled = !exporting && hasCopies, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.manifest_export_json))
+                }
+            }
         }
-        SnackbarHost(hostState = snackbar)
+        SnackbarHost(hostState = snackbar, modifier = Modifier.align(Alignment.BottomCenter))
+    }
+}
+
+@Composable
+private fun ProofRow(title: String, enabled: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .heightIn(min = 56.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        val color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+        Text(title, style = MaterialTheme.typography.titleMedium, color = color, modifier = Modifier.weight(1f))
+        Icon(painter = painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
     }
 }
 

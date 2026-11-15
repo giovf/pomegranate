@@ -15,12 +15,6 @@
     <string name="title_proof">Proof of your copies</string>
     <string name="title_manifest">Every copied file</string>
     <string name="pull_view_proof">See the proof</string>
-    <string name="proof_title">Safe to clean up</string>
-    <plurals name="proof_count">
-        <item quantity="one">%1$d item has a checked copy in the folder you chose.</item>
-        <item quantity="other">%1$d items have checked copies in the folder you chose.</item>
-    </plurals>
-    <string name="proof_size">%1$s saved, read back and found identical.</string>
     <string name="proof_last">Last copy checked %1$s</string>
     <string name="proof_warning">This covers only what you chose and copied. Anything you never chose in Google Photos is not included.</string>
     <string name="manifest_export_csv">Save the list as CSV</string>
@@ -205,13 +199,12 @@
     <string name="rounds_title">Batches so far</string>
     <string name="round_active">Open: waiting for Done</string>
     <string name="round_expired">Closed without Done: nothing added</string>
-    <string name="disconnect_title">Leave Google Photos</string>
+    <string name="disconnect_title">Disconnect from Google</string>
     <string name="disconnect_body">Pomegranate gives up its access and forgets everything it learned from Google. Your copied files and their proof stay.</string>
     <string name="disconnect_step_revoke">Revoke the app\'s access at Google</string>
     <string name="disconnect_step_secrets">Delete the saved sign-in and its key</string>
     <string name="disconnect_step_cloud">Forget the list of your Google Photos, the matches and the batches</string>
     <string name="disconnect_step_cache">Clear cached thumbnails</string>
-    <string name="disconnect_keeps">Keeps: the list of photos on this phone, your copied files and their proof</string>
     <plurals name="disconnect_pending">
         <item quantity="one">%1$d copy is still waiting. It will be dropped.</item>
         <item quantity="other">%1$d copies are still waiting. They will be dropped.</item>
@@ -600,6 +593,24 @@
         <item quantity="one">%1$s photo or video copied and checked</item>
         <item quantity="other">%1$s photos and videos copied and checked</item>
     </plurals>
+
+    <!-- Proof and disconnect -->
+    <plurals name="proof_count">
+        <item quantity="one">%1$d item has a checked copy in the folder you chose.</item>
+        <item quantity="other">%1$d items have checked copies in the folder you chose.</item>
+    </plurals>
+    <string name="proof_size">%1$s saved, read back and found identical.</string>
+    <plurals name="proof_big">
+        <item quantity="one">%1$s photo or video</item>
+        <item quantity="other">%1$s photos and videos</item>
+    </plurals>
+    <string name="proof_sub">copied and checked · %1$s</string>
+    <string name="proof_explain">After saving each file, Pomegranate read it back and compared it with what Google sent.</string>
+    <string name="disconnect_keep_title">You keep</string>
+    <string name="disconnect_keep_files">Every photo and video you copied</string>
+    <string name="disconnect_keep_proof">The proof of your copies</string>
+    <string name="disconnect_keep_google">Everything still in Google Photos</string>
+    <string name="disconnect_remove_title">Pomegranate removes</string>
 
     <!-- More -->
     <string name="more_copies">Your copies</string>
