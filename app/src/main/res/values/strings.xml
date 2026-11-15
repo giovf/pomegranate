@@ -436,7 +436,7 @@
     <string name="settings_privacy_policy_open">Open in browser</string>
     <string name="privacy_policy_url" translatable="false">https://giovf.github.io/pomegranate/privacy/</string>
     <string name="settings_licenses">Open source licences</string>
-    <string name="settings_licenses_hint">Android, Kotlin and AndroidX (Apache 2.0); Material icons (Apache 2.0)</string>
+    <string name="settings_licenses_hint">Android, Kotlin and AndroidX (Apache 2.0); Material icons (Apache 2.0); Baloo 2 typeface (SIL Open Font License 1.1)</string>
     <string name="settings_change_destination_title">Change destination folder?</string>
     <string name="settings_change_destination_body">Files already pulled stay where they are and remain in the manifest. Only future pulls go to the new folder.</string>
     <string name="guidance_precheck_title">Before you delete anything</string>

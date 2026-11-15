@@ -82,7 +82,8 @@ compileSdk 37. Dependency policy: platform + AndroidX only (JUnit 4 for tests).
 - Least-privilege permissions: `INTERNET`, `READ_MEDIA_IMAGES/VIDEO` (+
   Android 14 user-selected handling); SAF for writes. No
   `MANAGE_EXTERNAL_STORAGE`.
-- Material 3, dark mode, dynamic colour, TalkBack content descriptions, large
+- Material 3, dark mode, brand palette and rounded display face (identity
+  chosen 2026-11-15), TalkBack content descriptions, large
   touch targets. English-only UI in v1.
 
 ## Out of scope for v1 (do not scope-creep without re-baselining)

@@ -45,7 +45,8 @@ high-signal — it's part of every prompt, so verbosity costs tokens.
   Room for persistence, DataStore for settings, WorkManager for background.
 - Explicit visibility and return types on public API; `internal` by default
   across package boundaries; no `!!` outside tests.
-- UI: Material 3 with dynamic colour and dark mode; every control has a
+- UI: Material 3 with the brand palette (peach and ruby, owner decision
+  2026-11-15; no wallpaper-derived colour) and dark mode; every control has a
   content description; the three media states (cloud-only / device-only /
   both) always use the same colour + icon pairing.
 - Storage: Storage Access Framework for the user-chosen destination root; no
