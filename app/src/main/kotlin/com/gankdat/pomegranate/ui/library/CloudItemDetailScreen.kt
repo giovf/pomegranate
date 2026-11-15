@@ -34,6 +34,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.gankdat.pomegranate.data.model.MediaState
+import com.gankdat.pomegranate.data.model.PullScope
+import com.gankdat.pomegranate.ui.components.PrimaryButton
+import com.gankdat.pomegranate.ui.navigation.navigateToPull
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.data.db.entity.CloudItemEntity
 import com.gankdat.pomegranate.ui.appViewModelFactory
@@ -69,6 +73,7 @@ internal fun cloudItemDetailViewModel(cloudItemId: Long? = null): CloudItemDetai
             app.database.mediaGroupDao(),
             app.origins,
             app.database.transferJobDao(),
+            app.pullSelection,
         )
     },
 )
@@ -89,6 +94,10 @@ internal fun CloudItemDetailBody(viewModel: CloudItemDetailViewModel, navControl
             onSetOrigin = viewModel::setOriginOverride,
             knownOrigins = knownOrigins,
             onOpenConnection = navController::navigateToConnection,
+            onCopy = {
+                viewModel.selectForCopy()
+                navController.navigateToPull(PullScope.SELECTED)
+            },
         )
     }
 }
@@ -100,6 +109,7 @@ private fun CloudItemDetailContent(
     onSetOrigin: (String?) -> Unit,
     knownOrigins: List<String>,
     onOpenConnection: () -> Unit,
+    onCopy: () -> Unit,
 ) {
     val item = state.item
     val isVideo = item.type == "VIDEO" || item.mime.startsWith("video/")
@@ -110,9 +120,13 @@ private fun CloudItemDetailContent(
             .verticalScroll(rememberScrollState()),
     ) {
         FullSizePreview(ThumbnailSource.Remote(item.baseUrl, item.id, item.sessionId), item.width, item.height, isVideo, onOpenConnection)
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             StatusSection(state.state)
-            Spacer(Modifier.height(12.dp))
+            DetailTitle(item.createTime, item.filename)
+            if (state.state == MediaState.CLOUD_ONLY && state.pulledFidelity == null) {
+                PrimaryButton(stringResource(R.string.home_copy_action), onClick = onCopy)
+            }
+            DetailsFold {
             MetadataRow(stringResource(R.string.meta_type), MimeLabels.label(item.mime))
             MetadataRow(stringResource(R.string.meta_date_taken), Formatters.dateTime(item.createTime))
             if (item.width > 0 && item.height > 0) {
@@ -137,6 +151,7 @@ private fun CloudItemDetailContent(
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             SiblingsSection(state.siblings)
+            }
         }
     }
     if (editingOrigin) {

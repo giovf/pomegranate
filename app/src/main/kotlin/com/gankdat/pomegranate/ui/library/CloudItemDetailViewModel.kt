@@ -48,6 +48,7 @@ internal class CloudItemDetailViewModel(
     private val groupDao: MediaGroupDao,
     private val origins: OriginRepository,
     private val jobDao: TransferJobDao,
+    private val pullSelection: PullSelection,
 ) : ViewModel() {
     private val itemId: Long = checkNotNull(savedStateHandle[Screen.ARG_CLOUD_ITEM_ID]) { "cloudItemId argument missing" }
     private val _state = MutableStateFlow<CloudItemDetailUiState>(CloudItemDetailUiState.Loading)
@@ -76,6 +77,11 @@ internal class CloudItemDetailViewModel(
         val pulled = pulledJob != null
         val state = if (pulled || match != null && match.confidence in ReconciliationRepository.CONFIRMED) MediaState.BOTH else MediaState.CLOUD_ONLY
         return CloudItemDetailUiState.Success(item, state, match, siblings, pulledJob?.fidelity, pulledJob?.relativePath?.ifBlank { null })
+    }
+
+    /** Makes this one item the selection the copy screen starts from. */
+    fun selectForCopy() {
+        pullSelection.set(setOf(itemId))
     }
 
     /** The observed cloud row re-emits after the write, so the state refreshes itself. */

@@ -46,6 +46,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.draw.clip
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.census.device.contentUri
 import com.gankdat.pomegranate.data.db.entity.DeviceItemEntity
@@ -142,15 +144,11 @@ private fun ItemDetailContent(state: ItemDetailUiState.Success, onComputeHash: (
             .verticalScroll(rememberScrollState()),
     ) {
         FullSizePreview(ThumbnailSource.Local(item.volume, item.mediaStoreId), item.width, item.height, isVideo)
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             StatusSection(state.state)
-            Spacer(Modifier.height(12.dp))
-            AssistChip(
-                onClick = {},
-                label = { Text(item.bucket.ifBlank { stringResource(R.string.unknown_folder) }) },
-                leadingIcon = { Icon(painter = painterResource(R.drawable.ic_folder), contentDescription = null, modifier = Modifier.size(18.dp)) },
-            )
-            Spacer(Modifier.height(8.dp))
+            DetailTitle(item.dateTaken, item.displayName)
+            DetailsFold {
+            MetadataRow(stringResource(R.string.meta_folder), item.bucket.ifBlank { stringResource(R.string.unknown_folder) })
             state.pulledFidelity?.let { MetadataRow(stringResource(R.string.meta_pulled_as), fidelityLabel(it)) }
             MetadataRow(stringResource(R.string.meta_path), "${item.volume}/${item.relativePath}${item.displayName}")
             MetadataRow(stringResource(R.string.meta_type), MimeLabels.label(item.mime))
@@ -187,6 +185,7 @@ private fun ItemDetailContent(state: ItemDetailUiState.Success, onComputeHash: (
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
             SiblingsSection(state.siblings)
+            }
         }
     }
 }
@@ -203,8 +202,10 @@ internal fun FullSizePreview(source: ThumbnailSource, width: Int, height: Int, i
     val ratio = if (width > 0 && height > 0) width.toFloat() / height else 4f / 3f
     Box(
         modifier = Modifier
+            .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .aspectRatio(ratio.coerceIn(0.5f, 2.5f))
+            .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {
