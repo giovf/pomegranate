@@ -3,6 +3,7 @@ package com.gankdat.pomegranate.ui.permissions
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -45,11 +46,11 @@ internal fun MediaPermissionGate(
         PermissionState.Denied -> PermissionRationaleScreen(isRetry = true, onGrantAccess = requestPermissions, modifier = modifier)
         PermissionState.PermanentlyDenied ->
             if (continueWithoutAccess) {
-                content(permission)
+                Box(modifier = modifier.fillMaxSize()) { content(permission) }
             } else {
                 PermissionDeniedScreen(onNotNow = { continueWithoutAccess = true }, modifier = modifier)
             }
-        PermissionState.Granted -> content(permission)
+        PermissionState.Granted -> Box(modifier = modifier.fillMaxSize()) { content(permission) }
         PermissionState.PartiallyGranted -> Column(modifier = modifier.fillMaxSize()) {
             if (!uiState.partialBannerDismissed) {
                 PartialAccessBanner(

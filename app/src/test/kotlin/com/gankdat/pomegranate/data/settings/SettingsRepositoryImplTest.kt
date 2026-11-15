@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.gankdat.pomegranate.data.model.FolderStrategy
+import com.gankdat.pomegranate.data.model.ThemeMode
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -178,6 +179,15 @@ class SettingsRepositoryImplTest {
         assertEquals(6, emissions.receive())
 
         collector.cancel()
+    }
+
+    @Test
+    fun `the theme follows the phone until the user chooses, and the choice sticks`() = runBlocking {
+        assertEquals(ThemeMode.AUTO, settings.themeMode.first())
+        settings.setThemeMode(ThemeMode.DARK)
+        assertEquals(ThemeMode.DARK, settings.themeMode.first())
+        settings.setThemeMode(ThemeMode.LIGHT)
+        assertEquals(ThemeMode.LIGHT, settings.themeMode.first())
     }
 
     @Test

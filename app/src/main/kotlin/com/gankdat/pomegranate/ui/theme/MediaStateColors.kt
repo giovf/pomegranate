@@ -25,5 +25,5 @@ internal object MediaStateColors {
     }
 
     @Composable
-    fun of(state: MediaState): Color = of(state, isSystemInDarkTheme())
+    fun of(state: MediaState): Color = of(state, LocalDarkTheme.current)
 }

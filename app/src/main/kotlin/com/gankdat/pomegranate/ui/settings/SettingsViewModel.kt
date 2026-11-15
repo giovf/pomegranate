@@ -5,6 +5,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gankdat.pomegranate.data.model.FolderStrategy
+import com.gankdat.pomegranate.data.model.ThemeMode
 import com.gankdat.pomegranate.data.settings.SettingsRepository
 import com.gankdat.pomegranate.transfer.SafStorage
 import com.gankdat.pomegranate.ui.onboarding.DestinationAccess
@@ -24,6 +25,7 @@ internal data class SettingsUiState(
     val destination: DestinationInfo? = null,
     val freeBytes: Long? = null,
     val folderStrategy: FolderStrategy = SettingsRepository.DEFAULT_FOLDER_STRATEGY,
+    val themeMode: ThemeMode = SettingsRepository.DEFAULT_THEME_MODE,
     val concurrency: Int = SettingsRepository.DEFAULT_CONCURRENCY,
     val wifiOnly: Boolean = SettingsRepository.DEFAULT_WIFI_ONLY,
     val pauseOnLowBattery: Boolean = SettingsRepository.DEFAULT_PAUSE_ON_LOW_BATTERY,
@@ -42,8 +44,10 @@ internal class SettingsViewModel(
         combine(settings.destinationRootUri, settings.folderStrategy, settings.downloadConcurrency) { uri, strategy, concurrency -> Triple(uri, strategy, concurrency) },
         combine(settings.wifiOnly, settings.pauseOnLowBattery, settings.autoDisconnect, settings.fidelityNoticeAcknowledged) { w, b, a, f -> listOf(w, b, a, f) },
         freeBytes,
-    ) { (uri, strategy, concurrency), flags, free ->
+        settings.themeMode,
+    ) { (uri, strategy, concurrency), flags, free, theme ->
         SettingsUiState(
+            themeMode = theme,
             destinationUri = uri,
             destination = uri?.let { describe(it) },
             freeBytes = free,
@@ -81,6 +85,8 @@ internal class SettingsViewModel(
     }
 
     fun setFolderStrategy(strategy: FolderStrategy) = launch { settings.setFolderStrategy(strategy) }
+
+    fun setThemeMode(mode: ThemeMode) = launch { settings.setThemeMode(mode) }
 
     fun setConcurrency(value: Int) = launch { settings.setDownloadConcurrency(value) }
 

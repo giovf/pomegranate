@@ -9,6 +9,8 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -27,13 +29,22 @@ internal fun PomegranateTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
-        typography = PomegranateTypography,
-        shapes = PomegranateShapes,
-        content = content,
-    )
+    CompositionLocalProvider(LocalDarkTheme provides darkTheme) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DarkColors else LightColors,
+            typography = PomegranateTypography,
+            shapes = PomegranateShapes,
+            content = content,
+        )
+    }
 }
+
+/**
+ * Whether the app is showing its dark palette. This can differ from the
+ * phone's setting when the user picked Light or Dark in Settings, so colours
+ * chosen by theme must read this, not the system flag.
+ */
+internal val LocalDarkTheme = staticCompositionLocalOf { false }
 
 private val LightColors: ColorScheme = lightColorScheme(
     primary = Color(0xFFC7203F),

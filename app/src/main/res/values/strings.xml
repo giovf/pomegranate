@@ -620,6 +620,11 @@
     <string name="coverage_short">Each bar is one month: what is only on this phone, only in Google Photos, or in both.</string>
     <string name="coverage_how_title">How to read this</string>
 
+    <string name="settings_appearance">Appearance</string>
+    <string name="theme_auto">Same as this phone</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+
     <!-- More -->
     <string name="more_copies">Your copies</string>
     <string name="more_proof">Proof of your copies</string>

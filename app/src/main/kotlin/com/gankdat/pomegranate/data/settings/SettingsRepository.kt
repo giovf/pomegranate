@@ -1,6 +1,7 @@
 package com.gankdat.pomegranate.data.settings
 
 import com.gankdat.pomegranate.data.model.FolderStrategy
+import com.gankdat.pomegranate.data.model.ThemeMode
 import com.gankdat.pomegranate.data.model.MatchDecision
 import kotlinx.coroutines.flow.Flow
 
@@ -13,6 +14,9 @@ public interface SettingsRepository {
     public val destinationRootUri: Flow<String?>
 
     public val folderStrategy: Flow<FolderStrategy>
+
+    /** Light, dark, or whatever the phone is set to. */
+    public val themeMode: Flow<ThemeMode>
 
     /** Number of simultaneous downloads, between [MIN_CONCURRENCY] and [MAX_CONCURRENCY]. */
     public val downloadConcurrency: Flow<Int>
@@ -57,6 +61,8 @@ public interface SettingsRepository {
 
     public suspend fun setFolderStrategy(strategy: FolderStrategy)
 
+    public suspend fun setThemeMode(mode: ThemeMode)
+
     /** Values outside the allowed range are clamped. */
     public suspend fun setDownloadConcurrency(concurrency: Int)
 
@@ -96,6 +102,7 @@ public interface SettingsRepository {
         public const val MAX_CONCURRENCY: Int = 8
         public const val DEFAULT_CONCURRENCY: Int = 3
         public val DEFAULT_FOLDER_STRATEGY: FolderStrategy = FolderStrategy.BY_ORIGIN
+        public val DEFAULT_THEME_MODE: ThemeMode = ThemeMode.AUTO
         public const val DEFAULT_WIFI_ONLY: Boolean = true
         public const val DEFAULT_AUTO_DISCONNECT: Boolean = false
         public const val DEFAULT_PAUSE_ON_LOW_BATTERY: Boolean = true

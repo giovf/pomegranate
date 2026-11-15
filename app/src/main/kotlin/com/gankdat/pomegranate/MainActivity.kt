@@ -4,7 +4,12 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import android.graphics.Color
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.DisposableEffect
+import com.gankdat.pomegranate.data.model.ThemeMode
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,7 +37,21 @@ internal class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         if (intent.wantsPull()) openPullRequest++
         setContent {
-            PomegranateTheme {
+            val app = PomegranateApplication.from(LocalContext.current)
+            // Null until the stored choice is read: draw nothing rather than flash the wrong palette.
+            val mode = app.settings.themeMode.collectAsStateWithLifecycle(initialValue = null).value ?: return@setContent
+            val dark = when (mode) {
+                ThemeMode.AUTO -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            // Status and navigation bar icons must contrast with the app's palette, not the phone's.
+            DisposableEffect(dark) {
+                val bars = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark }
+                enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
+                onDispose {}
+            }
+            PomegranateTheme(darkTheme = dark) {
                 PomegranateApp(openPullRequest = openPullRequest)
             }
         }

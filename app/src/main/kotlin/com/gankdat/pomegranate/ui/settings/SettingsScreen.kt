@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gankdat.pomegranate.BuildConfig
+import androidx.compose.foundation.layout.heightIn
+import com.gankdat.pomegranate.data.model.ThemeMode
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.data.model.FolderStrategy
 import com.gankdat.pomegranate.data.settings.SettingsRepository
@@ -73,6 +75,31 @@ internal fun SettingsScreen(
             .verticalScroll(rememberScrollState())
             .padding(bottom = 24.dp),
     ) {
+        SectionHeader(stringResource(R.string.settings_appearance))
+        ThemeMode.entries.forEach { mode ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(selected = state.themeMode == mode, role = Role.RadioButton, onClick = { viewModel.setThemeMode(mode) })
+                    .heightIn(min = 48.dp)
+                    .padding(horizontal = 16.dp),
+            ) {
+                RadioButton(selected = state.themeMode == mode, onClick = null)
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    stringResource(
+                        when (mode) {
+                            ThemeMode.AUTO -> R.string.theme_auto
+                            ThemeMode.LIGHT -> R.string.theme_light
+                            ThemeMode.DARK -> R.string.theme_dark
+                        },
+                    ),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+        }
+
         SectionHeader(stringResource(R.string.settings_storage))
         SettingRow(
             title = stringResource(R.string.settings_destination),

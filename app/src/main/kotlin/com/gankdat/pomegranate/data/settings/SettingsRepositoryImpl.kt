@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.gankdat.pomegranate.data.model.FolderStrategy
+import com.gankdat.pomegranate.data.model.ThemeMode
 import com.gankdat.pomegranate.data.model.MatchDecision
 import com.gankdat.pomegranate.data.settings.SettingsRepository.Companion.DEFAULT_AUTO_DISCONNECT
 import com.gankdat.pomegranate.data.settings.SettingsRepository.Companion.DEFAULT_CONCURRENCY
@@ -71,6 +72,14 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
 
     override suspend fun setFolderStrategy(strategy: FolderStrategy) {
         dataStore.edit { it[FOLDER_STRATEGY] = strategy.name }
+    }
+
+    override val themeMode: Flow<ThemeMode> = select { prefs ->
+        prefs[THEME_MODE]?.let { stored -> ThemeMode.entries.firstOrNull { it.name == stored } } ?: SettingsRepository.DEFAULT_THEME_MODE
+    }
+
+    override suspend fun setThemeMode(mode: ThemeMode) {
+        dataStore.edit { it[THEME_MODE] = mode.name }
     }
 
     override suspend fun setDownloadConcurrency(concurrency: Int) {
@@ -171,6 +180,7 @@ internal class SettingsRepositoryImpl(private val dataStore: DataStore<Preferenc
 
         val DESTINATION_ROOT_URI = stringPreferencesKey("destination_root_uri")
         val FOLDER_STRATEGY = stringPreferencesKey("folder_strategy")
+        val THEME_MODE = stringPreferencesKey("theme_mode")
         val DOWNLOAD_CONCURRENCY = intPreferencesKey("download_concurrency")
         val WIFI_ONLY = booleanPreferencesKey("wifi_only")
         val AUTO_DISCONNECT = booleanPreferencesKey("auto_disconnect")
