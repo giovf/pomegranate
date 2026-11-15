@@ -3,10 +3,19 @@ package com.gankdat.pomegranate.ui.navigation
 import androidx.navigation.NavController
 import com.gankdat.pomegranate.data.model.PullScope
 
-internal fun NavController.navigateToLibraryAfterOnboarding() {
-    navigate(Screen.Library.route) {
+internal fun NavController.navigateToHomeAfterOnboarding() {
+    navigate(Screen.Home.route) {
         popUpTo(Screen.Onboarding.route) { inclusive = true }
         launchSingleTop = true
+    }
+}
+
+/** Switches between the main screens; Back from Photos or More returns to Home, and each keeps its scroll position. */
+internal fun NavController.navigateToTab(tab: BottomTab) {
+    navigate(tab.screen.route) {
+        popUpTo(Screen.Home.route) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
     }
 }
 

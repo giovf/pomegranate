@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Pomegranate character on its own (no icon ground, no seed), for use
+     inside the app. Same geometry as ic_launcher_foreground; change both together. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="52dp"
+    android:height="66dp"
+    android:viewportWidth="52"
+    android:viewportHeight="66">
+    <group
+        android:translateX="-28"
+        android:translateY="-21">
+        <!-- crown -->
+        <path
+            android:fillColor="#C7203F"
+            android:pathData="M45.5,39.5L43.5,26.5l6,5l4.5,-7l4.5,7l6,-5l-2,13Z"
+            android:strokeColor="#4A0A18"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.6" />
+        <!-- body, with a lighter area clipped to it for the two-tone shading -->
+        <path
+            android:fillColor="#D62645"
+            android:pathData="M32,59a22,22 0 1,0 44,0a22,22 0 1,0 -44,0z" />
+        <group>
+            <clip-path android:pathData="M32,59a22,22 0 1,0 44,0a22,22 0 1,0 -44,0z" />
+            <path
+                android:fillColor="#EE4460"
+                android:pathData="M29,55a21,21 0 1,0 42,0a21,21 0 1,0 -42,0z" />
+        </group>
+        <path
+            android:pathData="M32,59a22,22 0 1,0 44,0a22,22 0 1,0 -44,0z"
+            android:strokeColor="#4A0A18"
+            android:strokeWidth="2.6" />
+        <!-- highlight -->
+        <path
+            android:pathData="M40.5,51C41.5,46.5 44.5,43.5 48.5,42"
+            android:strokeAlpha="0.9"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round"
+            android:strokeWidth="2.4" />
+        <!-- cheeks -->
+        <path
+            android:fillAlpha="0.85"
+            android:fillColor="#FF8FA3"
+            android:pathData="M39.8,64a2.7,2.7 0 1,0 5.4,0a2.7,2.7 0 1,0 -5.4,0zM62.8,64a2.7,2.7 0 1,0 5.4,0a2.7,2.7 0 1,0 -5.4,0z" />
+        <!-- eyes -->
+        <path
+            android:fillColor="#3A0812"
+            android:pathData="M44.9,58a2.1,2.9 0 1,0 4.2,0a2.1,2.9 0 1,0 -4.2,0zM58.9,58a2.1,2.9 0 1,0 4.2,0a2.1,2.9 0 1,0 -4.2,0z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M46.95,56.9a0.75,0.75 0 1,0 1.5,0a0.75,0.75 0 1,0 -1.5,0zM60.95,56.9a0.75,0.75 0 1,0 1.5,0a0.75,0.75 0 1,0 -1.5,0z" />
+        <!-- smile -->
+        <path
+            android:pathData="M49.5,65Q54,70 58.5,65"
+            android:strokeColor="#3A0812"
+            android:strokeLineCap="round"
+            android:strokeWidth="2" />
+    </group>
+</vector>

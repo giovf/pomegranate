@@ -57,6 +57,9 @@ internal class PomegranateApplication : Application() {
 
     val settings: SettingsRepository by lazy { SettingsRepositoryImpl(settingsDataStore) }
 
+    /** Held while the first look through the phone runs, so Home and Photos do not both start one. */
+    val censusGate: kotlinx.coroutines.sync.Mutex = kotlinx.coroutines.sync.Mutex()
+
     val deviceScanner: DeviceScannerRepository by lazy {
         DeviceScannerRepositoryImpl(DeviceScanner(this), database.deviceItemDao(), settings)
     }

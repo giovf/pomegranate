@@ -9,7 +9,9 @@ import org.junit.Test
 class ScreenTest {
     private val allScreens = listOf(
         Screen.Onboarding,
+        Screen.Home,
         Screen.Library,
+        Screen.More,
         Screen.ItemDetail,
         Screen.CloudItemDetail,
         Screen.Pull,
@@ -56,7 +58,9 @@ class ScreenTest {
     fun `root screens show no back arrow and are real destinations`() {
         assertTrue(Screen.roots.all { it in allScreens })
         assertTrue(Screen.isRoot(Screen.Onboarding.route))
+        assertTrue(Screen.isRoot(Screen.Home.route))
         assertTrue(Screen.isRoot(Screen.Library.route))
+        assertTrue(Screen.isRoot(Screen.More.route))
         assertFalse(Screen.isRoot(Screen.Settings.route))
         assertFalse(Screen.isRoot(null))
     }

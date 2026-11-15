@@ -83,7 +83,7 @@ internal fun LibraryScreen(
         factory = appViewModelFactory {
             LibraryViewModel(
                 it.database.deviceItemDao(), it.database.cloudItemDao(), it.deviceScanner, it.reconciliation, it.cloudScanner, it.auth, it.origins,
-                it.database.transferJobDao(), it.browseSession, it.pullSelection,
+                it.database.transferJobDao(), it.browseSession, it.pullSelection, it.censusGate,
             )
         },
     ),

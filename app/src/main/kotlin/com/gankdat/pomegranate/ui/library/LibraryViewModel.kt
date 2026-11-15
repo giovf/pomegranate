@@ -34,6 +34,8 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** One-off messages for the screen's snackbar. */
 internal sealed interface LibraryMessage {
@@ -55,6 +57,8 @@ internal class LibraryViewModel(
     jobDao: TransferJobDao,
     private val browseSession: BrowseSession,
     private val pullSelection: PullSelection,
+    /** Shared with the Home screen so the first look through the phone runs once, not twice. */
+    private val censusGate: Mutex = Mutex(),
 ) : ViewModel() {
     private val _groupingMode = MutableStateFlow(GroupingMode.BY_FOLDER)
     val groupingMode: StateFlow<GroupingMode> = _groupingMode.asStateFlow()
@@ -178,7 +182,9 @@ internal class LibraryViewModel(
     /** Runs a full census before the first use and once after an update that changes the census rules. */
     fun ensureScanned() {
         viewModelScope.launch {
-            if (scanner.needsFullScan()) runScan(full = true)
+            censusGate.withLock {
+                if (scanner.needsFullScan()) runScan(full = true)
+            }
         }
     }
 

@@ -59,7 +59,7 @@ internal fun PomegranateApp(openPullRequest: Int = 0) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         val start = when (onboardingCompleted) {
             null -> return@Surface
-            true -> Screen.Library
+            true -> Screen.Home
             false -> Screen.Onboarding
         }
         val navController = rememberNavController()
@@ -69,7 +69,7 @@ internal fun PomegranateApp(openPullRequest: Int = 0) {
             modifier = Modifier.fillMaxSize(),
         )
         LaunchedEffect(openPullRequest) {
-            if (openPullRequest > 0 && start == Screen.Library) navController.navigateToPull(PullScope.CLOUD_ONLY)
+            if (openPullRequest > 0 && start == Screen.Home) navController.navigateToPull(PullScope.CLOUD_ONLY)
         }
     }
 }

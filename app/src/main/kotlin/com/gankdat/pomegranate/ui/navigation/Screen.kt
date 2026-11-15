@@ -12,7 +12,14 @@ import com.gankdat.pomegranate.data.model.PullScope
 internal sealed class Screen(val route: String) {
     data object Onboarding : Screen("onboarding")
 
+    /** Where your photos are and what to do next; the first screen after onboarding. */
+    data object Home : Screen("home")
+
+    /** The photo grid, shown as "Photos". */
     data object Library : Screen("library")
+
+    /** Proof, connection, detailed views and settings. */
+    data object More : Screen("more")
 
     data object ItemDetail : Screen("item/{$ARG_ITEM_ID}") {
         val arguments = listOf(navArgument(ARG_ITEM_ID) { type = NavType.LongType })
@@ -69,7 +76,7 @@ internal sealed class Screen(val route: String) {
          * because the subclasses are still initialising when the companion
          * runs; an eager set would capture nulls.
          */
-        val roots: Set<Screen> by lazy { setOf(Onboarding, Library, CleanupGuidance) }
+        val roots: Set<Screen> by lazy { setOf(Onboarding, Home, Library, More, CleanupGuidance) }
 
         fun isRoot(route: String?): Boolean = roots.any { it.route == route }
     }
