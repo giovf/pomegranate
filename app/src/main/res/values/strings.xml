@@ -189,13 +189,12 @@
     <string name="destination_error_not_persistable">Pomegranate could not keep access to that folder. Please choose a folder on this phone or its SD card.</string>
     <string name="destination_error_revoked">Access to the previously chosen folder was lost. Please choose it again.</string>
     <string name="connection_title">Google Photos</string>
-    <string name="connection_body">You choose which photos Pomegranate can see, in Google\'s own picker. It cannot see anything else, and it never changes or deletes anything in Google Photos.</string>
     <string name="connection_not_configured">This build has no Google OAuth client id. Add pomegranate.oauthClientId to local.properties and rebuild.</string>
     <string name="connection_sign_in">Connect Google Photos</string>
     <string name="connection_signing_in">Finishing sign-in…</string>
     <string name="connection_signed_in">Connected</string>
     <string name="connection_sign_out">Disconnect from Google…</string>
-    <string name="connection_scope">Permission granted: view and download only the items you choose in Google\'s picker.</string>
+    <string name="connection_scope">Pomegranate may see and download only what you choose in Google\'s picker.</string>
     <string name="token_valid_until">Access valid until %1$s</string>
     <string name="token_needs_refresh">Access expired; it refreshes automatically on next use.</string>
     <plurals name="token_signed_in_days">
@@ -243,11 +242,8 @@
     <string name="connection_try_again">Try again</string>
     <string name="picker_title">Choose photos from Google Photos</string>
     <string name="picker_body">Google only shares what you choose yourself, up to 2,000 photos and videos at a time. Choose a batch, press Done, then copy it before starting the next: Google closes a batch after a while, and then it has to be chosen again. Choosing something twice is harmless.</string>
-    <string name="picker_nothing_yet">Nothing chosen yet.</string>
-    <string name="picker_overall_span">The photos you chose are dated %1$s to %2$s.</string>
-    <string name="picker_left_off">Your last batch covered %1$s to %2$s. Google lists newest first, so carry on from photos older than %1$s.</string>
-    <string name="picker_start_heading">Batch %1$d</string>
-    <string name="picker_start_other_device_hint">Recommended: on a computer you can hold Shift and click to select hundreds of photos at once.</string>
+    <string name="picker_start_heading">Next: batch %1$d</string>
+    <string name="picker_start_other_device_hint">Quicker for a big library: on a computer, Shift-click selects hundreds at once.</string>
     <string name="picker_round_open">Batch %1$d is open</string>
     <string name="picker_expires">If Done isn\'t pressed, Google closes this batch at %1$s and nothing is added.</string>
     <string name="picker_continue_computer">Continue on a computer</string>
@@ -277,8 +273,8 @@
     <string name="picker_waiting">Choose up to 2,000 in Google\'s picker and press Done. This screen updates by itself once you do; nothing is added before Done.</string>
     <string name="picker_start_other_device">Choose on a computer</string>
     <string name="picker_other_device_title">Choose on another device</string>
-    <string name="picker_continue_from">Start with photos taken before %1$s</string>
-    <string name="picker_continue_from_start">First batch: start with your newest photos at the top</string>
+    <string name="picker_continue_from">Carry on from photos older than %1$s</string>
+    <string name="picker_continue_from_start">Start with your newest photos, at the top</string>
     <string name="picker_other_device_body">Scan this code, or copy or share the link, and open it on a computer signed in to the same Google account. Select your photos there and press Done. When Google says to return to your original device, you are finished on the computer: come back to this screen and the batch completes by itself.</string>
     <string name="picker_other_device_tip">On a computer: click the first photo, hold Shift and click the last to select everything in between, up to 2,000 per batch.</string>
     <string name="picker_other_device_done">Hide code</string>
@@ -585,6 +581,16 @@
     <string name="home_step_finish">Check and disconnect</string>
     <string name="home_step_finish_todo">After your photos are copied</string>
     <string name="home_step_finish_ready">See the proof, then disconnect</string>
+
+    <!-- Google Photos: connect and choose -->
+    <string name="connect_intro">You stay in charge of what Pomegranate can see.</string>
+    <string name="connect_point_see">It sees only the photos you choose</string>
+    <string name="connect_point_change">It can\'t change or delete anything in Google Photos</string>
+    <string name="connect_point_leave">You can disconnect at any time, and the app forgets everything</string>
+    <string name="connect_footnote">Google\'s sign-in page opens in your browser. Pomegranate never sees your password.</string>
+    <string name="batch_on_phone">On this phone</string>
+    <string name="picker_how_title">How choosing works</string>
+    <string name="connection_details_title">Connection details</string>
 
     <!-- More -->
     <string name="more_copies">Your copies</string>

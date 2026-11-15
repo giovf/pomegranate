@@ -2,37 +2,44 @@ package com.gankdat.pomegranate.ui.connection
 
 import android.app.Activity
 import androidx.activity.compose.LocalActivity
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.heading
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -43,15 +50,23 @@ import com.gankdat.pomegranate.auth.AuthState
 import com.gankdat.pomegranate.auth.CustomTabLauncher
 import com.gankdat.pomegranate.auth.TokenStatus
 import com.gankdat.pomegranate.data.db.entity.PickerRoundState
+import com.gankdat.pomegranate.data.model.MediaState
 import com.gankdat.pomegranate.ui.appViewModelFactory
+import com.gankdat.pomegranate.ui.components.PrimaryButton
+import com.gankdat.pomegranate.ui.components.SecondaryButton
 import com.gankdat.pomegranate.ui.format.Formatters
+import com.gankdat.pomegranate.ui.theme.MediaStateColors
 
-/** Google account connection status, sign-in/out, and Picker rounds. */
+/**
+ * Google Photos: connecting, and then choosing photos batch by batch. Before
+ * sign-in it only explains and offers the one button; afterwards it leads with
+ * the next batch and keeps the connection details folded away.
+ */
 @Composable
 internal fun ConnectionScreen(
     onDisconnect: () -> Unit,
     onOpenCoverage: () -> Unit,
-    /** Opens the pull screen; the round to pull has already been made the selection. */
+    /** Opens the copy screen; the batch to copy has already been made the selection. */
     onPull: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ConnectionViewModel = viewModel(
@@ -68,7 +83,7 @@ internal fun ConnectionScreen(
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
 
-    // Returning from the Picker tab: resume polling the open round, if any.
+    // Returning from the Picker tab: resume polling the open batch, if any.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.resumeRoundIfPicking()
         viewModel.checkRounds()
@@ -78,144 +93,234 @@ internal fun ConnectionScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
-        Text(stringResource(R.string.connection_title), style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.height(12.dp))
-        Text(stringResource(R.string.connection_body), style = MaterialTheme.typography.bodyLarge)
-        Spacer(Modifier.height(24.dp))
-        AuthSection(auth, viewModel, activity, onDisconnect)
-
         if (auth == AuthState.SignedIn) {
-            tokenStatus?.let { TokenStatusSection(it, refreshing, viewModel::refreshAccess) }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
             val pullRound = { sessionId: String ->
                 viewModel.selectRoundForPull(sessionId)
                 onPull()
             }
-            PickerSection(round, coverage, viewModel, activity, onOpenCoverage, pullRound)
-            if (rounds.isNotEmpty()) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
-                RoundsHistory(rounds, pullRound)
+            Intro(stringResource(R.string.picker_title), stringResource(R.string.home_choose_body))
+            NextBatch(round, coverage, viewModel, activity, pullRound)
+            if (rounds.isNotEmpty()) ChosenSoFar(rounds, coverage, pullRound)
+            HowItWorks()
+            ConnectionDetails(tokenStatus, refreshing, viewModel::refreshAccess, onOpenCoverage, onDisconnect)
+        } else {
+            Intro(stringResource(R.string.connection_sign_in), stringResource(R.string.connect_intro))
+            Reassurances()
+            SignIn(auth, viewModel, activity)
+        }
+    }
+}
+
+@Composable
+private fun Intro(title: String, body: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(title, style = MaterialTheme.typography.headlineLarge, modifier = Modifier.semantics { heading() })
+        Text(body, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun Panel(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) { content() }
+}
+
+/** What connecting does and does not allow, before the user is asked to do it. */
+@Composable
+private fun Reassurances() {
+    Panel {
+        Column(modifier = Modifier.padding(horizontal = 18.dp)) {
+            listOf(R.string.connect_point_see, R.string.connect_point_change, R.string.connect_point_leave).forEachIndexed { index, res ->
+                if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(modifier = Modifier.heightIn(min = 68.dp).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
+                        Icon(painter = painterResource(R.drawable.ic_check), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(22.dp))
+                    }
+                    Text(stringResource(res), style = MaterialTheme.typography.bodyLarge)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun AuthSection(auth: AuthState, viewModel: ConnectionViewModel, activity: Activity?, onDisconnect: () -> Unit) {
-    when (auth) {
-        AuthState.NotConfigured -> Text(stringResource(R.string.connection_not_configured), color = MaterialTheme.colorScheme.error)
-        AuthState.SignedOut -> Button(onClick = { activity?.let(viewModel::signIn) }, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.connection_sign_in))
-        }
-        AuthState.SigningIn -> {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(12.dp))
-            Text(stringResource(R.string.connection_signing_in))
-            TextButton(onClick = viewModel::abandonSignIn) { Text(stringResource(android.R.string.cancel)) }
-        }
-        AuthState.SignedIn -> {
-            Text(stringResource(R.string.connection_signed_in), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.connection_scope), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(16.dp))
-            OutlinedButton(onClick = onDisconnect, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.connection_sign_out))
+private fun SignIn(auth: AuthState, viewModel: ConnectionViewModel, activity: Activity?) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        when (auth) {
+            AuthState.NotConfigured -> Text(stringResource(R.string.connection_not_configured), color = MaterialTheme.colorScheme.error)
+            AuthState.SigningIn -> {
+                Busy(stringResource(R.string.connection_signing_in))
+                TextButton(onClick = viewModel::abandonSignIn, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(android.R.string.cancel)) }
+            }
+            AuthState.NeedsReauth -> {
+                Text(stringResource(R.string.connection_needs_reauth), style = MaterialTheme.typography.bodyLarge)
+                PrimaryButton(stringResource(R.string.connection_sign_in_again), onClick = { activity?.let(viewModel::signIn) })
+            }
+            is AuthState.Error -> {
+                Text(auth.message, color = MaterialTheme.colorScheme.error)
+                PrimaryButton(stringResource(R.string.connection_try_again), onClick = { viewModel.dismissError(); activity?.let(viewModel::signIn) })
+                TextButton(onClick = viewModel::dismissError, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(android.R.string.cancel)) }
+            }
+            else -> {
+                PrimaryButton(stringResource(R.string.connection_sign_in), onClick = { activity?.let(viewModel::signIn) })
+                Text(stringResource(R.string.connect_footnote), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        AuthState.NeedsReauth -> {
-            Text(stringResource(R.string.connection_needs_reauth), style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = { activity?.let(viewModel::signIn) }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.connection_sign_in_again))
+    }
+}
+
+/** The next batch: start it, follow it while Google's picker is open, and copy it when it is done. */
+@Composable
+private fun NextBatch(round: RoundState, coverage: CoverageUi, viewModel: ConnectionViewModel, activity: Activity?, onPullRound: (String) -> Unit) {
+    var showQr by rememberSaveable { mutableStateOf(false) }
+    val startOnPhone = { activity?.let { a -> viewModel.startRound { url -> CustomTabLauncher.open(a, url) } } }
+    val startElsewhere = { viewModel.startRound { showQr = true } }
+    val nextRound = coverage.roundCount + 1
+
+    Panel {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            when (round) {
+                RoundState.Idle -> StartBatch(nextRound, coverage, onPhone = { startOnPhone() }, onComputer = startElsewhere)
+                RoundState.Starting -> Busy(stringResource(R.string.picker_starting))
+                RoundState.Indexing -> Busy(stringResource(R.string.picker_indexing))
+                is RoundState.Picking -> {
+                    Busy(stringResource(R.string.picker_round_open, nextRound), emphasised = true)
+                    Text(stringResource(R.string.picker_waiting), style = MaterialTheme.typography.bodyLarge)
+                    round.expiresAt?.let {
+                        Text(stringResource(R.string.picker_expires, Formatters.time(it)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    PrimaryButton(stringResource(R.string.picker_continue_phone), onClick = { activity?.let { a -> CustomTabLauncher.open(a, round.pickerUri) } })
+                    SecondaryButton(stringResource(R.string.picker_continue_computer), onClick = { showQr = true })
+                    TextButton(onClick = viewModel::cancelRound, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.picker_cancel_round)) }
+                }
+                is RoundState.Done -> {
+                    val text = if (round.oldest != null && round.newest != null) {
+                        pluralStringResource(R.plurals.picker_round_done_range, round.itemCount, nextRound - 1, round.itemCount, Formatters.date(round.oldest), Formatters.date(round.newest))
+                    } else {
+                        pluralStringResource(R.plurals.picker_round_done, round.itemCount, nextRound - 1, round.itemCount)
+                    }
+                    Text(text, style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(R.string.picker_round_done_next), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    PrimaryButton(stringResource(R.string.round_pull_now), onClick = { onPullRound(round.sessionId) })
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    StartBatch(nextRound, coverage, onPhone = { startOnPhone() }, onComputer = startElsewhere, quiet = true)
+                }
+                is RoundState.Failed -> {
+                    Text(round.message, color = MaterialTheme.colorScheme.error)
+                    PrimaryButton(stringResource(android.R.string.ok), onClick = viewModel::dismissRoundResult)
+                }
             }
         }
-        is AuthState.Error -> {
-            Text(auth.message, color = MaterialTheme.colorScheme.error)
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = { viewModel.dismissError(); activity?.let(viewModel::signIn) }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.connection_try_again))
-            }
-            TextButton(onClick = viewModel::dismissError) { Text(stringResource(android.R.string.cancel)) }
+    }
+    if (showQr && round is RoundState.Picking) {
+        PickOnAnotherDeviceDialog(
+            pickerUri = round.pickerUri,
+            continueBefore = coverage.lastRound?.range?.oldest,
+            onDismiss = { showQr = false },
+        )
+    }
+}
+
+/** [quiet] drops the filled button, for when copying the batch just finished is the main action. */
+@Composable
+private fun StartBatch(number: Int, coverage: CoverageUi, onPhone: () -> Unit, onComputer: () -> Unit, quiet: Boolean = false) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.picker_start_heading, number), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        val lastOldest = coverage.lastRound?.range?.oldest
+        Text(
+            text = if (lastOldest != null) stringResource(R.string.picker_continue_from, Formatters.date(lastOldest)) else stringResource(R.string.picker_continue_from_start),
+            style = MaterialTheme.typography.titleMedium,
+        )
+    }
+    if (quiet) {
+        SecondaryButton(stringResource(R.string.picker_start), onClick = onPhone)
+    } else {
+        PrimaryButton(stringResource(R.string.picker_start), onClick = onPhone)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SecondaryButton(stringResource(R.string.picker_start_other_device), onClick = onComputer)
+        Text(stringResource(R.string.picker_start_other_device_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun ChosenSoFar(rounds: List<RoundSummary>, coverage: CoverageUi, onPullRound: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.rounds_title), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.semantics { heading() })
+        if (coverage.roundCount > 0) {
+            Text(pluralStringResource(R.plurals.picker_coverage, coverage.itemCount, coverage.itemCount, coverage.roundCount), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        rounds.forEachIndexed { index, summary ->
+            if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            BatchRow(summary, onPullRound)
         }
     }
 }
 
 @Composable
-private fun TokenStatusSection(status: TokenStatus, refreshing: Boolean, onRefresh: () -> Unit) {
-    val now = System.currentTimeMillis()
-    val daysSinceSignIn = if (status.signedInAtMillis > 0) ((now - status.signedInAtMillis) / 86_400_000L).toInt() else null
-    Spacer(Modifier.height(16.dp))
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                if (status.accessValidUntilMillis > now) stringResource(R.string.token_valid_until, Formatters.dateTime(status.accessValidUntilMillis)) else stringResource(R.string.token_needs_refresh),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            if (daysSinceSignIn != null) {
+private fun BatchRow(summary: RoundSummary, onPullRound: (String) -> Unit) {
+    val round = summary.round
+    val pending = summary.pending
+    val hasItems = (summary.range?.itemCount ?: 0) > 0
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    pluralStringResource(R.plurals.token_signed_in_days, daysSinceSignIn, daysSinceSignIn),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (daysSinceSignIn >= TESTING_MODE_WARN_DAYS) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = when (round.state) {
+                        PickerRoundState.INDEXED -> {
+                            val selected = pluralStringResource(R.plurals.round_selected, summary.selected, summary.selected)
+                            val overlap = summary.alreadyIndexed?.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.round_already_indexed, it, it) }
+                            listOfNotNull(selected, overlap).joinToString(", ")
+                        }
+                        PickerRoundState.ACTIVE -> stringResource(R.string.round_active)
+                        // A batch that was listed and later closed by Google still has items pointing at it.
+                        PickerRoundState.EXPIRED -> stringResource(if (hasItems) R.string.round_closed else R.string.round_expired)
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                val range = summary.range
+                val span = if (range?.oldest != null && range.newest != null) stringResource(R.string.round_span, Formatters.date(range.oldest), Formatters.date(range.newest)) else null
+                Text(
+                    text = listOfNotNull(stringResource(R.string.round_started, Formatters.dateTime(round.createdAt)), span).joinToString(" · "),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(stringResource(R.string.token_testing_mode_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = onRefresh, enabled = !refreshing) { Text(stringResource(R.string.token_refresh)) }
-        }
-    }
-}
-
-private const val TESTING_MODE_WARN_DAYS = 6
-
-@Composable
-private fun RoundsHistory(rounds: List<RoundSummary>, onPullRound: (String) -> Unit) {
-    Text(stringResource(R.string.rounds_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-    Spacer(Modifier.height(8.dp))
-    rounds.forEach { summary ->
-        val round = summary.round
-        Column(modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp)) {
-            Text(stringResource(R.string.round_started, Formatters.dateTime(round.createdAt)), style = MaterialTheme.typography.bodyMedium)
-            Text(
-                when (round.state) {
-                    PickerRoundState.INDEXED -> {
-                        val selected = pluralStringResource(R.plurals.round_selected, summary.selected, summary.selected)
-                        val overlap = summary.alreadyIndexed?.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.round_already_indexed, it, it) }
-                        val range = summary.range
-                        val span = if (range?.oldest != null && range.newest != null) stringResource(R.string.round_span, Formatters.date(range.oldest), Formatters.date(range.newest)) else null
-                        listOfNotNull(listOfNotNull(selected, overlap).joinToString(", "), span).joinToString(" · ")
-                    }
-                    PickerRoundState.ACTIVE -> stringResource(R.string.round_active)
-                    // A round that was indexed and later closed by Google still has items pointing at it.
-                    PickerRoundState.EXPIRED -> stringResource(if ((summary.range?.itemCount ?: 0) > 0) R.string.round_closed else R.string.round_expired)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            val pending = summary.pending
-            when {
-                round.state == PickerRoundState.INDEXED && pending != null -> {
-                    Text(pluralStringResource(R.plurals.round_pending, pending.count, pending.count), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                    TextButton(onClick = { onPullRound(round.sessionId) }) { Text(stringResource(R.string.round_pull_now)) }
+            if (round.state == PickerRoundState.INDEXED && pending == null && hasItems) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val green = MediaStateColors.of(MediaState.DEVICE_ONLY)
+                    Icon(painter = painterResource(R.drawable.ic_check), contentDescription = null, tint = green, modifier = Modifier.size(18.dp))
+                    Text(stringResource(R.string.batch_on_phone), style = MaterialTheme.typography.labelLarge, color = green)
                 }
-                round.state == PickerRoundState.EXPIRED && pending != null -> RepickGuidance(pending)
-                round.state == PickerRoundState.EXPIRED && (summary.range?.itemCount ?: 0) > 0 ->
-                    Text(stringResource(R.string.round_closed_nothing_lost), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        when {
+            round.state == PickerRoundState.INDEXED && pending != null -> {
+                Text(pluralStringResource(R.plurals.round_pending, pending.count, pending.count), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                SecondaryButton(stringResource(R.string.round_pull_now), onClick = { onPullRound(round.sessionId) })
+            }
+            round.state == PickerRoundState.EXPIRED && pending != null -> ChooseAgain(pending)
+            round.state == PickerRoundState.EXPIRED && hasItems ->
+                Text(stringResource(R.string.round_closed_nothing_lost), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
-/** For a round Google closed: how many items still need downloading and which dates to pick again. */
+/** For a batch Google closed: how many still need copying and which dates to choose again. */
 @Composable
-private fun RepickGuidance(pending: RoundPending) {
-    Card(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(pluralStringResource(R.plurals.repick_title, pending.count, pending.count), style = MaterialTheme.typography.titleSmall)
+private fun ChooseAgain(pending: RoundPending) {
+    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.tertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiaryContainer, modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(pluralStringResource(R.plurals.repick_title, pending.count, pending.count), style = MaterialTheme.typography.titleMedium)
             if (pending.oldest != null && pending.newest != null) {
-                Text(stringResource(R.string.repick_range, Formatters.date(pending.oldest), Formatters.date(pending.newest)), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.repick_range, Formatters.date(pending.oldest), Formatters.date(pending.newest)), style = MaterialTheme.typography.bodyLarge)
                 val shown = pending.months.take(REPICK_MONTHS_SHOWN)
                 val months = shown.joinToString { (month, count) ->
                     "${Formatters.monthYear(month.atDay(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())} ($count)"
@@ -223,127 +328,86 @@ private fun RepickGuidance(pending: RoundPending) {
                 val more = pending.months.size - shown.size
                 Text(
                     if (more > 0) pluralStringResource(R.plurals.repick_months_more, more, months, more) else stringResource(R.string.repick_months, months),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             } else {
-                Text(stringResource(R.string.repick_no_dates), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.repick_no_dates), style = MaterialTheme.typography.bodyLarge)
             }
-            Text(stringResource(R.string.repick_how), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.repick_how), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
 
 private const val REPICK_MONTHS_SHOWN = 8
 
+/** A row that opens and closes the content under it; closed to begin with so the screen stays short. */
 @Composable
-private fun PickerSection(round: RoundState, coverage: CoverageUi, viewModel: ConnectionViewModel, activity: Activity?, onOpenCoverage: () -> Unit, onPullRound: (String) -> Unit) {
-    var showQr by rememberSaveable { mutableStateOf(false) }
-    val startOnPhone = { activity?.let { a -> viewModel.startRound { url -> CustomTabLauncher.open(a, url) } } }
-    val startElsewhere = { viewModel.startRound { showQr = true } }
-    val nextRound = coverage.roundCount + 1
-
-    Text(stringResource(R.string.picker_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-    Spacer(Modifier.height(8.dp))
-    Text(stringResource(R.string.picker_body), style = MaterialTheme.typography.bodyMedium)
-    Spacer(Modifier.height(16.dp))
-
-    // Where things stand: totals, and where the last round left off.
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (coverage.roundCount == 0) {
-                Text(stringResource(R.string.picker_nothing_yet), style = MaterialTheme.typography.bodyLarge)
-            } else {
-                Text(pluralStringResource(R.plurals.picker_coverage, coverage.itemCount, coverage.itemCount, coverage.roundCount), style = MaterialTheme.typography.bodyLarge)
-                if (coverage.oldest != null && coverage.newest != null) {
-                    Text(stringResource(R.string.picker_overall_span, Formatters.date(coverage.oldest), Formatters.date(coverage.newest)), style = MaterialTheme.typography.bodyMedium)
-                }
-                coverage.lastRound?.range?.let { last ->
-                    if (last.oldest != null && last.newest != null) {
-                        Text(
-                            stringResource(R.string.picker_left_off, Formatters.date(last.oldest), Formatters.date(last.newest)),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
-            TextButton(onClick = onOpenCoverage) { Text(stringResource(R.string.coverage_open)) }
+private fun Fold(title: String, content: @Composable () -> Unit) {
+    var open by rememberSaveable(title) { mutableStateOf(false) }
+    Column {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClickLabel = stringResource(if (open) R.string.group_collapse else R.string.group_expand)) { open = !open }
+                .heightIn(min = 56.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Icon(
+                painter = painterResource(R.drawable.ic_expand_more),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.rotate(if (open) 180f else 0f),
+            )
+        }
+        if (open) {
+            Column(modifier = Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { content() }
         }
     }
-    Spacer(Modifier.height(16.dp))
+}
 
-    when (round) {
-        RoundState.Idle -> StartRoundButtons(nextRound, startElsewhere, { startOnPhone() })
-        RoundState.Starting -> Busy(stringResource(R.string.picker_starting))
-        RoundState.Indexing -> Busy(stringResource(R.string.picker_indexing))
-        is RoundState.Picking -> {
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                        Spacer(Modifier.size(12.dp))
-                        Text(stringResource(R.string.picker_round_open, nextRound), style = MaterialTheme.typography.titleSmall)
-                    }
-                    Text(stringResource(R.string.picker_waiting), style = MaterialTheme.typography.bodyMedium)
-                    round.expiresAt?.let {
-                        Text(stringResource(R.string.picker_expires, Formatters.time(it)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Button(onClick = { showQr = true }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_continue_computer)) }
-                    OutlinedButton(onClick = { activity?.let { a -> CustomTabLauncher.open(a, round.pickerUri) } }, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.picker_continue_phone))
-                    }
-                    TextButton(onClick = viewModel::cancelRound) { Text(stringResource(R.string.picker_cancel_round)) }
-                }
-            }
-            if (showQr) {
-                PickOnAnotherDeviceDialog(
-                    pickerUri = round.pickerUri,
-                    continueBefore = coverage.lastRound?.range?.oldest,
-                    onDismiss = { showQr = false },
+@Composable
+private fun HowItWorks() {
+    Fold(stringResource(R.string.picker_how_title)) {
+        Text(stringResource(R.string.picker_body), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Sign-in status, the month-by-month view and disconnecting: there when wanted, out of the way otherwise. */
+@Composable
+private fun ConnectionDetails(status: TokenStatus?, refreshing: Boolean, onRefresh: () -> Unit, onOpenCoverage: () -> Unit, onDisconnect: () -> Unit) {
+    Fold(stringResource(R.string.connection_details_title)) {
+        Text(stringResource(R.string.connection_scope), style = MaterialTheme.typography.bodyLarge)
+        if (status != null) {
+            val now = System.currentTimeMillis()
+            val daysSinceSignIn = if (status.signedInAtMillis > 0) ((now - status.signedInAtMillis) / 86_400_000L).toInt() else null
+            Text(
+                if (status.accessValidUntilMillis > now) stringResource(R.string.token_valid_until, Formatters.dateTime(status.accessValidUntilMillis)) else stringResource(R.string.token_needs_refresh),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (daysSinceSignIn != null) {
+                Text(
+                    pluralStringResource(R.plurals.token_signed_in_days, daysSinceSignIn, daysSinceSignIn),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (daysSinceSignIn >= TESTING_MODE_WARN_DAYS) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Text(stringResource(R.string.token_testing_mode_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            TextButton(onClick = onRefresh, enabled = !refreshing, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.token_refresh)) }
         }
-        is RoundState.Done -> {
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    val text = if (round.oldest != null && round.newest != null) {
-                        pluralStringResource(R.plurals.picker_round_done_range, round.itemCount, nextRound - 1, round.itemCount, Formatters.date(round.oldest), Formatters.date(round.newest))
-                    } else {
-                        pluralStringResource(R.plurals.picker_round_done, round.itemCount, nextRound - 1, round.itemCount)
-                    }
-                    Text(text, style = MaterialTheme.typography.bodyLarge)
-                    Text(stringResource(R.string.picker_round_done_next), style = MaterialTheme.typography.bodySmall)
-                    Button(onClick = { onPullRound(round.sessionId) }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                        Text(stringResource(R.string.round_pull_now))
-                    }
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            StartRoundButtons(nextRound, startElsewhere, { startOnPhone() })
-        }
-        is RoundState.Failed -> {
-            Text(round.message, color = MaterialTheme.colorScheme.error)
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = viewModel::dismissRoundResult, modifier = Modifier.fillMaxWidth()) { Text(stringResource(android.R.string.ok)) }
-        }
+        TextButton(onClick = onOpenCoverage, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.coverage_open)) }
+        SecondaryButton(stringResource(R.string.connection_sign_out), onClick = onDisconnect)
     }
 }
 
-@Composable
-private fun StartRoundButtons(roundNumber: Int, onComputer: () -> Unit, onPhone: () -> Unit) {
-    Text(stringResource(R.string.picker_start_heading, roundNumber), style = MaterialTheme.typography.titleSmall)
-    Spacer(Modifier.height(8.dp))
-    Button(onClick = onComputer, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_start_other_device)) }
-    Text(stringResource(R.string.picker_start_other_device_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Spacer(Modifier.height(8.dp))
-    OutlinedButton(onClick = onPhone, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.picker_start)) }
-}
+private const val TESTING_MODE_WARN_DAYS = 6
 
 @Composable
-private fun Busy(text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-        Spacer(Modifier.size(12.dp))
-        Text(text, style = MaterialTheme.typography.bodyMedium)
+private fun Busy(text: String, emphasised: Boolean = false) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.5.dp, trackColor = Color.Transparent)
+        Text(text, style = if (emphasised) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyLarge)
     }
 }
