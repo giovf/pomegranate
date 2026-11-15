@@ -42,6 +42,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.data.model.MediaState
 import com.gankdat.pomegranate.ui.appViewModelFactory
@@ -104,10 +107,11 @@ internal fun HomeScreen(
         if (state.isLoaded) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionLabel(stringResource(R.string.home_where_title))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatTile(MediaState.DEVICE_ONLY, state.phoneOnly, stringResource(R.string.home_stat_phone), Modifier.weight(1f))
-                    StatTile(MediaState.CLOUD_ONLY, state.cloudOnly, stringResource(R.string.home_stat_cloud), Modifier.weight(1f))
-                    StatTile(MediaState.BOTH, state.both, stringResource(R.string.home_stat_both), Modifier.weight(1f))
+                // All three as tall as the tallest, whatever the length of the number or the label.
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
+                    StatTile(MediaState.DEVICE_ONLY, state.phoneOnly, stringResource(R.string.home_stat_phone), Modifier.weight(1f).fillMaxHeight())
+                    StatTile(MediaState.CLOUD_ONLY, state.cloudOnly, stringResource(R.string.home_stat_cloud), Modifier.weight(1f).fillMaxHeight())
+                    StatTile(MediaState.BOTH, state.both, stringResource(R.string.home_stat_both), Modifier.weight(1f).fillMaxHeight())
                 }
             }
 
@@ -144,7 +148,7 @@ private fun StatTile(place: MediaState, value: Int, label: String, modifier: Mod
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(painter = painterResource(place.iconRes()), contentDescription = null, tint = MediaStateColors.of(place), modifier = Modifier.size(22.dp))
             Text(number, style = MaterialTheme.typography.headlineSmall, maxLines = 1)
             Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

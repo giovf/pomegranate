@@ -33,6 +33,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.draw.alpha
+import kotlinx.coroutines.delay
 import com.gankdat.pomegranate.R
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -52,9 +56,10 @@ internal object FastScroll {
 
 /**
  * A handle on the right edge that follows the list and can be dragged to jump
- * through it. While dragging, a bubble shows [labelFor] the first visible
- * item (the date or folder), so the user can see where they are.
- * Place it in a Box over the list, aligned to the end.
+ * through it. It appears when the list starts moving and fades out shortly
+ * after it stops, so it never sits over the photos at rest. While dragging, a
+ * bubble shows [labelFor] the first visible item (the date or folder), so the
+ * user can see where they are. Place it in a Box over the list, aligned to the end.
  */
 @Composable
 internal fun FastScroller(listState: LazyListState, labelFor: (Int) -> String?, modifier: Modifier = Modifier) {
@@ -80,10 +85,23 @@ internal fun FastScroller(listState: LazyListState, labelFor: (Int) -> String?, 
     val label = if (dragOffset != null) firstVisibleLabel else null
     val description = stringResource(R.string.fast_scroll_handle)
 
+    val inUse = listState.isScrollInProgress || dragOffset != null
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(inUse) {
+        if (inUse) {
+            shown = true
+        } else {
+            delay(HIDE_AFTER_MILLIS)
+            shown = false
+        }
+    }
+    val alpha by animateFloatAsState(if (shown) 1f else 0f, label = "scroll handle")
+
     Box(modifier = modifier.fillMaxHeight().onSizeChanged { trackHeight = it.height }) {
-        Row(
+        // Gone entirely once faded out, so it cannot swallow taps meant for the photos under it.
+        if (shown || alpha > 0f) Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.align(Alignment.TopEnd).offset { IntOffset(0, offset.roundToInt()) },
+            modifier = Modifier.align(Alignment.TopEnd).offset { IntOffset(0, offset.roundToInt()) }.alpha(alpha),
         ) {
             if (label != null) {
                 Surface(color = MaterialTheme.colorScheme.inverseSurface, shape = RoundedCornerShape(16.dp), shadowElevation = 4.dp) {
@@ -122,3 +140,6 @@ internal fun FastScroller(listState: LazyListState, labelFor: (Int) -> String?, 
 }
 
 private val THUMB_HEIGHT = 52.dp
+
+/** How long the handle stays after the list stops, so it can still be grabbed. */
+private const val HIDE_AFTER_MILLIS = 1_500L

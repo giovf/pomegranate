@@ -191,7 +191,7 @@ private fun LibraryList(
     // One label per list row, in the order the rows are emitted below, for the fast scroller's bubble.
     val labels = remember(state.groups, expandedKeys, mode, showLegend, state.strandedCount > 0) {
         buildList<String?> {
-            repeat((if (showLegend) 3 else 2) + (if (state.strandedCount > 0) 1 else 0)) { add(null) }
+            repeat((if (showLegend) 2 else 1) + (if (state.strandedCount > 0) 1 else 0)) { add(null) }
             state.groups.forEach { group ->
                 add(group.name)
                 if (isOpen(group)) {
@@ -200,9 +200,11 @@ private fun LibraryList(
             }
         }
     }
-    Box(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+    // Pinned: switching between phone, Google and both never needs a scroll back to the top.
+    StateFilters(state, mode, onFilter, onSetMode)
+    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
     LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 8.dp)) {
-        item(key = "filters") { StateFilters(state, mode, onFilter, onSetMode) }
         if (showLegend) item(key = "legend") { StorageLegend(volumes) }
         item(key = "summary") {
             val filtered = state.filter?.let { state.totals[it] }
@@ -301,6 +303,7 @@ private fun LibraryList(
         }
     }
     FastScroller(listState = listState, labelFor = { labels.getOrNull(it) }, modifier = Modifier.align(Alignment.CenterEnd))
+    }
     }
 }
 
