@@ -2567,16 +2567,16 @@
         "description": "Redesign the app UI so it is friendly and easy to use, shows only what the user needs at each step instead of everything at once, and looks polished and deliberate rather than generic. Use the identity from task 36 (the cartoon pomegranate character).",
         "details": "Owner request 2026-11-15: 'the app design itself needs a redesign too. it needs to be user friendly, not show unnecessary information as to overwhelm, and it needs to be more polished and less ai-slop-like than it is now'. Store screenshots and their framing wait for this. Suggested order: audit each screen for what a first-time user needs, mock the main flow on the design canvas for the owner to pick from, then implement screen by screen. Keep: Material 3 with dynamic colour and dark mode, content descriptions on every control, and the fixed colour + icon pairing for the three media states.",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "review",
         "dependencies": [],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-11-15T15:14:41.636Z"
+        "updatedAt": "2026-11-15T16:06:43.978Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-11-15T15:14:41.636Z",
+      "lastModified": "2026-11-15T16:06:43.978Z",
       "taskCount": 37,
       "completedCount": 35,
       "tags": [
