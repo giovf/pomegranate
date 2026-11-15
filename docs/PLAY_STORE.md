@@ -40,9 +40,13 @@ contributions (see `README.md`). The homepage says so and links here.
 Visual design (task 36): the owner chose the cartoon character, a smiling
 pomegranate with a bold outline and one seed hopping away (2026-11-15). It is
 the app's adaptive launcher icon (with a themed layer), the store icon, the
-feature graphic and the website logo. Still open under task 36: framing for
-the store screenshots, and whether the website should carry a rounded
-display typeface (it loads no web fonts today).
+feature graphic and the website logo. The website headings use Baloo 2 Bold,
+served from the site's own `fonts/` folder (SIL Open Font License, licence
+text beside it), so the pages still make no third-party requests.
+
+The app's screens are to be redesigned before any store screenshots are
+taken (task 37, owner 2026-11-15): friendlier, less information at once,
+more polished.
 
 How the scope classification was read (order of work, step 1): the Data Access
 page lists only scopes that have been added to the consent screen, so it is

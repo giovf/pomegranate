@@ -1,5 +1,16 @@
-/* Pomegranate website. Self-contained on purpose: no scripts, no web fonts,
-   no third-party requests, so the pages keep the promise they describe. */
+/* Pomegranate website. Self-contained on purpose: no scripts and no
+   third-party requests, so the pages keep the promise they describe. The one
+   display typeface is served from this folder, not from a font service. */
+
+/* Baloo 2 Bold, Latin subset. Copyright 2019 The Baloo 2 Project Authors
+   (https://github.com/EkType/Baloo2), SIL Open Font License 1.1: fonts/OFL.txt */
+@font-face {
+  font-family: "Baloo 2";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/baloo2-latin.woff2") format("woff2");
+}
 
 :root {
   --paper: #fff6f0;
@@ -66,8 +77,10 @@ header.site .wrap {
   gap: 0.6rem;
   color: var(--ink);
   text-decoration: none;
-  font-weight: 650;
-  letter-spacing: 0.01em;
+  font-family: "Baloo 2", ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.3rem;
+  line-height: 1;
 }
 
 .brand svg { width: 2rem; height: 2rem; flex: none; }
@@ -80,15 +93,14 @@ a:hover { color: var(--accent-deep); }
 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
 
 h1, h2 {
-  /* Rounded where the system has such a face; no web fonts are loaded. */
-  font-family: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: "Baloo 2", ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-weight: 700;
   line-height: 1.2;
   text-wrap: balance;
 }
 
-h1 { font-size: clamp(2rem, 6vw, 2.9rem); margin: 0 0 1rem; letter-spacing: -0.01em; }
-h2 { font-size: 1.45rem; margin: 2.75rem 0 0.75rem; }
+h1 { font-size: clamp(2.2rem, 6.5vw, 3.2rem); line-height: 1.1; margin: 0 0 1rem; }
+h2 { font-size: 1.65rem; margin: 2.75rem 0 0.6rem; }
 
 p, ul, ol, table { margin: 0 0 1.1rem; }
 ul, ol { padding-left: 1.3rem; }
