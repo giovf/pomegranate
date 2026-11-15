@@ -2524,14 +2524,14 @@
         "description": "Bump versionCode/versionName once the motion photo and review features land, bundling the accumulated UI fixes (storage bars, folder grouping, atomic updates), and follow docs/RELEASE.md.",
         "details": "Owner asked not to cut versions for small non-functional tweaks; this is the first functional release after them. No store submission.",
         "testStrategy": "",
-        "status": "review",
+        "status": "done",
         "dependencies": [
           "30",
           "31"
         ],
         "priority": "low",
         "subtasks": [],
-        "updatedAt": "2026-11-13T10:54:33.373Z"
+        "updatedAt": "2026-11-15T11:55:03.680Z"
       },
       {
         "id": "35",
@@ -2550,9 +2550,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-11-13T14:04:22.190Z",
+      "lastModified": "2026-11-15T11:55:03.680Z",
       "taskCount": 35,
-      "completedCount": 33,
+      "completedCount": 34,
       "tags": [
         "master"
       ]
