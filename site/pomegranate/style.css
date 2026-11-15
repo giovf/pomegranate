@@ -2,13 +2,13 @@
    no third-party requests, so the pages keep the promise they describe. */
 
 :root {
-  --paper: #fbf5f0;
+  --paper: #fff6f0;
   --panel: #ffffff;
-  --ink: #2a1b1d;
-  --muted: #6a5356;
-  --rule: #e6d6cd;
-  --accent: #a31d34;
-  --accent-deep: #7a1326;
+  --ink: #2a1014;
+  --muted: #6b5357;
+  --rule: #f3d9cd;
+  --accent: #c7203f;
+  --accent-deep: #9c1230;
   --phone: #2e7d32;
   --cloud: #c25700;
   --both: #1565c0;
@@ -80,8 +80,9 @@ a:hover { color: var(--accent-deep); }
 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
 
 h1, h2 {
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  font-weight: 600;
+  /* Rounded where the system has such a face; no web fonts are loaded. */
+  font-family: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 700;
   line-height: 1.2;
   text-wrap: balance;
 }
@@ -93,7 +94,8 @@ p, ul, ol, table { margin: 0 0 1.1rem; }
 ul, ol { padding-left: 1.3rem; }
 li { margin-bottom: 0.45rem; }
 
-.hero { padding: 3.5rem 0 1rem; }
+.hero { padding: 3rem 0 1rem; }
+.mascot { display: block; width: 7rem; height: 7rem; margin: 0 0 1.5rem; border-radius: 1.6rem; }
 .lede { font-size: 1.2rem; color: var(--muted); max-width: 36rem; }
 .updated { color: var(--muted); font-size: 0.95rem; }
 

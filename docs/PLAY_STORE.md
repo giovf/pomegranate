@@ -37,9 +37,12 @@ This repository is public on purpose: the code is open to inspection, under
 the PolyForm Noncommercial licence (no commercial use), and takes no outside
 contributions (see `README.md`). The homepage says so and links here.
 
-Visual design (launcher icon, store icon, feature graphic, website look,
-screenshots) is a separate task (36), to be done with Claude Design. What is
-in `docs/store/` and the current launcher icon are stand-ins until then.
+Visual design (task 36): the owner chose the cartoon character, a smiling
+pomegranate with a bold outline and one seed hopping away (2026-11-15). It is
+the app's adaptive launcher icon (with a themed layer), the store icon, the
+feature graphic and the website logo. Still open under task 36: framing for
+the store screenshots, and whether the website should carry a rounded
+display typeface (it loads no web fonts today).
 
 How the scope classification was read (order of work, step 1): the Data Access
 page lists only scopes that have been added to the consent screen, so it is
@@ -209,7 +212,7 @@ Photos X"; no Google logo, wordmark or recoloured icon in the app icon,
 feature graphic or screenshots; the app shows the connected state and a clear
 disconnect path.
 
-Assets (stand-ins until the design task, 2026-11-15, in `docs/store/`):
+Assets (in `docs/store/`, final artwork as of 2026-11-15):
 
 - `icon-512.png`: 512×512, 32-bit PNG, same artwork as the app's adaptive
   launcher icon (`launcher-preview.png` shows it under a round and a
@@ -217,12 +220,13 @@ Assets (stand-ins until the design task, 2026-11-15, in `docs/store/`):
 - `feature-1024x500.png`: 1024×500, 24-bit PNG, no text (Play shows the
   title beside it).
 - `icon.svg` and `feature.svg` are the editable sources. The container has no
-  SVG rasteriser or fonts, so the PNGs are drawn by
+  SVG rasteriser, so the PNGs are drawn by
   `java docs/store/Render.java docs/store` from the same geometry; change the
-  two together.
+  two together, and the launcher drawables in `app/src/main/res/drawable/`
+  with them.
 
-Still to make, after the design task: at least 2 phone screenshots (use a
-test library, never real photos).
+Still to make: at least 2 phone screenshots (use a test library, never real
+photos) and their framing.
 
 ## 9. Closed test plan
 
