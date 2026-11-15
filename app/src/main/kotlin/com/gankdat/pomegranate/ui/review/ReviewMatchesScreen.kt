@@ -23,6 +23,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import com.gankdat.pomegranate.ui.components.MascotPanel
+import com.gankdat.pomegranate.ui.components.PrimaryButton
+import com.gankdat.pomegranate.ui.components.SecondaryButton
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.data.db.dao.CloudItemDao
 import com.gankdat.pomegranate.data.db.dao.DeviceItemDao
@@ -100,20 +106,21 @@ internal fun ReviewMatchesScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         val pair = current.current
         if (pair == null) {
-            Text(stringResource(R.string.review_done), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.review_done_body), style = MaterialTheme.typography.bodyMedium)
+            MascotPanel(height = 190.dp)
+            Text(stringResource(R.string.review_done), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.semantics { heading() })
+            Text(stringResource(R.string.review_done_body), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (current.skipped > 0) {
-                TextButton(onClick = viewModel::showSkippedAgain) { Text(pluralStringResource(R.plurals.review_show_skipped, current.skipped, current.skipped)) }
+                SecondaryButton(pluralStringResource(R.plurals.review_show_skipped, current.skipped, current.skipped), onClick = viewModel::showSkippedAgain)
             }
             return@Column
         }
-        Text(pluralStringResource(R.plurals.review_remaining, current.remaining, current.remaining), style = MaterialTheme.typography.titleMedium)
-        Text(stringResource(R.string.review_intro), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(pluralStringResource(R.plurals.review_remaining, current.remaining, current.remaining), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
+        Text(stringResource(R.string.review_intro), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             Side(
                 title = stringResource(R.string.review_on_phone),
@@ -142,9 +149,11 @@ internal fun ReviewMatchesScreen(
                 modifier = Modifier.weight(1f),
             )
         }
-        Button(onClick = { viewModel.decide(pair, same = true) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.review_same)) }
-        OutlinedButton(onClick = { viewModel.decide(pair, same = false) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.review_different)) }
-        TextButton(onClick = { viewModel.skip(pair) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.review_skip)) }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            PrimaryButton(stringResource(R.string.review_same), onClick = { viewModel.decide(pair, same = true) })
+            SecondaryButton(stringResource(R.string.review_different), onClick = { viewModel.decide(pair, same = false) })
+            TextButton(onClick = { viewModel.skip(pair) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.review_skip)) }
+        }
     }
 }
 
@@ -165,7 +174,7 @@ private fun Side(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(title, style = MaterialTheme.typography.labelLarge)
         MediaThumbnail(source = source, state = null, isVideo = isVideo, durationMs = durationMs, onClick = onOpen, modifier = Modifier.fillMaxWidth())
-        val small = MaterialTheme.typography.bodySmall
+        val small = MaterialTheme.typography.bodyMedium
         Text(name, style = small)
         Text(if (dateMillis > 0) Formatters.dateTime(dateMillis) else stringResource(R.string.review_date_unknown), style = small)
         Text(size, style = small)
