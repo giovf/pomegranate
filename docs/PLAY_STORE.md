@@ -21,7 +21,22 @@ the phone's browser; the app makes no request of its own. The policy text
 lives twice, in `docs/privacy-policy.md` and
 `site/pomegranate/privacy/index.html`: change both together.
 
-Reading the scope classification (order of work, step 1): the Data Access
+Hosting facts (checked 2026-11-15): `gankdat.com` is the gankdat product
+site, served through Cloudflare and deployed from its own project, so the
+pages go into that project's static files rather than being uploaded by
+hand. Its Content-Security-Policy allows only same-origin scripts, styles
+and images; the pages comply (one same-origin stylesheet, inline SVG, no
+scripts). The site redirects `/pomegranate/` to `/pomegranate`, so the pages
+use root-absolute links and work with either form. After the first deploy,
+check which form answers 200 and use that one in the store listing, the
+OAuth consent screen, `privacy_policy_url` in `strings.xml` and the pages'
+canonical links.
+
+Visual design (launcher icon, store icon, feature graphic, website look,
+screenshots) is a separate task (36), to be done with Claude Design. What is
+in `docs/store/` and the current launcher icon are stand-ins until then.
+
+How the scope classification was read (order of work, step 1): the Data Access
 page lists only scopes that have been added to the consent screen, so it is
 empty until you click **Add or remove scopes**, paste
 `https://www.googleapis.com/auth/photospicker.mediaitems.readonly` under
@@ -36,12 +51,10 @@ does not change how the app behaves while the consent screen is in Testing.
    transfers". Pomegranate is exactly a user-initiated export tool and uses
    only the Picker, but the listing and the OAuth submission must say so in
    those words. Never describe it as a gallery or a Google Photos replacement.
-2. **OAuth verification.** The scope's classification is visible only in the
-   Cloud Console (Data Access page) **(unconfirmed)**. If it is *sensitive*:
-   homepage + policy on a verified domain and a demo video of the sign-in
-   flow. If *restricted*: also a paid security assessment (CASA), which would
-   make a public release impractical for a free personal app. Check this
-   first; it decides whether the rest is worth doing.
+2. **OAuth verification.** The Picker scope is **sensitive** (owner read it
+   from the Cloud Console Data Access page, 2026-11-15), so no paid security
+   assessment (CASA) is needed. Verification needs the homepage and policy
+   on a verified domain and a demo video of the sign-in flow.
 3. **Unverified production is capped** at 100 users for the lifetime of the
    project, with a warning screen. Whether leaving Testing removes the 7-day
    sign-in expiry without verification is **unconfirmed**.
@@ -59,8 +72,7 @@ does not change how the app behaves while the consent screen is in Testing.
 
 ## 2. Order of work
 
-1. Cloud Console: read the scope classification (risk 2). Stop here if
-   restricted.
+1. ~~Cloud Console: read the scope classification~~ Done: sensitive.
 2. Decisions A to D. Publish `docs/privacy-policy.md` and a one-page homepage.
 3. Play Console account: US$25, identity check, verify an Android device with
    the Play Console app. Declare **non-trader** (free, no ads, non-commercial
@@ -192,7 +204,7 @@ Photos X"; no Google logo, wordmark or recoloured icon in the app icon,
 feature graphic or screenshots; the app shows the connected state and a clear
 disconnect path.
 
-Assets (drafts, 2026-11-15, in `docs/store/`):
+Assets (stand-ins until the design task, 2026-11-15, in `docs/store/`):
 
 - `icon-512.png`: 512×512, 32-bit PNG, same artwork as the app's adaptive
   launcher icon (`launcher-preview.png` shows it under a round and a
@@ -204,8 +216,8 @@ Assets (drafts, 2026-11-15, in `docs/store/`):
   `java docs/store/Render.java docs/store` from the same geometry; change the
   two together.
 
-Still to make: at least 2 phone screenshots (use a test library, never real
-photos).
+Still to make, after the design task: at least 2 phone screenshots (use a
+test library, never real photos).
 
 ## 9. Closed test plan
 
