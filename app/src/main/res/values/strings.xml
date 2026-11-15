@@ -119,7 +119,7 @@
     <string name="pull_paused">Paused</string>
     <string name="pull_pause">Pause</string>
     <string name="pull_resume">Resume</string>
-    <string name="pull_whats_left">What\'s left</string>
+    <string name="pull_whats_left">Up next</string>
     <string name="pull_cancel_title">Stop copying?</string>
     <string name="pull_cancel_body">Files already checked stay where they are. Anything still in progress is dropped.</string>
     <string name="pull_cancel_confirm">Stop</string>
@@ -144,10 +144,9 @@
         <item quantity="other">…and %1$d more</item>
     </plurals>
     <string name="pull_retry_failed">Retry failed</string>
-    <string name="pull_back_to_library">Back to library</string>
-    <string name="pull_more">Copy more items</string>
+    <string name="pull_back_to_library">Done</string>
+    <string name="pull_more">Copy more</string>
     <string name="pull_history_title">Your copies so far</string>
-    <string name="pull_new_title">Copy more</string>
     <string name="pull_batch_title">Copied %1$s</string>
     <string name="pull_batch_earlier">Earlier copies</string>
     <string name="pull_batch_verified">Done: every file checked</string>
@@ -157,7 +156,7 @@
         <item quantity="other">%1$d items failed: open to retry</item>
     </plurals>
     <string name="fidelity_label_motion_kept">Motion photo with its motion, as Google stores it: location stripped</string>
-    <string name="pull_done_fidelity">What was saved</string>
+    <string name="pull_done_fidelity">What Google handed over</string>
     <string name="meta_pulled_as">Copied from Google Photos as</string>
     <string name="meta_pulled_to">Saved to</string>
     <string name="fidelity_notice_title">What you get from Google</string>
@@ -591,6 +590,16 @@
     <string name="batch_on_phone">On this phone</string>
     <string name="picker_how_title">How choosing works</string>
     <string name="connection_details_title">Connection details</string>
+
+    <!-- Copying -->
+    <string name="pull_progress_title">Copying your photos</string>
+    <string name="pull_of_total">of %1$s</string>
+    <string name="pull_progress_note">Each one is checked after it is saved. You can leave the app; copying carries on.</string>
+    <string name="pull_stop">Stop copying</string>
+    <plurals name="pull_done_title">
+        <item quantity="one">%1$s photo or video copied and checked</item>
+        <item quantity="other">%1$s photos and videos copied and checked</item>
+    </plurals>
 
     <!-- More -->
     <string name="more_copies">Your copies</string>

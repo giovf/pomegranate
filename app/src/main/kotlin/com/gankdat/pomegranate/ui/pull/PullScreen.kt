@@ -2,31 +2,31 @@ package com.gankdat.pomegranate.ui.pull
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,25 +37,36 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.activity.compose.BackHandler
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gankdat.pomegranate.R
+import com.gankdat.pomegranate.data.db.entity.PickerRoundState
 import com.gankdat.pomegranate.data.db.entity.TransferState
 import com.gankdat.pomegranate.ui.appViewModelFactory
-import com.gankdat.pomegranate.data.db.entity.PickerRoundState
+import com.gankdat.pomegranate.ui.components.MascotPanel
+import com.gankdat.pomegranate.ui.components.PrimaryButton
+import com.gankdat.pomegranate.ui.components.SecondaryButton
 import com.gankdat.pomegranate.ui.format.Formatters
 import com.gankdat.pomegranate.ui.manifest.fidelityLabel
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.map
+import java.text.NumberFormat
 
-/** Scope choice, live progress and completion summary for a pull, in one route. */
+/** Choosing what to copy, the copy in progress and its result, in one route. */
 @Composable
 internal fun PullScreen(
     onDone: () -> Unit,
@@ -83,9 +94,26 @@ internal fun PullScreen(
     }
 }
 
+private fun count(value: Int): String = NumberFormat.getIntegerInstance().format(value)
+
+@Composable
+private fun Panel(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) { content() }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.semantics { heading() })
+}
+
 @Composable
 private fun ScopeContent(viewModel: PullViewModel, modifier: Modifier) {
-    // The progress notification needs POST_NOTIFICATIONS; a refusal only hides it, the pull still runs.
+    // The progress notification needs POST_NOTIFICATIONS; a refusal only hides it, the copy still runs.
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { viewModel.requestStart() }
     val context = LocalContext.current
     val startWithNotificationPermission = {
@@ -97,82 +125,66 @@ private fun ScopeContent(viewModel: PullViewModel, modifier: Modifier) {
     }
     val options by viewModel.scopeOptions.collectAsStateWithLifecycle()
     val selected by viewModel.selected.collectAsStateWithLifecycle()
+    val history by viewModel.history.collectAsStateWithLifecycle()
+    val closedCount by viewModel.closedCount.collectAsStateWithLifecycle()
     val selectedCount = options.firstOrNull { it.choice == selected }?.itemCount ?: 0
-
     val nothingToPull = options.isNotEmpty() && options.all { it.itemCount == 0 }
-    Column(modifier = modifier.fillMaxSize()) {
-        Text(stringResource(R.string.pull_scope_intro), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(16.dp))
-        if (nothingToPull) {
-            Text(
-                stringResource(R.string.pull_nothing),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
-            )
-        }
-        val history by viewModel.history.collectAsStateWithLifecycle()
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            if (history.isNotEmpty()) {
-                item(key = "history-title") {
-                    Text(
-                        stringResource(R.string.pull_history_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier
-                            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
-                            .semantics { heading() },
-                    )
-                }
-                items(history, key = { "batch:${it.batchId}" }) { batch -> PullBatchCard(batch, onOpen = { viewModel.openSummary(batch.batchId) }) }
-                item(key = "options-title") {
-                    Text(
-                        stringResource(R.string.pull_new_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier
-                            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
-                            .semantics { heading() },
-                    )
-                }
-            }
-            items(options, key = { it.choice.toString() }) { option ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .selectable(selected = option.choice == selected, role = Role.RadioButton, onClick = { viewModel.select(option.choice) })
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    RadioButton(selected = option.choice == selected, onClick = null)
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(scopeLabel(option.choice), style = MaterialTheme.typography.bodyLarge)
-                        Text(pluralStringResource(R.plurals.pull_scope_count, option.itemCount, option.itemCount), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Text(
+            text = stringResource(if (nothingToPull) R.string.pull_nothing else R.string.pull_scope_intro),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (options.isNotEmpty()) {
+            Panel {
+                Column {
+                    options.forEachIndexed { index, option ->
+                        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(selected = option.choice == selected, role = Role.RadioButton, onClick = { viewModel.select(option.choice) })
+                                .heightIn(min = 64.dp)
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                        ) {
+                            RadioButton(selected = option.choice == selected, onClick = null)
+                            Column {
+                                Text(scopeLabel(option.choice), style = MaterialTheme.typography.titleMedium)
+                                Text(pluralStringResource(R.plurals.pull_scope_count, option.itemCount, option.itemCount), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
         }
-        val closedCount by viewModel.closedCount.collectAsStateWithLifecycle()
         if (closedCount > 0) {
-            Text(
-                pluralStringResource(R.plurals.pull_closed_rounds, closedCount, closedCount),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.tertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiaryContainer) {
+                Text(pluralStringResource(R.plurals.pull_closed_rounds, closedCount, closedCount), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp))
+            }
         }
-        Text(stringResource(R.string.pull_size_unknown), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp))
-        Button(
-            onClick = startWithNotificationPermission,
-            enabled = selectedCount > 0,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-        ) {
-            Text(pluralStringResource(R.plurals.pull_start, selectedCount, selectedCount))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            PrimaryButton(pluralStringResource(R.plurals.pull_start, selectedCount, selectedCount), onClick = startWithNotificationPermission, enabled = selectedCount > 0)
+            Text(stringResource(R.string.pull_size_unknown), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (history.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionLabel(stringResource(R.string.pull_history_title))
+                history.forEach { batch -> PullBatchCard(batch, onOpen = { viewModel.openSummary(batch.batchId) }) }
+            }
         }
     }
 }
 
-/** One finished pull: when, how much, and where it stands. Opens that pull's summary. */
+/** One finished copy: when, how much, and where it stands. Opens that copy's summary. */
 @Composable
 private fun PullBatchCard(batch: PullBatch, onOpen: () -> Unit) {
     val title = if (batch.batchId > 0) stringResource(R.string.pull_batch_title, Formatters.dateTime(batch.batchId)) else stringResource(R.string.pull_batch_earlier)
@@ -181,21 +193,14 @@ private fun PullBatchCard(batch: PullBatch, onOpen: () -> Unit) {
         batch.cleanedUp -> stringResource(R.string.pull_batch_cleaned_up)
         else -> stringResource(R.string.pull_batch_verified)
     }
-    Card(
-        onClick = onOpen,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
-            Text(pluralStringResource(R.plurals.pull_done_summary, batch.done, batch.done, Formatters.fileSize(batch.bytesWritten)), style = MaterialTheme.typography.bodyMedium)
-            Text(
-                status,
-                style = MaterialTheme.typography.labelLarge,
-                color = if (batch.failed > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 4.dp),
-            )
+    Panel(modifier = Modifier.clickable(role = Role.Button, onClick = onOpen)) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(pluralStringResource(R.plurals.pull_done_summary, batch.done, batch.done, Formatters.fileSize(batch.bytesWritten)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(status, style = MaterialTheme.typography.labelLarge, color = if (batch.failed > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+            }
+            Icon(painter = painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -214,49 +219,79 @@ private fun ProgressContent(viewModel: PullViewModel, modifier: Modifier) {
     var confirmCancel by rememberSaveable { mutableStateOf(false) }
     val summary = progress.summary
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            val fraction = if (summary.total == 0) 0f else summary.done.toFloat() / summary.total
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Text(stringResource(R.string.pull_progress_title), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.semantics { heading() })
+
+        val spoken = pluralStringResource(R.plurals.pull_progress_items, summary.total, summary.done, summary.total, Formatters.fileSize(summary.bytesWritten))
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .size(220.dp)
+                .clearAndSetSemantics { contentDescription = spoken },
+            contentAlignment = Alignment.Center,
+        ) {
+            val ring = Modifier.fillMaxSize()
             // Google reports no sizes up front, so until the first item is done there is no honest fraction: show activity instead.
             if (summary.done == 0 && summary.isActive) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                CircularProgressIndicator(modifier = ring, strokeWidth = 16.dp, trackColor = MaterialTheme.colorScheme.primaryContainer, strokeCap = StrokeCap.Round)
             } else {
-                LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                val fraction = if (summary.total == 0) 0f else summary.done.toFloat() / summary.total
+                CircularProgressIndicator(progress = { fraction }, modifier = ring, strokeWidth = 16.dp, trackColor = MaterialTheme.colorScheme.primaryContainer, strokeCap = StrokeCap.Round, gapSize = 0.dp)
             }
-            Spacer(Modifier.height(8.dp))
-            Text(pluralStringResource(R.plurals.pull_progress_items, summary.total, summary.done, summary.total, Formatters.fileSize(summary.bytesWritten)), style = MaterialTheme.typography.bodyLarge)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(count(summary.done), style = MaterialTheme.typography.displayMedium)
+                Text(stringResource(R.string.pull_of_total, count(summary.total)), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            val eta = progress.etaSeconds
             Text(
                 text = when {
                     progress.isPaused -> stringResource(R.string.pull_paused)
-                    progress.bytesPerSecond != null -> stringResource(R.string.pull_speed, Formatters.fileSize(progress.bytesPerSecond!!.toLong()))
+                    eta != null -> stringResource(R.string.pull_eta, Formatters.duration(eta * 1_000))
                     else -> stringResource(R.string.pull_speed_calculating)
                 },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.titleMedium,
             )
-            progress.etaSeconds?.let {
-                Text(stringResource(R.string.pull_eta, Formatters.duration(it * 1_000)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val speed = progress.bytesPerSecond
+            if (!progress.isPaused && speed != null) {
+                Text(stringResource(R.string.pull_speed, Formatters.fileSize(speed.toLong())), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (progress.isPaused) {
-                    Button(onClick = viewModel::resume) { Text(stringResource(R.string.pull_resume)) }
-                } else {
-                    OutlinedButton(onClick = viewModel::pause) { Text(stringResource(R.string.pull_pause)) }
-                }
-                TextButton(onClick = { confirmCancel = true }) { Text(stringResource(android.R.string.cancel)) }
-            }
+            Text(stringResource(R.string.pull_progress_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         }
-        Text(stringResource(R.string.pull_whats_left), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 16.dp))
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            items(progress.pending, key = { it.job.id }) { row ->
-                Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(row.filename, style = MaterialTheme.typography.bodyMedium)
-                        Text(jobStateLabel(row.job.state, row.liveBytes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        val next = progress.pending.take(PENDING_SHOWN)
+        if (next.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionLabel(stringResource(R.string.pull_whats_left))
+                Panel {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        next.forEachIndexed { index, row ->
+                            if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            Row(modifier = Modifier.heightIn(min = 52.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(row.filename, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                                Text(jobStateLabel(row.job.state, row.liveBytes), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (progress.isPaused) {
+                PrimaryButton(stringResource(R.string.pull_resume), onClick = viewModel::resume)
+            } else {
+                SecondaryButton(stringResource(R.string.pull_pause), onClick = viewModel::pause)
+            }
+            TextButton(onClick = { confirmCancel = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.pull_stop)) }
         }
     }
     if (confirmCancel) {
@@ -285,7 +320,7 @@ private fun CompletionContent(viewModel: PullViewModel, onDone: () -> Unit, onVi
     val progress by viewModel.progress.collectAsStateWithLifecycle()
     val autoDisconnect by viewModel.autoDisconnect.collectAsStateWithLifecycle()
     val summary = progress.summary
-    // Only a pull that has just run may start the disconnect countdown; reopening an old summary never does.
+    // Only a copy that has just run may start the disconnect countdown; reopening an old summary never does.
     val justFinished by viewModel.justFinished.collectAsStateWithLifecycle()
     BackHandler { viewModel.dismissCompletion() }
     var countdown by rememberSaveable { mutableStateOf(if (autoDisconnect && justFinished) AUTO_DISCONNECT_SECONDS else -1) }
@@ -304,75 +339,57 @@ private fun CompletionContent(viewModel: PullViewModel, onDone: () -> Unit, onVi
             onAutoDisconnect()
         }
     }
-    Column(modifier = modifier.fillMaxSize()) {
-        Card(modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(pluralStringResource(R.plurals.pull_done_summary, summary.done, summary.done, Formatters.fileSize(summary.bytesWritten)), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(R.string.pull_done_verified), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (progress.fidelityCounts.isNotEmpty()) {
-                    Text(stringResource(R.string.pull_done_fidelity), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 12.dp))
-                    progress.fidelityCounts.forEach { (fidelity, count) ->
-                        Text("$count × ${fidelityLabel(fidelity)}", style = MaterialTheme.typography.bodyMedium)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        if (progress.failed.isEmpty() && summary.done > 0) MascotPanel(height = 190.dp)
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(pluralStringResource(R.plurals.pull_done_title, summary.done, count(summary.done)), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.semantics { heading() })
+            Text(stringResource(R.string.pull_done_verified), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(Formatters.fileSize(summary.bytesWritten), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (progress.fidelityCounts.isNotEmpty()) {
+            Panel {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(stringResource(R.string.pull_done_fidelity), style = MaterialTheme.typography.titleMedium)
+                    progress.fidelityCounts.forEach { (fidelity, howMany) ->
+                        Text("${count(howMany)} × ${fidelityLabel(fidelity)}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
         }
         if (progress.failed.isNotEmpty()) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(pluralStringResource(R.plurals.pull_failed_summary, progress.failed.size, progress.failed.size), style = MaterialTheme.typography.titleMedium)
                     progress.failed.take(MAX_FAILURES_SHOWN).forEach { row ->
-                        Text("${row.filename}: ${row.job.lastError.orEmpty()}", style = MaterialTheme.typography.bodySmall)
+                        Text("${row.filename}: ${row.job.lastError.orEmpty()}", style = MaterialTheme.typography.bodyMedium)
                     }
-                    if (progress.failed.size > MAX_FAILURES_SHOWN) Text(pluralStringResource(R.plurals.pull_failed_more, progress.failed.size - MAX_FAILURES_SHOWN, progress.failed.size - MAX_FAILURES_SHOWN), style = MaterialTheme.typography.bodySmall)
-                    OutlinedButton(onClick = viewModel::retryFailed, modifier = Modifier.padding(top = 8.dp)) { Text(stringResource(R.string.pull_retry_failed)) }
+                    if (progress.failed.size > MAX_FAILURES_SHOWN) {
+                        Text(pluralStringResource(R.plurals.pull_failed_more, progress.failed.size - MAX_FAILURES_SHOWN, progress.failed.size - MAX_FAILURES_SHOWN), style = MaterialTheme.typography.bodyMedium)
+                    }
+                    SecondaryButton(stringResource(R.string.pull_retry_failed), onClick = viewModel::retryFailed)
                 }
             }
         }
         if (countdown >= 0) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-            ) {
+            Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.tertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiaryContainer, modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(pluralStringResource(R.plurals.auto_disconnect_countdown, countdown, countdown), style = MaterialTheme.typography.bodyMedium)
-                    TextButton(onClick = { countdown = -1 }) { Text(stringResource(R.string.auto_disconnect_cancel)) }
+                    Text(pluralStringResource(R.plurals.auto_disconnect_countdown, countdown, countdown), style = MaterialTheme.typography.bodyLarge)
+                    TextButton(onClick = { countdown = -1 }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.auto_disconnect_cancel)) }
                 }
             }
         }
-        Spacer(Modifier.weight(1f))
-        OutlinedButton(
-            onClick = onViewProof,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-        ) {
-            Text(stringResource(R.string.pull_view_proof))
-        }
-        OutlinedButton(
-            onClick = viewModel::dismissCompletion,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 8.dp),
-        ) {
-            Text(stringResource(R.string.pull_more))
-        }
-        Button(
-            onClick = { viewModel.dismissCompletion(); onDone() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-        ) {
-            Text(stringResource(R.string.pull_back_to_library))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            PrimaryButton(stringResource(R.string.pull_view_proof), onClick = onViewProof)
+            SecondaryButton(stringResource(R.string.pull_more), onClick = viewModel::dismissCompletion)
+            TextButton(onClick = { viewModel.dismissCompletion(); onDone() }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.pull_back_to_library))
+            }
         }
     }
 }
@@ -384,12 +401,17 @@ private fun FidelityNoticeDialog(onContinue: (dontShowAgain: Boolean) -> Unit, o
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.fidelity_notice_title)) },
         text = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.fidelity_notice_body), style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = dontShowAgain, onCheckedChange = { dontShowAgain = it })
-                    Text(stringResource(R.string.fidelity_notice_dont_show))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .selectable(selected = dontShowAgain, role = Role.Checkbox, onClick = { dontShowAgain = !dontShowAgain })
+                        .heightIn(min = 48.dp),
+                ) {
+                    Checkbox(checked = dontShowAgain, onCheckedChange = null)
+                    Text(stringResource(R.string.fidelity_notice_dont_show), modifier = Modifier.padding(start = 12.dp))
                 }
             }
         },
@@ -400,3 +422,4 @@ private fun FidelityNoticeDialog(onContinue: (dontShowAgain: Boolean) -> Unit, o
 
 private const val MAX_FAILURES_SHOWN = 20
 private const val AUTO_DISCONNECT_SECONDS = 15
+private const val PENDING_SHOWN = 4
