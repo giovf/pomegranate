@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One pomegranate seed in the character's drawing style, for decoration
+     around it. Same shape as the seed in ic_launcher_foreground. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp"
+    android:height="31dp"
+    android:viewportWidth="22"
+    android:viewportHeight="31">
+    <group
+        android:translateX="11"
+        android:translateY="14.8">
+        <path
+            android:fillColor="#FF5C7A"
+            android:pathData="M0,-11C5.5,-4 7,2 7,5A7,7 0 0,1 -7,5C-7,2 -5.5,-4 0,-11Z"
+            android:strokeColor="#4A0A18"
+            android:strokeLineJoin="round"
+            android:strokeWidth="6.6" />
+        <path
+            android:fillAlpha="0.85"
+            android:fillColor="#FFFFFF"
+            android:pathData="M-4.3,5a1.7,2.6 0 1,0 3.4,0a1.7,2.6 0 1,0 -3.4,0z" />
+    </group>
+</vector>

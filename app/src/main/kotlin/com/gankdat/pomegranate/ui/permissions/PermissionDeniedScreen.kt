@@ -6,12 +6,9 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -21,7 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.gankdat.pomegranate.R
+import com.gankdat.pomegranate.ui.components.PrimaryButton
 
 /** Shown after a permanent denial: the only way forward is the system Settings page. */
 @Composable
@@ -33,19 +36,19 @@ internal fun PermissionDeniedScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
     ) {
-        Text(text = stringResource(R.string.permission_denied_title), style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.height(12.dp))
-        Text(text = stringResource(R.string.permission_denied_body), style = MaterialTheme.typography.bodyLarge)
-        Spacer(Modifier.height(32.dp))
-        Button(onClick = { context.openAppSettings() }, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.permission_open_settings))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(text = stringResource(R.string.permission_denied_title), style = MaterialTheme.typography.headlineLarge, modifier = Modifier.semantics { heading() })
+            Text(text = stringResource(R.string.permission_denied_body), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        TextButton(onClick = onNotNow) {
-            Text(stringResource(R.string.permission_not_now))
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            PrimaryButton(stringResource(R.string.permission_open_settings), onClick = { context.openAppSettings() })
+            TextButton(onClick = onNotNow, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.permission_not_now))
+            }
         }
     }
 }
