@@ -10,7 +10,7 @@ checked in the console when you get there.
 
 | # | Decision | Outcome |
 |---|---|---|
-| A | Where the privacy policy and homepage live | `https://gankdat.com/pomegranate/` and `https://gankdat.com/pomegranate/privacy/`. The pages are in `site/pomegranate/` (static, no scripts, no third-party requests): upload that folder to the web root as `pomegranate/`. |
+| A | Where the privacy policy and homepage live | GitHub Pages, published from this repository: `https://giovf.github.io/pomegranate/` and `https://giovf.github.io/pomegranate/privacy/`. The pages are in `site/pomegranate/` (static, no scripts, no third-party requests); `.github/workflows/pages.yml` publishes that folder, and only that folder, on every push to `main` that changes it. |
 | B | Public contact email | `info@gankdat.com` (in the policy, the homepage, and to be used on the store listing). |
 | C | Store title | `Pomegranate for Google Photos` (29 of 30 characters; "X for Google Photos" is the form Google's Photos UX guidelines ask for). Fallback if Play objects: `Pomegranate: photo exit tool`. |
 | D | 12 closed testers | Still open. Needed for 14 continuous days before production access; start recruiting early. |
@@ -21,16 +21,21 @@ the phone's browser; the app makes no request of its own. The policy text
 lives twice, in `docs/privacy-policy.md` and
 `site/pomegranate/privacy/index.html`: change both together.
 
-Hosting facts (checked 2026-11-15): `gankdat.com` is the gankdat product
-site, served through Cloudflare and deployed from its own project, so the
-pages go into that project's static files rather than being uploaded by
-hand. Its Content-Security-Policy allows only same-origin scripts, styles
-and images; the pages comply (one same-origin stylesheet, inline SVG, no
-scripts). The site redirects `/pomegranate/` to `/pomegranate`, so the pages
-use root-absolute links and work with either form. After the first deploy,
-check which form answers 200 and use that one in the store listing, the
-OAuth consent screen, `privacy_policy_url` in `strings.xml` and the pages'
-canonical links.
+Hosting notes (2026-11-15): the owner first chose `gankdat.com/pomegranate/`,
+then switched to GitHub Pages because `gankdat.com` is a separate product
+site with its own deploy. Open risk: Google's OAuth verification asks for a
+homepage and policy on a domain you own, and whether a `github.io` address
+is accepted is **unconfirmed**. If Google refuses it, the fallback is a
+custom domain on the same Pages site: a `CNAME` DNS record for
+`pomegranate.gankdat.com` pointing to `giovf.github.io`, the domain entered
+under the repository's Pages settings, and then the new address in the store
+listing, the OAuth consent screen, `privacy_policy_url` in `strings.xml` and
+the pages' canonical links. The pages use relative links, so nothing else
+changes.
+
+This repository is public on purpose: the code is open to inspection, under
+the PolyForm Noncommercial licence (no commercial use), and takes no outside
+contributions (see `README.md`). The homepage says so and links here.
 
 Visual design (launcher icon, store icon, feature graphic, website look,
 screenshots) is a separate task (36), to be done with Claude Design. What is
@@ -235,6 +240,6 @@ test library, never real photos).
 
 - [ ] Task 26 walkthrough passed on a real phone (nothing here replaces it).
 - [ ] One long pull (over 6 hours or interrupted) resumes on Android 15+.
-- [ ] Privacy policy hosted: upload `site/pomegranate/` and check both
-      addresses load (contact filled in and Settings link done, 2026-11-15).
+- [x] Privacy policy hosted on GitHub Pages, contact filled in, linked
+      from Settings (2026-11-15).
 - [ ] Listing text and screenshots reviewed against section 8 rules.

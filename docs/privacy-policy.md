@@ -3,7 +3,7 @@
 _Last updated: 15 November 2026 · applies to the Android app `com.gankdat.pomegranate`_
 
 <!-- Published copy: site/pomegranate/privacy/index.html
-     (https://gankdat.com/pomegranate/privacy/). Change both together. -->
+     (https://giovf.github.io/pomegranate/privacy/). Change both together. -->
 
 Pomegranate is an Android app that shows where each of your photos and videos
 lives (on your phone, in Google Photos, or both), copies the ones you pick

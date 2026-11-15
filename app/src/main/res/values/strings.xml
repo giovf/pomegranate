@@ -432,9 +432,9 @@
     <string name="settings_what">What this app does</string>
     <string name="settings_what_body">Pomegranate shows where each photo lives (this phone, Google Photos, or both), copies what is only in the cloud into a folder you choose, proves each copy with a hash, and then cuts its own access to Google so you can leave cleanly. It never deletes anything.</string>
     <string name="settings_privacy_policy">Privacy policy</string>
-    <string name="settings_privacy_policy_body">No data leaves this phone except requests to Google\'s sign-in and Photos Picker services, made only when you ask. There are no analytics, no crash reporting and no third-party services. Your Google access is revoked and all related data deleted when you disconnect.\n\nThe full policy is at gankdat.com/pomegranate/privacy</string>
+    <string name="settings_privacy_policy_body">No data leaves this phone except requests to Google\'s sign-in and Photos Picker services, made only when you ask. There are no analytics, no crash reporting and no third-party services. Your Google access is revoked and all related data deleted when you disconnect.\n\nThe full policy is at giovf.github.io/pomegranate/privacy</string>
     <string name="settings_privacy_policy_open">Open in browser</string>
-    <string name="privacy_policy_url" translatable="false">https://gankdat.com/pomegranate/privacy/</string>
+    <string name="privacy_policy_url" translatable="false">https://giovf.github.io/pomegranate/privacy/</string>
     <string name="settings_licenses">Open source licences</string>
     <string name="settings_licenses_hint">Android, Kotlin and AndroidX (Apache 2.0); Material icons (Apache 2.0)</string>
     <string name="settings_change_destination_title">Change destination folder?</string>
