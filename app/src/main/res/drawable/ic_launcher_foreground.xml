@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon foreground: a pomegranate with its crown and seven seeds.
+     Everything sits inside the 66dp safe zone (radius 33 around 54,54).
+     Same geometry as docs/store/icon.svg and site/pomegranate/icon.svg. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#7A1326"
+        android:pathData="M46,37L44,25l6,5l4,-6l4,6l6,-5l-2,12z" />
+    <path
+        android:fillColor="#B3213A"
+        android:pathData="M31,58a23,23 0 1,0 46,0a23,23 0 1,0 -46,0z" />
+    <path
+        android:fillColor="#F4E9E1"
+        android:pathData="M50.4,59a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0zM59.9,59a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0zM55.15,67.23a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0zM45.65,67.23a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0zM40.9,59a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0zM45.65,50.77a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0zM55.15,50.77a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0z" />
+</vector>

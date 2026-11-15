@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon layer: the launcher uses only the alpha, so the seeds are holes. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M46,37L44,25l6,5l4,-6l4,6l6,-5l-2,12z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M31,58a23,23 0 1,0 46,0a23,23 0 1,0 -46,0zM50.4,59a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0zM59.9,59a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0zM55.15,67.23a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0zM45.65,67.23a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0zM40.9,59a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0zM45.65,50.77a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0zM55.15,50.77a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0z" />
+</vector>

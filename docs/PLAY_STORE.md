@@ -192,8 +192,20 @@ Photos X"; no Google logo, wordmark or recoloured icon in the app icon,
 feature graphic or screenshots; the app shows the connected state and a clear
 disconnect path.
 
-Assets still to make: 512×512 icon, 1024×500 feature graphic, at least 2
-phone screenshots (use a test library, never real photos).
+Assets (drafts, 2026-11-15, in `docs/store/`):
+
+- `icon-512.png`: 512×512, 32-bit PNG, same artwork as the app's adaptive
+  launcher icon (`launcher-preview.png` shows it under a round and a
+  rounded-square mask).
+- `feature-1024x500.png`: 1024×500, 24-bit PNG, no text (Play shows the
+  title beside it).
+- `icon.svg` and `feature.svg` are the editable sources. The container has no
+  SVG rasteriser or fonts, so the PNGs are drawn by
+  `java docs/store/Render.java docs/store` from the same geometry; change the
+  two together.
+
+Still to make: at least 2 phone screenshots (use a test library, never real
+photos).
 
 ## 9. Closed test plan
 
