@@ -81,7 +81,7 @@ internal fun MediaThumbnail(
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .alpha(if (dimmed) 0.35f else 1f)
             .combinedClickable(enabled = !dimmed, onClick = onClick, onLongClick = onLongClick)

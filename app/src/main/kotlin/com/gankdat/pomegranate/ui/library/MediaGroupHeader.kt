@@ -50,8 +50,14 @@ internal fun MediaGroupHeader(
     modifier: Modifier = Modifier,
     /** Bar segments as (fraction of the largest group, colour); empty draws no bar. */
     storageBar: List<Pair<Float, Color>> = emptyList(),
+    /** A plain heading for a run of photos (a month): the name and how many, no icon, size or bar. */
+    compact: Boolean = false,
 ) {
-    val stats = pluralStringResource(R.plurals.group_stats, itemCount, itemCount, Formatters.fileSize(totalSizeBytes))
+    val stats = if (compact) {
+        pluralStringResource(R.plurals.group_items, itemCount, itemCount)
+    } else {
+        pluralStringResource(R.plurals.group_stats, itemCount, itemCount, Formatters.fileSize(totalSizeBytes))
+    }
     val action = stringResource(if (isExpanded) R.string.group_collapse else R.string.group_expand)
     val rotation by animateFloatAsState(if (isExpanded) 180f else 0f, label = "chevron")
 
@@ -63,24 +69,31 @@ internal fun MediaGroupHeader(
                 heading()
                 contentDescription = "$name, $stats, $action"
             },
-        tonalElevation = 1.dp,
+        tonalElevation = if (compact) 0.dp else 1.dp,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .defaultMinSize(minHeight = 56.dp)
+                .defaultMinSize(minHeight = if (compact) 48.dp else 56.dp)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            Icon(painter = painterResource(iconRes), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = name, style = MaterialTheme.typography.titleMedium)
-                Text(text = stats, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (storageBar.isNotEmpty()) StorageBar(storageBar)
+            if (compact) {
+                Text(text = name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(text = stats, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.width(8.dp))
+            } else {
+                Icon(painter = painterResource(iconRes), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = name, style = MaterialTheme.typography.titleMedium)
+                    Text(text = stats, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (storageBar.isNotEmpty()) StorageBar(storageBar)
+                }
             }
             Icon(
                 painter = painterResource(R.drawable.ic_expand_more),
                 contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .size(24.dp)
                     .rotate(rotation),

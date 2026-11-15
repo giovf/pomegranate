@@ -60,7 +60,7 @@ internal class LibraryViewModel(
     /** Shared with the Home screen so the first look through the phone runs once, not twice. */
     private val censusGate: Mutex = Mutex(),
 ) : ViewModel() {
-    private val _groupingMode = MutableStateFlow(GroupingMode.BY_FOLDER)
+    private val _groupingMode = MutableStateFlow(GroupingMode.BY_MONTH)
     val groupingMode: StateFlow<GroupingMode> = _groupingMode.asStateFlow()
 
     private val _filter = MutableStateFlow<MediaState?>(null)

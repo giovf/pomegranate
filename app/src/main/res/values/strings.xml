@@ -330,13 +330,10 @@
         <item quantity="one">Batch %1$d finished: %2$d item added.</item>
         <item quantity="other">Batch %1$d finished: %2$d items added.</item>
     </plurals>
-    <string name="status_not_connected">Not connected to Google Photos. Tap to connect.</string>
-    <string name="status_connected_no_rounds">Connected to Google Photos. Tap to choose photos.</string>
-    <plurals name="status_connected_coverage">
-        <item quantity="one">Google Photos: %1$d chosen in %2$d batches</item>
-        <item quantity="other">Google Photos: %1$d chosen in %2$d batches</item>
-    </plurals>
-    <string name="filter_all">All (%1$d)</string>
+    <string name="filter_all">All</string>
+    <string name="filter_phone">Phone</string>
+    <string name="filter_google">Google</string>
+    <string name="filter_both">Both</string>
     <plurals name="library_summary_filtered">
         <item quantity="one">%1$d item • %2$s</item>
         <item quantity="other">%1$d items • %2$s</item>
@@ -445,8 +442,8 @@
     <string name="guidance_confirm_button">I have finished cleaning up</string>
     <string name="guidance_confirmed">Clean-up confirmed on %1$s.</string>
     <string name="storage_bar_legend">Bar length shows each folder\'s size against the largest:</string>
-    <string name="tab_by_folder">By folder</string>
-    <string name="tab_by_month">By month</string>
+    <string name="tab_by_folder">Show by folder, with sizes</string>
+    <string name="tab_by_month">Show by month</string>
     <string name="group_expand">tap to expand</string>
     <string name="group_collapse">tap to collapse</string>
     <plurals name="group_stats">
@@ -611,6 +608,11 @@
     <string name="disconnect_keep_proof">The proof of your copies</string>
     <string name="disconnect_keep_google">Everything still in Google Photos</string>
     <string name="disconnect_remove_title">Pomegranate removes</string>
+
+    <plurals name="group_items">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
 
     <!-- More -->
     <string name="more_copies">Your copies</string>

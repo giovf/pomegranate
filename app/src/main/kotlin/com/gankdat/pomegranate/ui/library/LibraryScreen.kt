@@ -52,10 +52,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.semantics.contentDescription
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.data.model.MediaState
 import com.gankdat.pomegranate.ui.appViewModelFactory
-import com.gankdat.pomegranate.ui.components.ConnectionStatusBar
 import com.gankdat.pomegranate.ui.components.FastScroller
 import com.gankdat.pomegranate.ui.components.iconRes
 import com.gankdat.pomegranate.ui.components.labelRes
@@ -93,7 +94,6 @@ internal fun LibraryScreen(
     val expanded by viewModel.expandedKeys.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isReconciling by viewModel.isReconciling.collectAsStateWithLifecycle()
-    val connection by viewModel.connection.collectAsStateWithLifecycle()
     val selection by viewModel.selection.collectAsStateWithLifecycle()
     BackHandler(enabled = selection != null) { viewModel.clearSelection() }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -121,27 +121,6 @@ internal fun LibraryScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            ConnectionStatusBar(
-                isConnected = connection.isConnected,
-                cloudItemCount = connection.cloudItemCount,
-                roundCount = connection.roundCount,
-                onClick = onOpenConnection,
-            )
-            PrimaryTabRow(selectedTabIndex = mode.ordinal) {
-                GroupingMode.entries.forEach { tab ->
-                    Tab(
-                        selected = mode == tab,
-                        onClick = { viewModel.setGroupingMode(tab) },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(painter = painterResource(tab.iconRes()), contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text(stringResource(tab.labelRes()), maxLines = 1)
-                            }
-                        },
-                    )
-                }
-            }
             if (isReconciling) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
@@ -160,6 +139,7 @@ internal fun LibraryScreen(
                         selection = selection,
                         onOpenConnection = onOpenConnection,
                         onFilter = viewModel::setFilter,
+                        onSetMode = viewModel::setGroupingMode,
                         onToggle = viewModel::toggleExpanded,
                         onOpenItem = { items, index ->
                             viewModel.prepareBrowse(items)
@@ -194,6 +174,7 @@ private fun LibraryList(
     selection: Set<Long>?,
     onOpenConnection: () -> Unit,
     onFilter: (MediaState?) -> Unit,
+    onSetMode: (GroupingMode) -> Unit,
     onToggle: (String) -> Unit,
     onOpenItem: (List<LibraryEntry>, Int) -> Unit,
     onStartSelection: (LibraryEntry?) -> Unit,
@@ -203,14 +184,17 @@ private fun LibraryList(
     // Bars scale against the largest group, so they stay meaningful with several storage volumes.
     val largestGroup = (state.groups.maxOfOrNull { it.totalSizeBytes } ?: 0L).coerceAtLeast(1L).toFloat()
     val volumes = state.groups.flatMap { g -> g.sizeByVolume.map { it.first } }.distinct()
+    // Months open as a plain photo grid; folders start closed because their sizes are the point there.
+    val isOpen = { group: MediaGroup -> if (mode == GroupingMode.BY_MONTH) group.key !in expandedKeys else group.key in expandedKeys }
+    val showLegend = mode == GroupingMode.BY_FOLDER && volumes.isNotEmpty()
     val listState = rememberLazyListState()
     // One label per list row, in the order the rows are emitted below, for the fast scroller's bubble.
-    val labels = remember(state.groups, expandedKeys, volumes.isEmpty(), state.strandedCount > 0) {
+    val labels = remember(state.groups, expandedKeys, mode, showLegend, state.strandedCount > 0) {
         buildList<String?> {
-            repeat((if (volumes.isEmpty()) 2 else 3) + (if (state.strandedCount > 0) 1 else 0)) { add(null) }
+            repeat((if (showLegend) 3 else 2) + (if (state.strandedCount > 0) 1 else 0)) { add(null) }
             state.groups.forEach { group ->
                 add(group.name)
-                if (group.key in expandedKeys) {
+                if (isOpen(group)) {
                     group.days.forEach { day -> repeat(1 + (day.items.size + GRID_COLUMNS - 1) / GRID_COLUMNS) { add(day.label) } }
                 }
             }
@@ -218,8 +202,8 @@ private fun LibraryList(
     }
     Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 8.dp)) {
-        item(key = "filters") { StateFilters(state, onFilter) }
-        if (volumes.isNotEmpty()) item(key = "legend") { StorageLegend(volumes) }
+        item(key = "filters") { StateFilters(state, mode, onFilter, onSetMode) }
+        if (showLegend) item(key = "legend") { StorageLegend(volumes) }
         item(key = "summary") {
             val filtered = state.filter?.let { state.totals[it] }
             val text = if (filtered == null) {
@@ -259,7 +243,7 @@ private fun LibraryList(
             item(key = "stranded") { StrandedNotice(state.strandedCount, onOpenConnection) }
         }
         state.groups.forEach { group ->
-            val isExpanded = group.key in expandedKeys
+            val isExpanded = isOpen(group)
             item(key = group.key) {
                 MediaGroupHeader(
                     name = group.name,
@@ -268,7 +252,8 @@ private fun LibraryList(
                     isExpanded = isExpanded,
                     onToggleExpand = { onToggle(group.key) },
                     iconRes = if (group.isCloudOnly) R.drawable.ic_state_cloud else mode.iconRes(),
-                    storageBar = group.sizeByVolume.map { (volume, bytes) -> bytes.toFloat() / largestGroup to volumeColor(volume) },
+                    storageBar = if (mode == GroupingMode.BY_FOLDER) group.sizeByVolume.map { (volume, bytes) -> bytes.toFloat() / largestGroup to volumeColor(volume) } else emptyList(),
+                    compact = mode == GroupingMode.BY_MONTH,
                 )
             }
             if (isExpanded) {
@@ -345,8 +330,8 @@ private fun DaySeparator(label: String, onToggleAll: (() -> Unit)? = null) {
 /** Google-only items whose round is closed are not listed; this says so and leads to the dates to pick again. */
 @Composable
 private fun StrandedNotice(count: Int, onOpenConnection: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Column(modifier = Modifier.padding(12.dp)) {
+    Surface(color = MaterialTheme.colorScheme.tertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiaryContainer, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 4.dp)) {
             Text(pluralStringResource(R.plurals.library_stranded, count, count), style = MaterialTheme.typography.bodyMedium)
             TextButton(onClick = onOpenConnection) { Text(stringResource(R.string.library_stranded_action)) }
         }
@@ -406,31 +391,45 @@ private fun LegendDot(color: androidx.compose.ui.graphics.Color, label: String) 
 }
 
 @Composable
-private fun StateFilters(state: LibraryUiState.Success, onFilter: (MediaState?) -> Unit) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        FilterChip(
-            selected = state.filter == null,
-            onClick = { onFilter(null) },
-            label = { Text(stringResource(R.string.filter_all, state.totalCount)) },
-        )
-        MediaState.entries.forEach { media ->
-            val total = state.totals[media]?.count ?: 0
+private fun StateFilters(state: LibraryUiState.Success, mode: GroupingMode, onFilter: (MediaState?) -> Unit, onSetMode: (GroupingMode) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(rememberScrollState()),
+        ) {
             FilterChip(
-                selected = state.filter == media,
-                onClick = { onFilter(if (state.filter == media) null else media) },
-                label = { Text("${stringResource(media.labelRes())} ($total)") },
-                leadingIcon = {
-                    Icon(painter = painterResource(media.iconRes()), contentDescription = null, tint = MediaStateColors.of(media), modifier = Modifier.size(18.dp))
-                },
+                selected = state.filter == null,
+                onClick = { onFilter(null) },
+                label = { Text(stringResource(R.string.filter_all)) },
             )
+            MediaState.entries.forEach { media ->
+                // The chip shows a short word; the full meaning is what a screen reader says.
+                val full = stringResource(media.labelRes())
+                FilterChip(
+                    selected = state.filter == media,
+                    onClick = { onFilter(if (state.filter == media) null else media) },
+                    label = { Text(stringResource(media.shortLabelRes())) },
+                    leadingIcon = {
+                        Icon(painter = painterResource(media.iconRes()), contentDescription = null, tint = MediaStateColors.of(media), modifier = Modifier.size(18.dp))
+                    },
+                    modifier = Modifier.semantics { contentDescription = full },
+                )
+            }
+        }
+        // One switch between the photo grid by month and the folder view with its sizes.
+        val other = if (mode == GroupingMode.BY_MONTH) GroupingMode.BY_FOLDER else GroupingMode.BY_MONTH
+        IconButton(onClick = { onSetMode(other) }) {
+            Icon(painter = painterResource(other.iconRes()), contentDescription = stringResource(other.labelRes()), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+private fun MediaState.shortLabelRes(): Int = when (this) {
+    MediaState.DEVICE_ONLY -> R.string.filter_phone
+    MediaState.CLOUD_ONLY -> R.string.filter_google
+    MediaState.BOTH -> R.string.filter_both
 }
 
 @Composable
