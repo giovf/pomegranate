@@ -24,6 +24,16 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import com.gankdat.pomegranate.R
 
 /**
@@ -85,5 +95,30 @@ internal fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifi
         border = BorderStroke(2.dp, if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
     ) {
         Text(text, style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+/** A heading row that opens and closes what is under it; closed to begin with, so detail stays out of the way until wanted. */
+@Composable
+internal fun Fold(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    var open by rememberSaveable(title) { mutableStateOf(false) }
+    Column(modifier = modifier) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClickLabel = stringResource(if (open) R.string.group_collapse else R.string.group_expand)) { open = !open }
+                .heightIn(min = 56.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Icon(
+                painter = painterResource(R.drawable.ic_expand_more),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.rotate(if (open) 180f else 0f),
+            )
+        }
+        if (open) Column(modifier = Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
     }
 }

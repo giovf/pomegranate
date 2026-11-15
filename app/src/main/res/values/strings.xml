@@ -617,6 +617,9 @@
     <string name="details_more">More details</string>
     <string name="meta_folder">Folder</string>
 
+    <string name="coverage_short">Each bar is one month: what is only on this phone, only in Google Photos, or in both.</string>
+    <string name="coverage_how_title">How to read this</string>
+
     <!-- More -->
     <string name="more_copies">Your copies</string>
     <string name="more_proof">Proof of your copies</string>
