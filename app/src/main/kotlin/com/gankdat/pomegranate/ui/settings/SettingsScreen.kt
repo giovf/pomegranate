@@ -30,6 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -144,10 +145,29 @@ internal fun SettingsScreen(
         )
     }
     infoDialog?.let { body ->
+        val uriHandler = LocalUriHandler.current
+        val policyUrl = stringResource(R.string.privacy_policy_url)
+        // The hosted policy opens in the user's browser; the app itself makes no request.
+        val openPolicy: (@Composable () -> Unit)? = if (body == R.string.settings_privacy_policy_body) {
+            {
+                TextButton(
+                    onClick = {
+                        try {
+                            uriHandler.openUri(policyUrl)
+                        } catch (_: IllegalArgumentException) {
+                            // No browser on this phone: the address is in the dialog text.
+                        }
+                    },
+                ) { Text(stringResource(R.string.settings_privacy_policy_open)) }
+            }
+        } else {
+            null
+        }
         AlertDialog(
             onDismissRequest = { infoDialog = null },
             text = { Text(stringResource(body), style = MaterialTheme.typography.bodyMedium) },
             confirmButton = { TextButton(onClick = { infoDialog = null }) { Text(stringResource(android.R.string.ok)) } },
+            dismissButton = openPolicy,
         )
     }
 }

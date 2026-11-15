@@ -1,6 +1,9 @@
 # Pomegranate privacy policy
 
-_Last updated: 13 November 2026 · applies to the Android app `com.gankdat.pomegranate`_
+_Last updated: 15 November 2026 · applies to the Android app `com.gankdat.pomegranate`_
+
+<!-- Published copy: site/pomegranate/privacy/index.html
+     (https://gankdat.com/pomegranate/privacy/). Change both together. -->
 
 Pomegranate is an Android app that shows where each of your photos and videos
 lives (on your phone, in Google Photos, or both), copies the ones you pick
@@ -13,7 +16,7 @@ reporting. Everything it knows stays on your phone until you remove it.
 ## Who is responsible
 
 Pomegranate is published by an individual developer (giovf). Contact:
-**[CONTACT ADDRESS: to be filled in before publishing]**.
+<info@gankdat.com>.
 
 Because nothing is sent to the developer, the developer holds no personal
 data about you and cannot identify you, look anything up, or hand anything
@@ -45,6 +48,10 @@ The app connects only to Google, and only when you ask it to:
 These connections are encrypted (HTTPS). Google handles them under
 [Google's privacy policy](https://policies.google.com/privacy). No other
 servers are contacted, including the developer's.
+
+The "Privacy policy" entry in the app's settings can open this page. It does
+so by handing the address to your web browser; the app itself does not load
+the page, and nothing about you or your photos is added to the address.
 
 ## Use of Google user data
 

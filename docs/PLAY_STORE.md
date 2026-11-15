@@ -6,17 +6,28 @@ Requirements were checked against Google's pages on 2026-11-13; items marked
 **(unconfirmed)** could not be confirmed from a primary source and must be
 checked in the console when you get there.
 
-## 0. Decisions the owner has to make first
+## 0. Decisions (owner, 2026-11-15)
 
-| # | Decision | Recommendation |
+| # | Decision | Outcome |
 |---|---|---|
-| A | Where the privacy policy and homepage live | A domain you own (`gankdat.com/pomegranate/` and `.../privacy`). Google's OAuth verification wants a homepage and policy on a domain you can verify in Search Console; `github.io` acceptance is unconfirmed, and the repo is private anyway. |
-| B | Public contact email | A dedicated address (it is shown on the store listing and in the policy). Fill it into `docs/privacy-policy.md`. |
+| A | Where the privacy policy and homepage live | `https://gankdat.com/pomegranate/` and `https://gankdat.com/pomegranate/privacy/`. The pages are in `site/pomegranate/` (static, no scripts, no third-party requests): upload that folder to the web root as `pomegranate/`. |
+| B | Public contact email | `info@gankdat.com` (in the policy, the homepage, and to be used on the store listing). |
 | C | Store title | `Pomegranate for Google Photos` (29 of 30 characters; "X for Google Photos" is the form Google's Photos UX guidelines ask for). Fallback if Play objects: `Pomegranate: photo exit tool`. |
-| D | 12 closed testers | Needed for 14 continuous days before production access; start recruiting early. |
+| D | 12 closed testers | Still open. Needed for 14 continuous days before production access; start recruiting early. |
 
-Once A is fixed, the app needs one small change: the Settings privacy section
-must link to the hosted policy (Play requires the policy inside the app too).
+The app links to the hosted policy from Settings → Privacy policy → "Open in
+browser" (Play requires the policy inside the app too). The link is handed to
+the phone's browser; the app makes no request of its own. The policy text
+lives twice, in `docs/privacy-policy.md` and
+`site/pomegranate/privacy/index.html`: change both together.
+
+Reading the scope classification (order of work, step 1): the Data Access
+page lists only scopes that have been added to the consent screen, so it is
+empty until you click **Add or remove scopes**, paste
+`https://www.googleapis.com/auth/photospicker.mediaitems.readonly` under
+"Manually add scopes", then **Add to table**, **Update** and **Save**. The
+scope then appears under non-sensitive, sensitive or restricted. Adding it
+does not change how the app behaves while the consent screen is in Testing.
 
 ## 1. Risks to know before spending time
 
@@ -200,5 +211,6 @@ phone screenshots (use a test library, never real photos).
 
 - [ ] Task 26 walkthrough passed on a real phone (nothing here replaces it).
 - [ ] One long pull (over 6 hours or interrupted) resumes on Android 15+.
-- [ ] Privacy policy hosted, contact filled in, linked from Settings.
+- [ ] Privacy policy hosted: upload `site/pomegranate/` and check both
+      addresses load (contact filled in and Settings link done, 2026-11-15).
 - [ ] Listing text and screenshots reviewed against section 8 rules.

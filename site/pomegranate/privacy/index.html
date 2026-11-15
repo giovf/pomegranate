@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy policy · Pomegranate for Google Photos</title>
+<meta name="description" content="Privacy policy for the Pomegranate Android app: the developer never receives any of your data.">
+<link rel="canonical" href="https://gankdat.com/pomegranate/privacy/">
+<link rel="stylesheet" href="../style.css">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+</head>
+<body>
+<!-- Source text: docs/privacy-policy.md in the app repository. Change both together. -->
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../" aria-label="Pomegranate home">
+      <svg viewBox="0 0 108 108" aria-hidden="true">
+        <rect width="108" height="108" rx="24" fill="#F4E9E1"/>
+        <path fill="#B3213A" d="M54 30c-14 0-24 10-24 24s10 26 24 26 24-12 24-26S68 30 54 30z"/>
+        <path fill="#7A1326" d="M46 22l4 10h8l4-10-4 2-4-4-4 4z"/>
+        <g fill="#F4E9E1"><circle cx="54" cy="46" r="4"/><circle cx="44" cy="56" r="4"/><circle cx="64" cy="56" r="4"/><circle cx="54" cy="66" r="4"/></g>
+      </svg>
+      Pomegranate
+    </a>
+    <nav aria-label="Site">
+      <a href="../">About the app</a>
+      <a href="mailto:info@gankdat.com">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1>Pomegranate privacy policy</h1>
+    <p class="updated">Last updated: 15 November 2026 · applies to the Android app <code>com.gankdat.pomegranate</code></p>
+  </section>
+
+  <p>Pomegranate is an Android app that shows where each of your photos and videos lives (on your phone, in Google Photos, or both), copies the ones you pick from Google Photos into a folder you choose, and then disconnects from Google.</p>
+
+  <div class="callout">
+    <p><strong>Short version: the developer never receives any of your data.</strong> The app has no server, no account system, no analytics, no advertising and no crash reporting. Everything it knows stays on your phone until you remove it.</p>
+  </div>
+
+  <h2>Who is responsible</h2>
+  <p>Pomegranate is published by an individual developer (giovf). Contact: <a href="mailto:info@gankdat.com">info@gankdat.com</a>.</p>
+  <p>Because nothing is sent to the developer, the developer holds no personal data about you and cannot identify you, look anything up, or hand anything over to anyone.</p>
+
+  <h2>What the app accesses, and why</h2>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th scope="col">What</th><th scope="col">Why</th><th scope="col">Where it goes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Photos and videos on your phone, and their details (name, folder, size, dates, dimensions)</td>
+          <td>To build the list of what is on the phone and compare it with Google Photos</td>
+          <td>Stays in the app's private database on your phone</td>
+        </tr>
+        <tr>
+          <td>Your Google sign-in (an access token limited to the Google Photos Picker)</td>
+          <td>To let you pick items in Google Photos and download the ones you picked</td>
+          <td>Stored encrypted on your phone with a key held in the Android Keystore; sent only to Google</td>
+        </tr>
+        <tr>
+          <td>The items you pick in Google Photos, and their details</td>
+          <td>To show them, match them with files on the phone, and download them</td>
+          <td>Downloaded straight from Google to the folder you chose; details stay in the app's private database</td>
+        </tr>
+        <tr>
+          <td>The destination folder you choose</td>
+          <td>To save downloaded files there</td>
+          <td>A permission for that one folder, stored on your phone</td>
+        </tr>
+        <tr>
+          <td>Notifications</td>
+          <td>To show download progress while the app is in the background</td>
+          <td>Not sent anywhere</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The app does not read your contacts, location, messages, or anything else. It does not read the location stored inside your photos for any purpose other than leaving your files as they are.</p>
+
+  <h2>Network connections</h2>
+  <p>The app connects only to Google, and only when you ask it to:</p>
+  <ul>
+    <li><code>accounts.google.com</code> and <code>oauth2.googleapis.com</code> to sign in, refresh and revoke access;</li>
+    <li><code>photospicker.googleapis.com</code> and the download addresses it returns, to list and download the items you picked.</li>
+  </ul>
+  <p>These connections are encrypted (HTTPS). Google handles them under <a href="https://policies.google.com/privacy">Google's privacy policy</a>. No other servers are contacted, including the developer's.</p>
+  <p>The "Privacy policy" entry in the app's settings can open this page. It does so by handing the address to your web browser; the app itself does not load the page, and nothing about you or your photos is added to the address.</p>
+
+  <h2>Use of Google user data</h2>
+  <p>Pomegranate asks for one Google permission: read-only access to the items you select in the Google Photos picker (<code>https://www.googleapis.com/auth/photospicker.mediaitems.readonly</code>). It cannot see the rest of your library, and it cannot change or delete anything in Google Photos.</p>
+  <p>Pomegranate's use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements. Specifically:</p>
+  <ul>
+    <li>data from Google is used only to provide the features you see in the app (showing, matching and downloading the items you picked);</li>
+    <li>it is never transferred to anyone, never used for advertising, and never used to train or improve any AI or machine-learning model;</li>
+    <li>no person other than you can see it, because it never leaves your phone.</li>
+  </ul>
+
+  <h2>Keeping and deleting data</h2>
+  <ul>
+    <li><strong>Disconnect</strong> (in the app) revokes the app's Google access, and deletes the sign-in token, the list of Google Photos items and your review decisions from the phone.</li>
+    <li><strong>Uninstalling</strong> the app, or clearing its storage in Android settings, deletes everything the app stored. The app is excluded from Android cloud backup and device-to-device transfer, so no copy is kept elsewhere.</li>
+    <li>Files the app downloaded into your chosen folder are yours: they stay where they are until you delete them. The app never deletes files on your phone.</li>
+    <li>You can also remove the app's access at any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+  </ul>
+
+  <h2>Your rights</h2>
+  <p>Under the UK GDPR and EU GDPR you have rights of access, correction, deletion and objection. Since all processing happens on your own device and the developer holds no data about you, you exercise them directly with the controls above. If you have a question or complaint, use the contact address above; you may also complain to your data protection authority (in the UK, the ICO).</p>
+
+  <h2>Children</h2>
+  <p>The app is not directed at children and does not knowingly process children's data beyond what is described above for any user.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes, the new version is published at this address with a new date. A change that would let any data leave your phone would also be announced in the app before it takes effect.</p>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p>Pomegranate is an independent app and is not affiliated with or endorsed by Google. Google Photos is a trademark of Google LLC.</p>
+    <p><a href="../">About the app</a> · <a href="mailto:info@gankdat.com">info@gankdat.com</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
