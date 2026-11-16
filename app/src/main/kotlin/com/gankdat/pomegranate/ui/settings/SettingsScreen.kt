@@ -41,6 +41,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gankdat.pomegranate.BuildConfig
 import androidx.compose.foundation.layout.heightIn
 import com.gankdat.pomegranate.data.model.ThemeMode
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
 import com.gankdat.pomegranate.R
 import com.gankdat.pomegranate.data.model.FolderStrategy
 import com.gankdat.pomegranate.data.settings.SettingsRepository
@@ -51,9 +55,6 @@ import com.gankdat.pomegranate.ui.onboarding.ResolverDestinationAccess
 
 @Composable
 internal fun SettingsScreen(
-    onOpenConnection: () -> Unit,
-    onOpenProof: () -> Unit,
-    onOpenCleanupGuide: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = viewModel(
         factory = appViewModelFactory { app ->
@@ -83,7 +84,7 @@ internal fun SettingsScreen(
                     .fillMaxWidth()
                     .selectable(selected = state.themeMode == mode, role = Role.RadioButton, onClick = { viewModel.setThemeMode(mode) })
                     .heightIn(min = 48.dp)
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 20.dp),
             ) {
                 RadioButton(selected = state.themeMode == mode, onClick = null)
                 Spacer(Modifier.width(12.dp))
@@ -107,11 +108,11 @@ internal fun SettingsScreen(
             onClick = { if (state.destinationUri != null) confirmChange = true else picker.launch(null) },
         )
         state.freeBytes?.let {
-            Text(stringResource(R.string.settings_free_space, Formatters.fileSize(it)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp))
+            Text(stringResource(R.string.settings_free_space, Formatters.fileSize(it)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 20.dp))
         }
 
         SectionHeader(stringResource(R.string.settings_downloads))
-        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
             Text(stringResource(R.string.settings_concurrency, state.concurrency), style = MaterialTheme.typography.bodyLarge)
             Slider(
                 value = state.concurrency.toFloat(),
@@ -124,14 +125,14 @@ internal fun SettingsScreen(
         SwitchRow(stringResource(R.string.settings_low_battery), null, state.pauseOnLowBattery, viewModel::setPauseOnLowBattery)
 
         SectionHeader(stringResource(R.string.settings_behaviour))
-        Text(stringResource(R.string.settings_folder_strategy), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 16.dp))
+        Text(stringResource(R.string.settings_folder_strategy), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 20.dp))
         FolderStrategy.entries.forEach { strategy ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
                     .selectable(selected = state.folderStrategy == strategy, role = Role.RadioButton, onClick = { viewModel.setFolderStrategy(strategy) })
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                    .padding(horizontal = 20.dp, vertical = 6.dp),
             ) {
                 RadioButton(selected = state.folderStrategy == strategy, onClick = null)
                 Spacer(Modifier.width(12.dp))
@@ -142,9 +143,6 @@ internal fun SettingsScreen(
         SwitchRow(stringResource(R.string.settings_show_fidelity), null, !state.fidelityNoticeAcknowledged, viewModel::setShowFidelityNotice)
 
         SectionHeader(stringResource(R.string.settings_privacy))
-        SettingRow(stringResource(R.string.title_connection), stringResource(R.string.settings_connection_hint), onOpenConnection)
-        SettingRow(stringResource(R.string.title_proof), null, onOpenProof)
-        SettingRow(stringResource(R.string.title_cleanup_guidance), null, onOpenCleanupGuide)
         SettingRow(stringResource(R.string.settings_data_stored), null) { infoDialog = R.string.settings_data_stored_body }
 
         SectionHeader(stringResource(R.string.settings_about))
@@ -204,23 +202,31 @@ private fun SectionHeader(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
-            .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 8.dp)
+            .padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 8.dp)
             .semantics { heading() },
     )
 }
 
 @Composable
 private fun SettingRow(title: String, subtitle: String?, onClick: (() -> Unit)?) {
-    Column(
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .heightIn(min = 56.dp)
+            .padding(horizontal = 20.dp, vertical = 8.dp),
     ) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
-        if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (onClick != null) {
+            Icon(painter = painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+        }
     }
 }
 
@@ -228,16 +234,17 @@ private fun SettingRow(title: String, subtitle: String?, onClick: (() -> Unit)?)
 private fun SwitchRow(title: String, subtitle: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
             .toggleable(value = checked, role = Role.Switch, onValueChange = onChange)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .heightIn(min = 56.dp)
+            .padding(horizontal = 20.dp, vertical = 8.dp),
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Switch(checked = checked, onCheckedChange = null)
     }
-    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 }

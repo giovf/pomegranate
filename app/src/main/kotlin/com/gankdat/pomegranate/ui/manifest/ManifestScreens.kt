@@ -170,26 +170,26 @@ internal fun ManifestViewerScreen(
             onValueChange = viewModel::setQuery,
             singleLine = true,
             label = { Text(stringResource(R.string.manifest_search)) },
+            shape = MaterialTheme.shapes.large,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
         )
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(records, key = { it.sourceId + it.destinationPath }) { record ->
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(painter = painterResource(R.drawable.ic_state_both), contentDescription = stringResource(R.string.manifest_verified), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.size(8.dp))
-                        Text(record.originalFilename, style = MaterialTheme.typography.bodyLarge)
+                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(painter = painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.manifest_verified), tint = MediaStateColors.of(MediaState.DEVICE_ONLY), modifier = Modifier.size(18.dp))
+                        Text(record.originalFilename, style = MaterialTheme.typography.titleMedium)
                     }
-                    Text(record.destinationPath, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(record.destinationPath, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        "${Formatters.fileSize(record.sizeBytes)} • ${fidelityLabel(record.fidelity)} • ${Formatters.dateTime(record.pulledAtMillis)}",
-                        style = MaterialTheme.typography.bodySmall,
+                        "${Formatters.fileSize(record.sizeBytes)} · ${fidelityLabel(record.fidelity)} · ${Formatters.dateTime(record.pulledAtMillis)}",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Text(record.sha256.take(16) + "…", style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 20.dp))
             }
         }
     }

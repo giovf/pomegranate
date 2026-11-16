@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -47,7 +46,7 @@ internal fun PickOnAnotherDeviceDialog(pickerUri: String, continueBefore: Long?,
                     } else {
                         stringResource(R.string.picker_continue_from_start)
                     },
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.height(8.dp))
@@ -55,16 +54,12 @@ internal fun PickOnAnotherDeviceDialog(pickerUri: String, continueBefore: Long?,
                 Spacer(Modifier.height(12.dp))
                 QrCodeImage(text = pickerUri, contentDescription = stringResource(R.string.picker_qr_description), modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(12.dp))
-                SelectionContainer {
-                    Text(pickerUri, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { context.copyLink(pickerUri) }) { Text(stringResource(R.string.picker_copy_link)) }
                     OutlinedButton(onClick = { context.shareLink(pickerUri) }) { Text(stringResource(R.string.picker_share_link)) }
                 }
                 Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.picker_other_device_tip), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.picker_other_device_tip), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.picker_other_device_done)) } },

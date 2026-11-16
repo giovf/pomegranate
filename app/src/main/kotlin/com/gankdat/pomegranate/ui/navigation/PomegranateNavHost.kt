@@ -112,12 +112,7 @@ internal fun PomegranateNavHost(
         }
         composable(Screen.Settings.route) {
             PomegranateScaffold(navController, stringResource(R.string.title_settings)) { padding ->
-                SettingsScreen(
-                    onOpenConnection = navController::navigateToConnection,
-                    onOpenProof = navController::navigateToProofOfCopy,
-                    onOpenCleanupGuide = { navController.navigate(Screen.CleanupGuidance.route) },
-                    modifier = Modifier.padding(padding),
-                )
+                SettingsScreen(modifier = Modifier.padding(padding))
             }
         }
         composable(Screen.Disconnect.route) {

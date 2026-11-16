@@ -23,7 +23,7 @@
     <string name="manifest_written">Saved %1$s</string>
     <string name="manifest_nothing">Nothing copied yet.</string>
     <string name="manifest_failed">Could not save the list: %1$s</string>
-    <string name="manifest_search">Search by name, folder or check value</string>
+    <string name="manifest_search">Search by name or folder</string>
     <string name="manifest_verified">Checked</string>
     <string name="fidelity_label_original">Original</string>
     <string name="fidelity_label_gps_stripped">Location stripped</string>
@@ -404,7 +404,6 @@
     <string name="settings_auto_disconnect_hint">After everything you selected is checked, remove and wipe Google access</string>
     <string name="settings_show_fidelity">Show the quality notice before each copy</string>
     <string name="settings_privacy">Privacy</string>
-    <string name="settings_connection_hint">Google connection, batches and disconnect</string>
     <string name="settings_data_stored">What this app stores</string>
     <string name="settings_data_stored_body">Everything stays on this phone: a list of your photos and videos here (names, sizes, dates, dimensions), what you chose in Google Photos, how they match, a record of each copy with its check value, your settings, and an encrypted Google sign-in that is wiped when you disconnect. Nothing is sent anywhere except to Google, and only when you connect or copy.</string>
     <string name="settings_about">About</string>
