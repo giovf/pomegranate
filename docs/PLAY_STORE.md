@@ -44,9 +44,9 @@ feature graphic and the website logo. The website headings use Baloo 2 Bold,
 served from the site's own `fonts/` folder (SIL Open Font License, licence
 text beside it), so the pages still make no third-party requests.
 
-The app's screens are to be redesigned before any store screenshots are
-taken (task 37, owner 2026-11-15): friendlier, less information at once,
-more polished.
+The app's screens were redesigned in version 0.3.0 (task 37, 2026-11-16):
+a Home screen with the next step, a Home / Photos / More bar, plain wording,
+technical detail folded away, and a light / dark / auto setting.
 
 How the scope classification was read (order of work, step 1): the Data Access
 page lists only scopes that have been added to the consent screen, so it is
@@ -122,7 +122,8 @@ as in `docs/RELEASE.md` section 2 (no build changes are needed; `keys/` and
 ```
 
 `bundleRelease` was verified to build on 2026-11-13 (unsigned, version 0.2.0,
-code 2). Every upload needs a higher `versionCode`.
+code 2); the current version is 0.3.0, code 3. Every upload needs a higher
+`versionCode`.
 
 Note: a sideloaded APK signed with your own key and a Play install are signed
 differently and cannot update each other.
@@ -229,8 +230,14 @@ Assets (in `docs/store/`, final artwork as of 2026-11-15):
   two together, and the launcher drawables in `app/src/main/res/drawable/`
   with them.
 
-Still to make: at least 2 phone screenshots (use a test library, never real
-photos) and their framing.
+Phone screenshots (2026-11-16): five framed images at 1080×1920, each an
+app screen inside a phone frame under a short caption, are on the "Store
+listing" page of the owner's private design canvas (Home, Photos, Connect,
+Copying, Finished). Export each as PNG from the canvas. The screens inside
+are drawn to match the app, not captured from it, and the Photos grid uses
+illustrated sample pictures, never real photos: compare each with the app on
+a phone before uploading, since Play requires screenshots to show the app as
+it is. Suggested order: Home, Photos, Connect, Copying, Finished.
 
 ## 9. Closed test plan
 
